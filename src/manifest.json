@@ -1,0 +1,31 @@
+{
+  "author": "Jean Lucas Lima <github.com/jeanlucaslima>",
+  "background": {
+    "page": "background.html"
+  },
+  "browser_action": {
+    "default_icon": {
+      "16": "img/icon_16.png",
+      "32": "img/icon_32.png",
+      "64": "img/icon_64.png"
+    },
+    "default_title": "Advanced Tab Manager",
+    "default_popup": "popup.html"
+  },
+  "description": "A search based Chrome extension to organize tabs, windows, and groups.",
+  "manifest_version": 3,
+  "name": "Advanced Tab Manager",
+  "permissions": [
+    "contextMenus",
+    "privacy",
+    "storage",
+    "tabs",
+    "unlimitedStorage",
+    "webNavigation",
+    "webRequest",
+    "webRequestBlocking",
+    "<all_urls>"
+  ],
+  "short_name": "ato",
+  "version": "0.1"
+}
