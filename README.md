@@ -14,7 +14,13 @@ navigate between them.
 
 ## How it works
 
+TBD
+
 ## Issues
+
+If you have any issues, feel free to ask for help at the issues area.
+
+Some other known issues:
 
 **Chrome API doesn't fully support groups**
 Despite the documentation saying it works, I wasn't able to find a way to properly
