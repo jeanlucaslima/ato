@@ -1,0 +1,23 @@
+:root {
+  --main-bg-color: #22272e;
+  --main-color: #cad1d8;
+  --main-color-muted: #768390;
+  --main-link-color: #539bf5;
+  --btn-bg-color: #373e47;
+  --btn-bg-color-hover: #444c56;
+  --btn-border-color-hover: #768390;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  width: 386px;
+  min-height: 240px;
+  overflow-y: scroll;
+  padding: 0;
+  margin: 0;
+  background-color: var(--main-bg-color);
+  color: var(--main-color);
+}
