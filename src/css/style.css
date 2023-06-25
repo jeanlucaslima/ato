@@ -6,6 +6,7 @@
   --btn-bg-color: #373e47;
   --btn-bg-color-hover: #444c56;
   --btn-border-color-hover: #768390;
+  --inner-width: 316px;
 }
 
 html {
@@ -13,11 +14,25 @@ html {
 }
 
 body {
-  width: 386px;
+  width: 326px;
   min-height: 240px;
   overflow-y: scroll;
   padding: 0;
   margin: 0;
   background-color: var(--main-bg-color);
   color: var(--main-color);
+}
+
+.search-wrapper {
+  max-width: var(--inner-width);
+  margin: auto;
+}
+
+input[type="text"] {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 10px;
+  font-size: 0.75rem;
+  padding-top: 5px;
+  padding-bottom: 5px;
 }

@@ -1,7 +1,7 @@
 {
   "author": "Jean Lucas Lima <github.com/jeanlucaslima>",
   "background": {
-    "service_worker": "background.js",
+    "service_worker": "js/background.js",
     "type": "module"
   },
   "action": {
@@ -30,7 +30,8 @@
   "name": "Advanced Tab Manager",
 
   "permissions": [
-    "tabs"
+    "tabs",
+    "tabGroups"
   ],
   "short_name": "ato",
   "version": "0.1"
