@@ -37,17 +37,36 @@ input[type="text"] {
   padding-bottom: 5px;
 }
 
-hr {
-  border: 0;
-  height: 0;
-  border-top: 1px solid var(--main-color-muted);
-  border-bottom: 1px solid var(--main-color-muted);
+input[type="text"]:focus {
+  transition-duration: 1s;
+  outline: 1px solid var(--main-link-color);
 }
 
-.tab {
-  margin-top: 1rem;
+.group-item, .tab-item {
+  cursor: pointer;
+  margin-top: 2px;
+  border-radius: 4px;
+  color: var(--main-bg-color);
+  background-color: var(--main-color-muted);
+
+  padding: 10px;
 }
 
-.group {
-  margin-top: 1rem;
+.group-item:hover, .tab-item:hover {
+  background-color: var(--btn-bg-color-hover);
+}
+
+.group-title, .tab-title {
+  margin-left: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: bold;
+}
+
+.group-url, .tab-url {
+  margin-left: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
