@@ -7,9 +7,6 @@ searchInput.addEventListener('input', async () => {
   const query = searchInput.value.toLowerCase();
 
   search(query).then(searchResults => {
-    console.log(searchResults);
-    console.log(searchResults.tabs.size + " tabs found");
-    console.log(searchResults.groups.size + " groups found");
     renderResults(searchResults.tabs, searchResults.groups);
   });
 
