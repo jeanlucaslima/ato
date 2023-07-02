@@ -10,7 +10,7 @@ searchInput.addEventListener('input', async () => {
     console.log(searchResults);
     console.log(searchResults.tabs.size + " tabs found");
     console.log(searchResults.groups.size + " groups found");
-    renderResults(searchResults.tabs, searchResults.tabs.size, searchResults.groups, searchResults.groups.size);
+    renderResults(searchResults.tabs, searchResults.groups);
   });
 
 });
