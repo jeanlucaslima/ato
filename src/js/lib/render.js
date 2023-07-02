@@ -1,9 +1,9 @@
-const tabList = document.getElementById('container-tab-list');
-const groupList = document.getElementById('container-group-list');
-const statContainer = document.getElementById('stats');
+import { tabList, groupList, statContainer } from "./ui.js";
 
 const renderStats = (tabCounter, groupCounter) => {
   const statsBar = document.createElement('div');
+  statContainer.innerHTML = '';
+
   statsBar.innerHTML = `
     <div>tabs: ${tabCounter}</div>
     <div>groups: ${groupCounter}</div>
@@ -12,15 +12,17 @@ const renderStats = (tabCounter, groupCounter) => {
   statContainer.appendChild(statsBar);
 }
 
-const renderResults = (tabResults, groupResults) => {
+const renderResults = (tabResults, tabCounter, groupResults, groupCounter) => {
   tabList.innerHTML = '';
   groupList.innerHTML = '';
 
   groupResults.forEach(group => {
     const listItem = document.createElement('div');
     listItem.innerHTML = `
-      <div class="group">
-        ${group.title} | ${group.id} | ${group.color}
+      <div class="group-item">
+        <div class="group-title">
+          ${group.title}
+        </div>
       </div>
     `;
     groupList.appendChild(listItem);
@@ -29,15 +31,15 @@ const renderResults = (tabResults, groupResults) => {
   tabResults.forEach(tab => {
     const listItem = document.createElement('div');
     listItem.innerHTML = `
-      <div class="tab">
-        <div>${tab.title}</div>
-        <div>${tab.url}</div>
+      <div class="tab-item">
+        <div class="tab-title">${tab.title}</div>
+        <div class="tab-url">${tab.url}</div>
       </div>
     `;
     tabList.appendChild(listItem);
   });
 
-  renderStats(tabResults.length, groupResults.length);
+  renderStats(tabCounter, groupCounter);
 }
 
 export { renderResults };
