@@ -12,7 +12,7 @@ const renderStats = (tabCounter, groupCounter) => {
   statContainer.appendChild(statsBar);
 }
 
-const renderResults = (tabResults, tabCounter, groupResults, groupCounter) => {
+const renderResults = (tabResults, groupResults) => {
   tabList.innerHTML = '';
   groupList.innerHTML = '';
 
@@ -39,7 +39,7 @@ const renderResults = (tabResults, tabCounter, groupResults, groupCounter) => {
     tabList.appendChild(listItem);
   });
 
-  renderStats(tabCounter, groupCounter);
+  renderStats(tabResults.size, groupResults.size);
 }
 
 export { renderResults };

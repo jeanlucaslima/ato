@@ -15,4 +15,4 @@ searchInput.addEventListener('input', async () => {
 
 });
 
-renderResults(allTabs, allTabs.length, allGroups, allGroups.length);
+renderResults(allTabs, allGroups);
