@@ -1,26 +1,31 @@
-const tabList = document.getElementById('results-container-tabs');
-const groupList = document.getElementById('results-container-tabs');
+const tabList = document.getElementById('container-tab-list');
+const groupList = document.getElementById('container-group-list');
 const statContainer = document.getElementById('stats');
 
 const tabs = await chrome.tabs.query({});
 const groups = await chrome.tabGroups.query({});
 
-const renderResults = (groups) => {
+const renderResults = () => {
   tabList.innerHTML = '';
   groupList.innerHTML = '';
 
   groups.forEach(group => {
     const listItem = document.createElement('div');
     listItem.innerHTML = `
-      <div>${group.title} | ${group.id} | ${group.color} </div>
+      <div class="group">
+        ${group.title} | ${group.id} | ${group.color}
+      </div>
     `;
     groupList.appendChild(listItem);
   });
 
-  tabs.forEach(group => {
+  tabs.forEach(tab => {
     const listItem = document.createElement('div');
     listItem.innerHTML = `
-      <div>${group.title} | ${group.id} | ${group.color} </div>
+      <div class="tab">
+        <div>${tab.title}</div>
+        <div>${tab.url}</div>
+      </div>
     `;
     tabList.appendChild(listItem);
   });
@@ -34,4 +39,4 @@ const renderResults = (groups) => {
 
 }
 
-renderResults(groups);
+renderResults();

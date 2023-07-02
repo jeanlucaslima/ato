@@ -36,3 +36,18 @@ input[type="text"] {
   padding-top: 5px;
   padding-bottom: 5px;
 }
+
+hr {
+  border: 0;
+  height: 0;
+  border-top: 1px solid var(--main-color-muted);
+  border-bottom: 1px solid var(--main-color-muted);
+}
+
+.tab {
+  margin-top: 1rem;
+}
+
+.group {
+  margin-top: 1rem;
+}
