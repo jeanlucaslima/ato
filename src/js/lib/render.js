@@ -31,12 +31,31 @@ const renderResults = (tabResults, groupResults) => {
   tabResults.forEach(tab => {
     const listItem = document.createElement('div');
     listItem.innerHTML = `
-      <div class="tab-item">
+    <div class="tab-item">
+      <div class="tab-area">
         <div class="tab-title">${tab.title}</div>
         <div class="tab-url">${tab.url}</div>
+      <div/>
+      <div class="tab-deck">
+        <button class="close-tab">x</button>
+        <button class="discard-tab">d</button>
+        <button class="mute-tab">m</button>
       </div>
+    </div>
     `;
     tabList.appendChild(listItem);
+
+    // Add event listener to close button
+    listItem.querySelector('.close-tab').addEventListener('click', async () => {
+      await chrome.tabs.remove(tab.id);
+      listItem.remove();
+    });
+
+    // Add event listener to navigate to tab onclick
+    listItem.querySelector('.tab-area').addEventListener('click', async () => {
+      await chrome.tabs.update(tab.id, { active: true });
+      await chrome.windows.update(tab.windowId, { focused: true });
+    });
   });
 
   renderStats(tabResults.size, groupResults.size);

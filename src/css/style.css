@@ -28,7 +28,8 @@ body {
   min-height: 240px;
   overflow-y: scroll;
   padding: 0;
-  margin: 0;
+  margin-right: 3px;
+  margin-left: 3px;
   background-color: var(--main-bg-color);
   color: var(--main-color);
 }
@@ -66,7 +67,7 @@ input[type="text"]:focus {
   color: var(--main-bg-color);
   background-color: var(--main-color-muted);
 
-  padding: 10px;
+  padding: 5px;
 }
 
 .group-item:hover, .tab-item:hover {
@@ -79,6 +80,10 @@ input[type="text"]:focus {
   overflow: hidden;
   text-overflow: ellipsis;
   font-weight: bold;
+}
+
+.tab-deck button {
+  font-size: 0.5rem;
 }
 
 .group-url, .tab-url {
