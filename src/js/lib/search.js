@@ -1,3 +1,5 @@
+import { groupTabsButton } from "./ui.js";
+
 const search = async (query) => {
   const tabResults = new Set();
   const groupResults = new Set();
@@ -27,6 +29,17 @@ const search = async (query) => {
     tabs: tabResults,
     groups: groupResults
   };
+
+  if (tabResults.size) {
+    const tabIds = Array.from(tabResults, tab => tab.id);
+    console.log('tabIds: ' +  tabIds);
+
+    groupTabsButton.addEventListener('click', async () => {
+      const group = await chrome.tabs.group({ tabIds });
+      console.log('new group id: '+ group);
+    });
+
+  }
 
   return searchResults;
 };
