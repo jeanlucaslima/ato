@@ -51,6 +51,12 @@ const renderResults = (tabResults, groupResults) => {
       listItem.remove();
     });
 
+    // Add event listener to discard button
+    listItem.querySelector('.discard-tab').addEventListener('click', async () => {
+      await chrome.tabs.discard(tab.id);
+      listItem.remove();
+    });
+
     // Add event listener to navigate to tab onclick
     listItem.querySelector('.tab-area').addEventListener('click', async () => {
       await chrome.tabs.update(tab.id, { active: true });
