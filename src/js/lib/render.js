@@ -21,7 +21,7 @@ const renderResults = (tabResults, groupResults) => {
     listItem.innerHTML = `
       <div class="group-item">
         <div class="group-title">
-          ${group.title}
+          ${group.title} <span class="group-color" color="${group.color}"></span>
         </div>
       </div>
     `;

@@ -7,6 +7,16 @@
   --btn-bg-color-hover: #444c56;
   --btn-border-color-hover: #768390;
   --inner-width: 316px;
+
+  --tab-group-color-grey: grey;
+  --tab-group-color-blue: blue;
+  --tab-group-color-red: red;
+  --tab-group-color-yellow: yellow;
+  --tab-group-color-green: green;
+  --tab-group-color-pink: pink;
+  --tab-group-color-purple: purple;
+  --tab-group-color-cyan: cyan;
+  --tab-group-color-orange: orange;
 }
 
 html {
@@ -42,6 +52,13 @@ input[type="text"]:focus {
   outline: 1px solid var(--main-link-color);
 }
 
+#stats {
+  margin-bottom: 1rem;
+
+  padding-left: 2px;
+  padding-right: 2px;
+}
+
 .group-item, .tab-item {
   cursor: pointer;
   margin-top: 2px;
@@ -69,4 +86,51 @@ input[type="text"]:focus {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.group-color {
+  position: absolute;
+  cursor: pointer;
+}
+
+.group-color:after {
+  content: "";
+  background-color: var(--main-link-color);
+  width: 12px;
+  height: 12px;
+  border-radius: 10%;
+  position: absolute;
+  display: block;
+  top: 1px;
+  left: 1px;
+}
+
+[color="grey"]:after {
+  background-color: var(--tab-group-color-grey);
+}
+
+[color="red"]:after {
+  background-color: var(--tab-group-color-red);
+}
+
+[color="yellow"]:after {
+  background-color: var(--tab-group-color-yellow);
+}
+
+[color="green"]:after {
+  background-color: var(--tab-group-color-green);
+
+[color="pink"]:after {
+  background-color: var(--tab-group-color-pink);
+}
+
+[color="purple"]:after {
+  background-color: var(--tab-group-color-purple);
+}
+
+[color="cyan"]:after {
+  background-color: var(--tab-group-color-cyan);
+
+[color="orange"]:after {
+  background-color: var(--tab-group-color-orange);
 }
