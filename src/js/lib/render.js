@@ -21,11 +21,28 @@ const renderResults = (tabResults, groupResults) => {
     listItem.innerHTML = `
       <div class="group-item">
         <div class="group-title">
-          ${group.title} <span class="group-color" color="${group.color}"></span>
+          <p>
+            ${group.title || "No title " + group.id }
+            <span class="group-color" color="${group.color}"></span>
+          </p>
+        </div>
+        <div class="group-deck">
+          <button id="min-group">_</button>
+          <button id="group-tab-counter">d</button>
         </div>
       </div>
     `;
     groupList.appendChild(listItem);
+
+    // Add event listener to close button
+    listItem.querySelector('#min-group').addEventListener('click', async () => {
+      console.log('min-group-btn worked');
+    });
+
+    // Add event listener to discard button
+    listItem.querySelector('#group-tab-counter').addEventListener('click', async () => {
+      console.log('group-tab-counter worked');
+    });
   });
 
   tabResults.forEach(tab => {
@@ -37,22 +54,22 @@ const renderResults = (tabResults, groupResults) => {
         <div class="tab-url">${tab.url}</div>
       <div/>
       <div class="tab-deck">
-        <button class="close-tab">x</button>
-        <button class="discard-tab">d</button>
-        <button class="mute-tab">m</button>
+        <button id="close-tab">x</button>
+        <button id="discard-tab">d</button>
+        <button id="mute-tab">m</button>
       </div>
     </div>
     `;
     tabList.appendChild(listItem);
 
     // Add event listener to close button
-    listItem.querySelector('.close-tab').addEventListener('click', async () => {
+    listItem.querySelector('#close-tab').addEventListener('click', async () => {
       await chrome.tabs.remove(tab.id);
       listItem.remove();
     });
 
     // Add event listener to discard button
-    listItem.querySelector('.discard-tab').addEventListener('click', async () => {
+    listItem.querySelector('#discard-tab').addEventListener('click', async () => {
       await chrome.tabs.discard(tab.id);
     });
 

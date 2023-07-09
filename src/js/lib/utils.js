@@ -4,4 +4,8 @@ const objectToSet = (obj) => {
   return new Set(values);
 }
 
+// const addTabsToGroup = (tabIds, groupId = '', title = '') => {};
+//
+// const changeTabGroup = (tabIds) => {};
+
 export { objectToSet };
