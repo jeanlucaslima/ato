@@ -24,16 +24,12 @@ const search = async (query) => {
   const queryGroups = await chrome.tabGroups.query({});
 
   const searchTabs = new Fuse(queryTabs, fuseTabOptions);
-  const searchGroups = new Fuse(queryGroups, fuseGroupOptions);
   const tabResults = searchTabs.search(query);
+
+  const searchGroups = new Fuse(queryGroups, fuseGroupOptions);
   const groupResults = searchGroups.search(query);
 
-  const searchResults = {
-    tabs: tabResults,
-    groups: groupResults
-  };
-
-  console.log(searchResults);
+  const searchResults = { tabs: tabResults, groups: groupResults };
 
   return searchResults;
 };

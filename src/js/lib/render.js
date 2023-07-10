@@ -1,3 +1,4 @@
+import { allTabs, allGroups } from "./data.js";
 import { tabList, groupList, statContainer } from "./ui.js";
 
 const renderStats = (tabCounter, groupCounter) => {
@@ -12,11 +13,11 @@ const renderStats = (tabCounter, groupCounter) => {
   statContainer.appendChild(statsBar);
 }
 
-const renderResults = (tabResults, groupResults) => {
+const initialRender = async () => {
   tabList.innerHTML = '';
   groupList.innerHTML = '';
 
-  groupResults.forEach(group => {
+  allGroups.forEach(group => {
     const listItem = document.createElement('div');
     listItem.innerHTML = `
       <div class="group-item">
@@ -45,7 +46,7 @@ const renderResults = (tabResults, groupResults) => {
     });
   });
 
-  tabResults.forEach(tab => {
+  allTabs.forEach(tab => {
     const listItem = document.createElement('div');
     listItem.innerHTML = `
     <div class="tab-item">
@@ -80,7 +81,12 @@ const renderResults = (tabResults, groupResults) => {
     });
   });
 
-  renderStats(tabResults.size, groupResults.size);
-}
+  renderStats(allGroups.size, allGroups.size);
+};
 
-export { renderResults };
+
+const renderResults = async (searchResults) => {
+  console.log(searchResults);
+};
+
+export { renderResults, initialRender };
