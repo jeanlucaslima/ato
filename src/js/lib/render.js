@@ -81,7 +81,7 @@ const initialRender = async () => {
     });
   });
 
-  renderStats(allGroups.size, allGroups.size);
+  renderStats(allTabs.size, allGroups.size);
 };
 
 
