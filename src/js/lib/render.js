@@ -37,12 +37,12 @@ const initialRender = async () => {
 
     // Add event listener to close button
     listItem.querySelector('#min-group').addEventListener('click', async () => {
-      console.log('min-group-btn worked');
+      //console.log('min-group-btn worked');
     });
 
     // Add event listener to discard button
     listItem.querySelector('#group-tab-counter').addEventListener('click', async () => {
-      console.log('group-tab-counter worked');
+      //console.log('group-tab-counter worked');
     });
   });
 
@@ -86,7 +86,15 @@ const initialRender = async () => {
 
 
 const renderResults = async (searchResults) => {
-  console.log(searchResults);
+  const tablist = searchResults.tabs;
+  tablist.forEach(tab => {
+    console.log(`${tab} ; ${typeof(tab)}`)
+    const tabDetail = chrome.tabs.get({tabId: tab}, function(tab) {
+      console.log(`holy sheet it got here? ${tab.title}`)
+    });
+    console.log(tabDetail);
+    console.log(tab)
+  });
 };
 
 export { renderResults, initialRender };

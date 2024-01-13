@@ -25,13 +25,24 @@ const search = async (query) => {
 
   const searchTabs = new Fuse(queryTabs, fuseTabOptions);
   const tabResults = searchTabs.search(query);
+  const tabResultsId = [];
+  tabResults.forEach(result => {
+    tabResultsId.push(result.item.id);
+  });
 
   const searchGroups = new Fuse(queryGroups, fuseGroupOptions);
   const groupResults = searchGroups.search(query);
+  const groupResultsId = [];
+  groupResults.forEach(result => {
+    groupResultsId.push(result.item.id);
+  });
 
-  const searchResults = { tabs: tabResults, groups: groupResults };
+  const searchResultsId = { tabs: tabResultsId, groups: groupResultsId };
 
-  return searchResults;
+  //console.log(`tab list: ${searchIdsResults.tabs}`);
+  //console.log(`Group list: ${searchResultsId.groups}`);
+
+  return searchResultsId;
 };
 
 export { search };
