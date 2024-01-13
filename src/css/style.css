@@ -110,6 +110,19 @@ input[type="text"]:focus {
   left: 1px;
 }
 
+.stats-wrapper {
+  background-color: rgb(22, 94, 107);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  text-align: center;
+  padding-top: 1rem;
+  padding-bottom: 1.25rem;
+}
+
+.stat-tabs > span, .stat-media > span , .stat-group > span {
+  display: block;
+}
+
 [color="grey"]:after {
   background-color: var(--tab-group-color-grey);
 }

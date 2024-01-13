@@ -23,7 +23,6 @@ export { objectToSet };
 //   const urlMap = new Map();
 //   const duplicateTabIds = [];
 
-
 //   // Iterate through the tabs
 //   tabs.forEach(function (tab) {
 //     // Skip tabs without URLs

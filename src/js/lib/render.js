@@ -1,14 +1,20 @@
-import { allTabs, allGroups, playingTabs } from "./data.js";
+import { allTabs, allGroups, playingTabs, duplicatedTabsList } from "./data.js";
 import { tabList, groupList, statContainer } from "./ui.js";
 
 const renderStats = (tabCounter, playingCounter, groupCounter) => {
   const statsBar = document.createElement('div');
+  statsBar.classList.add('stats-wrapper');
   statContainer.innerHTML = '';
 
   statsBar.innerHTML = `
-    <div><span>${tabCounter}</span> tabs open</div>
-    <div><span>${playingCounter}</span> tabs playing</div>
-    <div><span>${groupCounter}</span> groups</div>
+    <div class="stat-tabs">
+      <span>${tabCounter}</span>
+      tabs open
+      <span>${duplicatedTabsList.length}</span>
+      dupes
+    </div>
+    <div class="stat-media"><span>${playingCounter}</span> tabs playing</div>
+    <div class="stat-group"><span>${groupCounter}</span> groups</div>
   `;
 
   statContainer.appendChild(statsBar);

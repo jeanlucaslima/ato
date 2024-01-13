@@ -8,4 +8,23 @@ const allTabs = objectToSet(tabs);
 const allGroups = objectToSet(groups);
 const playingTabs = objectToSet(playing);
 
-export {allTabs, playingTabs, allGroups};
+const find_duplicates = (tabs) => {
+  const urlMap = new Map();
+  const duplicateTabIds = [];
+
+  tabs.forEach(tab => {
+    if(tab.url) {
+      if(urlMap.has(tab.url)) {
+        duplicateTabIds.push(tab.id);
+      } else {
+        urlMap.set(tab.url, true)
+      }
+    }
+  });
+
+  return duplicateTabIds;
+};
+
+const duplicatedTabsList = find_duplicates(allTabs);
+
+export {allTabs, playingTabs, allGroups, duplicatedTabsList};
