@@ -2,11 +2,10 @@ import { objectToSet } from "./utils.js";
 
 const tabs = await chrome.tabs.query({});
 const groups = await chrome.tabGroups.query({});
-
-// const allMediaTabs = '';
-// const duplicatedTabs = '';
+const playing = await chrome.tabs.query({audible:true});
 
 const allTabs = objectToSet(tabs);
 const allGroups = objectToSet(groups);
+const playingTabs = objectToSet(playing);
 
-export {allTabs, allGroups};
+export {allTabs, playingTabs, allGroups};

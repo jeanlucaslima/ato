@@ -1,13 +1,14 @@
-import { allTabs, allGroups } from "./data.js";
+import { allTabs, allGroups, playingTabs } from "./data.js";
 import { tabList, groupList, statContainer } from "./ui.js";
 
-const renderStats = (tabCounter, groupCounter) => {
+const renderStats = (tabCounter, playingCounter, groupCounter) => {
   const statsBar = document.createElement('div');
   statContainer.innerHTML = '';
 
   statsBar.innerHTML = `
-    <div>tabs: ${tabCounter}</div>
-    <div>groups: ${groupCounter}</div>
+    <div><span>${tabCounter}</span> tabs open</div>
+    <div><span>${playingCounter}</span> tabs playing</div>
+    <div><span>${groupCounter}</span> groups</div>
   `;
 
   statContainer.appendChild(statsBar);
@@ -81,19 +82,19 @@ const initialRender = async () => {
     });
   });
 
-  renderStats(allTabs.size, allGroups.size);
+  renderStats(allTabs.size, playingTabs.size, allGroups.size);
 };
 
 
 const renderResults = async (searchResults) => {
   const tablist = searchResults.tabs;
   tablist.forEach(tab => {
-    console.log(`${tab} ; ${typeof(tab)}`)
-    const tabDetail = chrome.tabs.get({tabId: tab}, function(tab) {
+
+    const tabDetail = chrome.tabs.get(tab, function(tab) {
       console.log(`holy sheet it got here? ${tab.title}`)
     });
-    console.log(tabDetail);
-    console.log(tab)
+    console.log(`tabDetail: ${tabDetail}`);
+    console.log(`tab: ${tab}`);
   });
 };
 
