@@ -85,11 +85,9 @@ const initialRender = async () => {
   renderStats(allTabs.size, playingTabs.size, allGroups.size);
 };
 
-
 const renderResults = async (searchResults) => {
   const tablist = searchResults.tabs;
   tablist.forEach(tab => {
-
     const tabDetail = chrome.tabs.get(tab, function(tab) {
       console.log(`holy sheet it got here? ${tab.title}`)
     });
