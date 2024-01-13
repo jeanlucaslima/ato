@@ -11,13 +11,22 @@ const renderStats = (tabCounter, playingCounter, groupCounter) => {
       <span>${tabCounter}</span>
       tabs open
       <span>${duplicatedTabsList.length}</span>
-      dupes
+      Repeated tabs
+      <button id="kill_dupes">kill dupes</button>
     </div>
     <div class="stat-media"><span>${playingCounter}</span> tabs playing</div>
     <div class="stat-group"><span>${groupCounter}</span> groups</div>
   `;
 
   statContainer.appendChild(statsBar);
+
+  if(duplicatedTabsList.length > 0) {
+    statContainer.querySelector('#kill_dupes').addEventListener('click', async () => {
+      chrome.tabs.remove(duplicatedTabsList);
+    });
+  } else {
+    statContainer.querySelector('#kill_dupes').disabled = true;
+  }
 }
 
 const initialRender = async () => {
