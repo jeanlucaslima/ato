@@ -5,6 +5,10 @@ The idea is to offer a powerful search bar that allows you to act on your tabs.
 This extension is for people that uses several (hundreds) of tabs, and needs to
 navigate between them.
 
+## Why?
+The main reason for this project is to just play around with open source, and
+also with Chrome's extension API by doing something I could use everyday.
+
 ## How I use it
 
 * To close all YouTube tabs
