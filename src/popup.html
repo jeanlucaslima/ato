@@ -1,54 +1,18 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="css/style.css">
-  <title>Advanced Tab Organizer</title>
+  <title>Tab Manager</title>
+  <link rel="stylesheet" href="css/popup.css">
 </head>
 <body>
-  <div class="header">
-    <p></p>
+  <div id="dashboard">
+    <div id="stats"></div>
+    <button id="reset-search">Reset Search</button>
+    <button id="kill-duplicates">Kill Duplicates</button>
+    <button id="show-sound-tabs">Show Tabs Playing Sound</button>
   </div>
-  <div id="stats"></div>
-
-  <div class="search-wrapper">
-    <input type="text" id="search-input" autofocus>
-  </div>
-
-  <div id="controls">
-    <button>All</button>
-    <button>Dupes</button>
-    <button>Playing</button>
-  </div>
-
-  <div class="search-results">
-    <div class="group-list">
-      <div class="group-controls">
-        <h1>Groups</h1>
-        <button></button>
-        <button></button>
-        <button></button>
-      </div>
-      <div id="container-group-list">
-      </div>
-    </div>
-
-    <div class="tab-list">
-      <div class="tab-controls">
-        <h1>Tabs</h1>
-        <button></button>
-        <button></button>
-        <button id="group-tabs-button">Group these tabs</button>
-      </div>
-      <div id="container-tab-list">
-      </div>
-    </div>
-  </div>
-
-  <footer>
-    <p>footer</p>
-  </footer>
-  <script src="js/popup.js" type="module"></script>
+  <input type="text" id="search-bar" placeholder="Search by URL or Title">
+  <div id="tab-list"></div>
+  <script src="js/popup.js"></script>
 </body>
 </html>
