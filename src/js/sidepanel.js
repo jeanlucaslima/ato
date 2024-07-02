@@ -1,14 +1,3 @@
-document.addEventListener('DOMContentLoaded', function() {
-  fetchTabs();
-  fetchGroups();
-
-  document.getElementById('search-bar').addEventListener('input', searchTabs);
-  document.getElementById('reset-search').addEventListener('click', fetchTabs);
-  document.getElementById('group-search-results-button').addEventListener('click', groupSearchResults);
-  document.getElementById('toggle-groups').addEventListener('click', toggleGroups);
-  document.getElementById('toggle-tabs').addEventListener('click', toggleTabs);
-});
-
 function fetchTabs() {
   chrome.tabs.query({}, function(tabs) {
     displayTabs(tabs);
@@ -74,20 +63,6 @@ function displayTabs(tabs) {
   });
 }
 
-function displayGroups(groups) {
-  const groupList = document.getElementById('group-list');
-  groupList.innerHTML = '';
-
-  groups.forEach(group => {
-    const groupItem = document.createElement('div');
-    groupItem.className = 'group-item';
-    groupItem.textContent = group.title;
-
-    groupItem.addEventListener('click', () => toggleGroupTabs(group.id));
-    groupList.appendChild(groupItem);
-  });
-}
-
 function updateStats(tabs) {
   const stats = document.getElementById('stats');
   const totalTabs = tabs.length;
@@ -120,13 +95,6 @@ function searchTabs() {
   chrome.tabs.query({}, function(tabs) {
     const filteredTabs = tabs.filter(tab => tab.title.toLowerCase().includes(query) || tab.url.toLowerCase().includes(query));
     displayTabs(filteredTabs);
-
-    const groupSearchResultsButton = document.getElementById('group-search-results');
-    if (query) {
-      groupSearchResultsButton.style.display = 'block';
-    } else {
-      groupSearchResultsButton.style.display = 'none';
-    }
   });
 }
 
@@ -140,12 +108,8 @@ function groupSearchResults() {
   });
 }
 
-function toggleGroups() {
-  const groupList = document.getElementById('group-list');
-  groupList.style.display = groupList.style.display === 'none' ? 'block' : 'none';
-}
+document.addEventListener('DOMContentLoaded', function() {
+  fetchTabs();
 
-function toggleTabs() {
-  const tabList = document.getElementById('tab-list');
-  tabList.style.display = tabList.style.display === 'none' ? 'block' : 'none';
-}
+  document.getElementById('search-bar').addEventListener('input', searchTabs);
+});

@@ -5,12 +5,26 @@
     <link rel="stylesheet" href="css/sidepanel.css">
   </head>
   <body>
-    <h1>Advanced Tab Organizer</h1>
-    <p>This side panel is enabled on all sites</p>
-    <hr>
-    <input type="text" id="search-bar" placeholder="Search tabs..." autofocus>
-    <hr>
-    <span class="stats"></span>
-    <hr>
+    <div class="container">
+      <div class="header">
+        <h1>Advanced Tab Organizer</h1>
+        <p>This side panel is enabled on all sites</p>
+      </div>
+      <div class="dashboard">
+        <span class="label">Stats</span>
+        <div id="stats"></div>
+      </div>
+      <div class="search">
+        <input type="text" id="search-bar" placeholder="Search tabs..." autofocus>
+      </div>
+      <div class="controls">
+        <p>control bar</p>
+      </div>
+      <div class="tab-list-container">
+        <span class="label">tabs</span>
+        <div id="tab-list"></div>
+      </div>
+    </div>
+    <script src="js/sidepanel.js"></script>
   </body>
 </html>
