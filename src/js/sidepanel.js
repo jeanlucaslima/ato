@@ -41,11 +41,11 @@ function displayTabs(tabs) {
     tabButtons.className = 'tab-buttons';
 
     const closeButton = document.createElement('button');
-    closeButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24"><path fill="#ffffff" d="M19.28 4.72a1 1 0 0 0-1.41 0L12 10.59 6.13 4.72a1 1 0 0 0-1.41 1.41L10.59 12l-5.87 5.87a1 1 0 1 0 1.41 1.41L12 13.41l5.87 5.87a1 1 0 0 0 1.41-1.41L13.41 12l5.87-5.87a1 1 0 0 0 0-1.41z"/></svg>`;
+    closeButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 32 32"><path fill="currentColor" d="M17.414 16L24 9.414L22.586 8L16 14.586L9.414 8L8 9.414L14.586 16L8 22.586L9.414 24L16 17.414L22.586 24L24 22.586z"/></svg>`;
     closeButton.addEventListener('click', () => closeTab(tab.id));
 
     const muteButton = document.createElement('button');
-    muteButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24"><path fill="#ffffff" d="M19.28 4.72a1 1 0 0 0-1.41 0L12 10.59 6.13 4.72a1 1 0 0 0-1.41 1.41L10.59 12l-5.87 5.87a1 1 0 1 0 1.41 1.41L12 13.41l5.87 5.87a1 1 0 0 0 1.41-1.41L13.41 12l5.87-5.87a1 1 0 0 0 0-1.41z"/></svg>`;
+    muteButton.innerHTML = `<svg width="16" height="16" viewBox="0 0 32 32"><path fill="currentColor" d="M31 12.41L29.59 11L26 14.59L22.41 11L21 12.41L24.59 16L21 19.59L22.41 21L26 17.41L29.59 21L31 19.59L27.41 16zM18 30a1 1 0 0 1-.71-.3L9.67 22H3a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1h6.67l7.62-7.7a1 1 0 0 1 1.41 0a1 1 0 0 1 .3.7v26a1 1 0 0 1-1 1"/></svg>`;
     muteButton.addEventListener('click', () => muteTab(tab.id));
 
     tabButtons.appendChild(closeButton);
@@ -54,10 +54,6 @@ function displayTabs(tabs) {
     tabItem.appendChild(favicon);
     tabItem.appendChild(tabInfo);
     tabItem.appendChild(tabButtons);
-
-    if (tab.groupId !== chrome.tabGroups.TAB_GROUP_ID_NONE) {
-      tabItem.classList.add('group-marker');
-    }
 
     tabList.appendChild(tabItem);
   });
@@ -80,8 +76,11 @@ function findDuplicateTabs(tabs) {
   return tabUrls.filter((url, index) => tabUrls.indexOf(url) !== index);
 }
 
+// ideally should only remove the tabItem
 function closeTab(tabId) {
-  chrome.runtime.sendMessage({ action: 'closeTab', tabId });
+  chrome.runtime.sendMessage({ action: 'closeTab', tabId }, function(response) {
+    if(response.status === 'success') { fetchTabs(); }
+  });
 }
 
 function muteTab(tabId) {
