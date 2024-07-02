@@ -1,18 +1,28 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Tab Manager</title>
-  <link rel="stylesheet" href="css/popup.css">
+  <title>Advanced Tab Organizer</title>
+  <link rel="stylesheet" type="text/css" href="css/popup.css">
 </head>
 <body>
   <div id="dashboard">
-    <div id="stats"></div>
-    <button id="reset-search">Reset Search</button>
-    <button id="kill-duplicates">Kill Duplicates</button>
-    <button id="show-sound-tabs">Show Tabs Playing Sound</button>
+    <div id="stats">Loading...</div>
+    <input type="text" id="search-bar" placeholder="Search tabs...">
+    <div id="group-search-results" style="display: none;">
+      <button id="group-search-results-button">Group Search Results</button>
+    </div>
+    <div id="action-buttons">
+      <button id="reset-search">Show All</button>
+    </div>
   </div>
-  <input type="text" id="search-bar" placeholder="Search by URL or Title">
-  <div id="tab-list"></div>
+  <div id="group-list-container">
+    <button id="toggle-groups">Toggle Groups</button>
+    <div id="group-list"></div>
+  </div>
+  <div id="tab-list-container">
+    <button id="toggle-tabs">Toggle Tabs</button>
+    <div id="tab-list"></div>
+  </div>
   <script src="js/popup.js"></script>
 </body>
 </html>

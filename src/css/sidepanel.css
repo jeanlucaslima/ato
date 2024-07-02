@@ -1,0 +1,10 @@
+/* Global styles */
+body {
+  background-color: #1e1e1e;
+  color: #ffffff;
+  font-family: Helvetica, Arial, sans-serif;
+  margin: 0;
+  padding: 20px;
+
+  color-scheme: dark;
+}

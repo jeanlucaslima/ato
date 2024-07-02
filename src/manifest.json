@@ -1,17 +1,17 @@
 {
-  "manifest_version": 3,
+
+  "name": "Advanced Tab Manager",
+  "description": "A search based Chrome extension to organize tabs, windows, and groups.",
+  "short_name": "ATO",
   "author": "Jean Lucas Lima <github.com/jeanlucaslima>",
+  "manifest_version": 3,
   "background": {
-    "service_worker": "js/background.js",
+    "service_worker": "js/service-worker.js",
     "type": "module"
   },
-  "action": {
-    "default_icon": {
-      "16": "img/icon_16.png",
-      "32": "img/icon_32.png",
-      "64": "img/icon_64.png"
-    },
-    "default_popup": "popup.html"
+
+  "side_panel": {
+    "default_path": "sidepanel.html"
   },
   "commands": {
     "_execute_action": {
@@ -21,18 +21,24 @@
       }
     }
   },
-  "description": "A search based Chrome extension to organize tabs, windows, and groups.",
   "icons": {
     "32": "img/icon_32.png",
     "64": "img/icon_64.png",
     "128": "img/icon_128.png"
   },
-  "name": "Advanced Tab Manager",
-
   "permissions": [
     "tabs",
-    "tabGroups"
+    "tabGroups",
+    "sidePanel",
+    "contextMenus",
+    "storage"
   ],
-  "short_name": "ato",
-  "version": "0.1"
+  "action": {
+    "default_icon": {
+      "16": "img/icon_16.png",
+      "32": "img/icon_32.png",
+      "64": "img/icon_64.png"
+    }
+  },
+  "version": "2.0.0"
 }

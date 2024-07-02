@@ -1,48 +1,35 @@
-import Fuse from "./fuse.esm.js";
+import { displayTabs } from './display.js';
+import { fetchGroups } from './tabActions.js';
 
-const fuseTabOptions = {
-  includeMatches: false,
-  findAllMatches: true,
-  threshold: 0.4,
-  useExtendedSearch: true,
-  keys: [
-    "title",
-    "url"
-  ]
-};
+let fuse;
 
-const fuseGroupOptions = {
-  includeMatches: false,
-  findAllMatches: true,
-  threshold: 0.4,
-  useExtendedSearch: true,
-  keys: [ "title" ]
-};
+chrome.tabs.query({}, function(tabs) {
+  const options = {
+    keys: ['title', 'url']
+  };
+  fuse = new Fuse(tabs, options);
+});
 
-const search = async (query) => {
-  const queryTabs = await chrome.tabs.query({});
-  const queryGroups = await chrome.tabGroups.query({});
+export function searchTabs() {
+  const query = document.getElementById('search-bar').value.toLowerCase();
+  const result = fuse.search(query);
+  const filteredTabs = result.map(item => item.item);
 
-  const searchTabs = new Fuse(queryTabs, fuseTabOptions);
-  const tabResults = searchTabs.search(query);
-  const tabResultsId = [];
-  tabResults.forEach(result => {
-    tabResultsId.push(result.item.id);
-  });
+  displayTabs(filteredTabs);
+  document.getElementById('group-search-results').style.display = filteredTabs.length > 0 ? 'block' : 'none';
+}
 
-  const searchGroups = new Fuse(queryGroups, fuseGroupOptions);
-  const groupResults = searchGroups.search(query);
-  const groupResultsId = [];
-  groupResults.forEach(result => {
-    groupResultsId.push(result.item.id);
-  });
+export function groupSearchResults() {
+  const query = document.getElementById('search-bar').value.toLowerCase();
+  const result = fuse.search(query);
+  const filteredTabs = result.map(item => item.item.id);
 
-  const searchResultsId = { tabs: tabResultsId, groups: groupResultsId };
-
-  //console.log(`tab list: ${searchIdsResults.tabs}`);
-  //console.log(`Group list: ${searchResultsId.groups}`);
-
-  return searchResultsId;
-};
-
-export { search };
+  if (filteredTabs.length > 0) {
+    chrome.tabGroups.create({ title: 'Search Group' }, function(group) {
+      chrome.tabs.group({ groupId: group.id, tabIds: filteredTabs }, function() {
+        fetchTabs();
+        fetchGroups();
+      });
+    });
+  }
+}
