@@ -1,1 +1,26 @@
-.DS_STORE
+# Node
+node_modules/
+dist/
+.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# System
+.DS_Store
+Thumbs.db
+Icon?
+
+# Logs
+*.log
+
+# VSCode
+.vscode/
+
+# Env files (if you use any)
+.env
+.env.*
+
+# Tailwind output (if built separately)
+tailwind.out.css
