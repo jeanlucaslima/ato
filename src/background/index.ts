@@ -1,15 +1,34 @@
-console.log("🔄 ATO background script running")
+const openedTabs = new Set<number>()
 
-chrome.action.onClicked.addListener(async (tab) => {
-  if (!tab.id) return
+chrome.action.onClicked.addListener((tab) => {
+  if (!tab?.id) return
 
-  // Set options, don't wait
+  const tabId = tab.id
+
+  console.log("🧠 Icon clicked")
+
   chrome.sidePanel.setOptions({
-    tabId: tab.id,
+    tabId,
     path: "sidepanel/index.html",
     enabled: true
   })
 
-  // Call open immediately inside gesture context
-  chrome.sidePanel.open({ tabId: tab.id })
+  chrome.sidePanel.open({ tabId })
+
+  setTimeout(() => {
+    // Only toggle visibility if this tab already opened the panel before
+    if (openedTabs.has(tabId)) {
+      console.log("📨 Sending toggle message...")
+      chrome.runtime.sendMessage({ type: "toggle-sidepanel" })
+    } else {
+      console.log("🆕 First open on this tab — skipping toggle")
+      openedTabs.add(tabId)
+    }
+
+    // Optional: log frustration
+    chrome.runtime.sendMessage({
+      type: "chrome-api-feedback",
+      payload: "This extension would love to close the side panel, but Chrome won't let us. ❤️"
+    })
+  }, 100)
 })
