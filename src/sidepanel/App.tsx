@@ -1,28 +1,27 @@
-import React from "react"
+import React, { useEffect, useState } from "react"
 import { useTabs } from "./hooks/useTabs"
-import TabList from "./TabList"
-import "./styles.css"
-import StatsBar from "./StatsBar"
-import { getDuplicateTabs } from "../lib/tabs"
-import SearchBar from "./SearchBar"
 import { useEasterEggs } from "./hooks/useEasterEggs"
-
+import TabItem from "./components/TabItem"
+import { Toast } from "./components/Toast"
+import SearchBar from "./components/SearchBar"
+import "./styles.css"
 
 export default function App() {
   const {
     tabs,
     currentTabId,
-    isCommand,
     total,
     duplicates,
     handleTabClick,
     handleTabClose,
     handleCloseDuplicates,
     query,
-    setQuery
+    setQuery,
+    isCommand,
   } = useTabs()
 
-  // 👇 Call easter eggs hook
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
+
   useEasterEggs(
     {
       tabs,
@@ -35,29 +34,37 @@ export default function App() {
           document.body.classList.toggle("chaos-mode", val)
         }
       },
-      showMessage: (msg) => {
-        // Replace this with a toast/banner component later
-        console.log("🐣", msg)
-      },
+      showMessage: (msg) => setToastMessage(msg),
     }
   )
 
   return (
-    <div className="ato-container">
-      <SearchBar value={query} onChange={setQuery} />
+    <div className="app">
+      {toastMessage && <Toast message={toastMessage} />}
+      <SearchBar query={query} setQuery={setQuery} />
+
       {!isCommand && (
-        <StatsBar
-          total={total}
-          duplicates={duplicates.length}
-          onCloseDuplicates={handleCloseDuplicates}
-        />
+        <div className="stats-bar">
+          Tabs: {total} | Duplicates: {duplicates.length}
+          {duplicates.length > 0 && (
+            <button onClick={handleCloseDuplicates} className="close-dupes">
+              🗑 Close Duplicates
+            </button>
+          )}
+        </div>
       )}
-      <TabList
-        tabs={tabs}
-        currentTabId={currentTabId}
-        onTabClick={handleTabClick}
-        onTabClose={handleTabClose}
-      />
+
+      <div className="tab-list">
+        {tabs.map((tab) => (
+          <TabItem
+            key={tab.id}
+            tab={tab}
+            isActive={tab.id === currentTabId}
+            onClick={handleTabClick}
+            onClose={handleTabClose}
+          />
+        ))}
+      </div>
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import React from "react"
-import DefaultFavicon from "./icons/DefaultFavicon"
-import CloseIcon from "./icons/CloseIcon"
+import DefaultFavicon from "./../icons/DefaultFavicon"
+import CloseIcon from "./../icons/CloseIcon"
 
 type TabItemProps = {
   tab: chrome.tabs.Tab
