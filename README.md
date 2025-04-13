@@ -54,6 +54,60 @@ Fail-safe actions: Batch operations (e.g., close all, sleep all) should be undoa
 
 Local-first philosophy: No data leaves your machine unless you explicitly export it.
 
+## 🧭 UI Layout Overview
+
+ATO uses a structured side panel layout to organize tab management features clearly and scalably:
+
+```
+┌────────────────────────────────────────────┐
+│ 🔍 Search input                            │ ← filters tab list by title/URL
+├────────────────────────────────────────────┤
+│ 📊 Stats bar                               │ ← shows real-time info:
+│ Tabs: 32 | Duplicates: 5 | Playing: 2      │
+├────────────────────────────────────────────┤
+│ 🧠 Action bar (optional)                   │ ← quick global actions:
+│ [🗑 Close Duplicates] [💤 Suspend All]      │
+├────────────────────────────────────────────┤
+│ ▸ Tab Item 1                               │
+│ ▸ Tab Item 2                               │ ← each rendered with title, URL,
+│ ▸ Tab Item 3                               │    favicon, and close/suspend
+│  ...                                       │
+└────────────────────────────────────────────┘
+```
+
+This layout ensures a clean separation between:
+
+* Search/filtering
+* Live tab insights (stats)
+* Batch actions
+* Individual tab control
+
+## ✅ Feature Checklist (v3.x)
+
+### Core Features
+
+- [x] List all open tabs
+- [x] Show favicon, title, URL
+- [x] Click to focus tab and window
+- [x] Close individual tab (with SVG icon)
+- [x] Compact tab row layout
+- [x] Missing favicon fallback icon
+- [x] Highlight active tab
+- [x] Hover styles for visual feedback
+- [x] Clean code split (TabItem, TabList, useTabs, icons)
+
+### In Progress / Coming Next
+
+- [ ] 🔍 Search bar to filter tabs
+- [ ] 📊 Stats bar (total tabs, duplicates, playing audio, etc.)
+- [ ] 🧠 Detect duplicate tabs (by URL)
+- [ ] 🗑 "Close all duplicates" button
+- [ ] 💤 Suspend tab (via chrome.tabs.discard)
+- [ ] Compact/detailed view toggle
+- [ ] Local "favorites" for temporary pinning
+- [ ] Group by window or Chrome tab group
+- [ ] Keyboard nav (arrow keys, enter, delete)
+
 ## 📦 Tech Stack
 
 Chrome Extension Manifest V3
