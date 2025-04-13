@@ -22,6 +22,9 @@ export function useTabs(): UseTabsResult {
   const duplicates = getDuplicateTabs(tabs)
   const total = tabs.length
 
+  const isCommand = query.trim().startsWith("!")
+  const hasQuery = query.trim().length > 0
+
   const fuse = new Fuse(tabs, {
     keys: [
       { name: "title", weight: 0.7 },
@@ -32,9 +35,10 @@ export function useTabs(): UseTabsResult {
     ignoreLocation: true
   })
 
-  const filteredTabs = query.trim()
-    ? fuse.search(query).map(result => result.item)
-    : tabs
+  const filteredTabs =
+    !hasQuery || isCommand
+      ? tabs // ✅ show all tabs if query is empty or a command
+      : fuse.search(query).map(result => result.item)
 
   const handleTabClick = (tabId: number) => {
     chrome.tabs.update(tabId, { active: true }, (tab) => {
@@ -98,5 +102,6 @@ export function useTabs(): UseTabsResult {
     handleCloseDuplicates,
     query,
     setQuery,
+    isCommand,
   }
 }

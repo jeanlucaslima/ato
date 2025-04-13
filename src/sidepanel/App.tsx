@@ -5,11 +5,14 @@ import "./styles.css"
 import StatsBar from "./StatsBar"
 import { getDuplicateTabs } from "../lib/tabs"
 import SearchBar from "./SearchBar"
+import { useEasterEggs } from "./hooks/useEasterEggs"
+
 
 export default function App() {
   const {
     tabs,
     currentTabId,
+    isCommand,
     total,
     duplicates,
     handleTabClick,
@@ -19,14 +22,36 @@ export default function App() {
     setQuery
   } = useTabs()
 
+  // 👇 Call easter eggs hook
+  useEasterEggs(
+    {
+      tabs,
+      query,
+      audioTabCount: tabs.filter((t) => t.audible).length,
+    },
+    {
+      setUIFlag: (key, val) => {
+        if (key === "chaos") {
+          document.body.classList.toggle("chaos-mode", val)
+        }
+      },
+      showMessage: (msg) => {
+        // Replace this with a toast/banner component later
+        console.log("🐣", msg)
+      },
+    }
+  )
+
   return (
     <div className="ato-container">
       <SearchBar value={query} onChange={setQuery} />
-      <StatsBar
-        total={total}
-        duplicates={duplicates.length}
-        onCloseDuplicates={handleCloseDuplicates}
-      />
+      {!isCommand && (
+        <StatsBar
+          total={total}
+          duplicates={duplicates.length}
+          onCloseDuplicates={handleCloseDuplicates}
+        />
+      )}
       <TabList
         tabs={tabs}
         currentTabId={currentTabId}

@@ -87,3 +87,20 @@ body {
 .tab-item--active.tab-item--hover {
   background-color: #dbefff;
 }
+
+body.chaos-mode .tab-item {
+  background: repeating-linear-gradient(
+    45deg,
+    #ff0080,
+    #ff0080 10px,
+    #00ffff 10px,
+    #00ffff 20px
+  );
+  color: #fff;
+  animation: shake 0.2s infinite alternate;
+}
+
+@keyframes shake {
+  0% { transform: translateX(-2px); }
+  100% { transform: translateX(2px); }
+}
