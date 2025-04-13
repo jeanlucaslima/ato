@@ -1,11 +1,11 @@
-# [ATO] Advanced Tab Organizer
-↳ Close tabs. Sleep tabs. Search tabs. Regain control.
+# ATO — Advanced Tab Organizer
+↳ Close tabs. Search smart. Reclaim your browser.
 
-![Version](https://img.shields.io/badge/version-2.0-blue.svg)
+![Version](https://img.shields.io/badge/version-3.0-blue.svg)
 
-**ATO** (Advanced Tab Organizer) is a Chrome Extension for taming the chaos of your browser tabs. Whether you're deep into research, coding, or just riding the wave of spontaneous curiosity, ATO helps you **find, close, sleep, and organize** tabs with a clean and focused UI.
+**ATO** is a side panel Chrome Extension that gives you **superpowers** for managing tabs. Whether you’re deep into research, coding, or just riding the chaos of curiosity, ATO helps you **find, close, suspend, and understand** your tab landscape in real time.
 
-No more getting lost in 38 open tabs. Take control — without breaking your flow.
+No more getting lost in 38 open tabs. Stay focused. Stay fast. Stay in flow.
 
 ---
 
@@ -13,135 +13,94 @@ No more getting lost in 38 open tabs. Take control — without breaking your flo
 
 | Feature                          | Description |
 |----------------------------------|-------------|
-| **Full Tab Overview**            | View all open tabs across all Chrome windows, neatly grouped. |
-| **Search by Title or URL**       | Filter tabs in real-time using a smart fuzzy search. |
-| **Close Tabs (One or Many)**     | Close individual tabs or the entire filtered batch. |
-| **Sleep Tabs (Free Up Memory)**  | Suspend tabs with `chrome.tabs.discard()` — keep them open but out of RAM. |
-| **Sleep All Tabs**               | Suspend all filtered tabs at once with one click. |
-| **Detect & Close Duplicates**    | Instantly find and close duplicate tabs based on URL. |
-| **Temporary Favorites**          | Mark tabs to revisit later — perfect for context-switchers. |
-| **Keyboard Shortcut**            | Open ATO with `Cmd+U` / `Ctrl+U` (can be customized). |
-| **Compact & Detailed Views**     | Toggle between a minimal view and full tab metadata. |
-| **Grouped by Window/Group**      | Tabs are organized by Chrome window and tab group. |
-| **Real-time Stats**              | Quick glance: how many tabs you’ve opened, duplicated, or put to sleep. |
+| **🧠 Full Tab Overview**         | Instantly view and interact with all open tabs across all windows. |
+| **🔍 Fuzzy Search (Title + URL)**| Lightning-fast filtering using Fuse.js with weighted relevance. |
+| **❌ Close Tabs Easily**         | One-click close for individual tabs or entire filtered sets. |
+| **🧠 Detect Duplicates**         | Real-time detection of duplicate URLs with a "Close All Duplicates" button. |
+| **📊 Stats Bar**                 | Glanceable count of open tabs, duplicates, and more coming. |
+| **🎯 Active Tab Highlighting**   | Always know which tab you’re currently on — visually distinct. |
+| **⚙️ Real-Time Updates**         | Tabs update live with Chrome events — no refresh required. |
+| **🖱 Compact UI**                | Clean, efficient layout that feels native inside the side panel. |
+
+Coming soon:
+- 💤 Suspend tabs with `chrome.tabs.discard()`
+- ⭐ Temporary favorites for session bookmarks
+- 🎹 Keyboard nav (arrow keys, enter, escape)
+- 🌗 Compact / detailed view toggle
 
 ---
 
 ## 🚀 Getting Started
 
-> Requires Chrome with Manifest V3 support.
-
-1. Clone or download this repository:
+1. Clone this repo:
    ```bash
    git clone https://github.com/yourusername/ato-extension.git
-   ```
-2. Open Chrome and go to chrome://extensions.
-3. Enable Developer mode in the top-right corner.
-4. Click Load unpacked and select the ato-extension directory.
-5. Use the shortcut Cmd+U / Ctrl+U to launch ATO from anywhere.
-
-## 🧠 Good Practices (Development & UX)
-
-Minimal permissions: Request only what's strictly needed — tabs, activeTab, storage.
-
-Storage sync: Use chrome.storage.sync for favorites or view mode (optional and private).
-
-Event-driven design: No background memory hogs — use service workers and event listeners only.
-
-Visual clarity: Tailor the UI for fast scanning, tab title emphasis, and mouse+keyboard use.
-
-Fail-safe actions: Batch operations (e.g., close all, sleep all) should be undoable or at least confirmable.
-
-Local-first philosophy: No data leaves your machine unless you explicitly export it.
+2. Open chrome://extensions in your browser.
+3. Enable Developer Mode (top-right).
+4. Click Load Unpacked, then select the ato-extension folder.
+5. Click the ATO icon or use Cmd+U / Ctrl+U to open the side panel.
 
 ## 🧭 UI Layout Overview
 
-ATO uses a structured side panel layout to organize tab management features clearly and scalably:
-
 ```
 ┌────────────────────────────────────────────┐
-│ 🔍 Search input                            │ ← filters tab list by title/URL
+│ 🔍 Search input                            │ ← filters tab list in real time
 ├────────────────────────────────────────────┤
-│ 📊 Stats bar                               │ ← shows real-time info:
-│ Tabs: 32 | Duplicates: 5 | Playing: 2      │
+│ 📊 Stats bar                               │ ← real-time tab insights
+│ Tabs: 32 | Duplicates: 5                   │
 ├────────────────────────────────────────────┤
-│ 🧠 Action bar (optional)                   │ ← quick global actions:
-│ [🗑 Close Duplicates] [💤 Suspend All]      │
+│ [🗑 Close Duplicates]                      │ ← quick global action
 ├────────────────────────────────────────────┤
-│ ▸ Tab Item 1                               │
-│ ▸ Tab Item 2                               │ ← each rendered with title, URL,
-│ ▸ Tab Item 3                               │    favicon, and close/suspend
-│  ...                                       │
+│ ▸ Tab Item (favicon + title + url + ❌)    │
+│ ▸ Tab Item                                 │ ← clickable, highlightable rows
+│ ...                                        │
 └────────────────────────────────────────────┘
 ```
 
-This layout ensures a clean separation between:
+## ✅ Current Feature Checklist (v3.0)
 
-* Search/filtering
-* Live tab insights (stats)
-* Batch actions
-* Individual tab control
-
-## ✅ Feature Checklist (v3.x)
-
-### Core Features
-
-- [x] List all open tabs
-- [x] Show favicon, title, URL
-- [x] Click to focus tab and window
-- [x] Close individual tab (with SVG icon)
-- [x] Compact tab row layout
-- [x] Missing favicon fallback icon
+- [x] Full tab listing (all windows)
+- [x] Fuzzy search (title + URL, via Fuse.js)
+- [x] Close tab (with icon)
+- [x] Duplicate detection (by URL)
+- [x] "Close all duplicates" button
+- [x] Stats bar
 - [x] Highlight active tab
-- [x] Hover styles for visual feedback
-- [x] Clean code split (TabItem, TabList, useTabs, icons)
+- [x] Hover feedback
+- [x] Clean file split (hooks, components, icons)
+- [x] Real-time updates with Chrome tab events
 
-### In Progress / Coming Next
+Coming soon:
 
-- [ ] 🔍 Search bar to filter tabs
-- [ ] 📊 Stats bar (total tabs, duplicates, playing audio, etc.)
-- [ ] 🧠 Detect duplicate tabs (by URL)
-- [ ] 🗑 "Close all duplicates" button
-- [ ] 💤 Suspend tab (via chrome.tabs.discard)
-- [ ] Compact/detailed view toggle
-- [ ] Local "favorites" for temporary pinning
-- [ ] Group by window or Chrome tab group
-- [ ] Keyboard nav (arrow keys, enter, delete)
+- [ ] 💤 Suspend tabs (one or all)
+- [ ] ⭐ Mark temporary favorites
+- [ ] Group tabs by window or tab group
+- [ ] Keyboard shortcuts inside the panel
+- [ ] Undo batch actions
+- [ ] Export tab list (Markdown, JSON)
 
-## 📦 Tech Stack
+## 🧠 Developer Notes & Architecture
 
-Chrome Extension Manifest V3
+* Manifest V3 — background service worker, side panel support
+* Vite + React 18 — blazing fast dev experience
+* Vanilla CSS — intentionally Tailwind-free for simplicity
+* Fuse.js — for fuzzy searching with custom weighting
+* MVCS structure — modular components and hooks
 
-Vanilla JavaScript (or TypeScript)
+## 🧪 Roadmap / Stretch Goals
 
-HTML + TailwindCSS (suggested)
+* Save tab sessions
+* Export tabs to Markdown or JSON
+* Smart cleanup suggestions
+* Daily tab stats ("How many tabs today?")
+* Drag-and-drop tab reordering (UI)
+* Tab group awareness
 
-Fuse.js (or similar) for fuzzy search
+## 🤝 Built with Love, Tabs, and a Hint of Madness
 
-## 💡 Roadmap / Future Ideas
+Jean Lucas — Developer, tab-overloader turned tab-organizer
+ChatGPT — Co-designer, co-developer, co-problem-solver
 
-Save tab sessions (name + restore later)
+ATO is a side project made with focus, curiosity, and a desire to make browsing feel better again.
 
-Export open tabs to Markdown / JSON
-
-Smart suggestions for tab cleanup
-
-Usage heatmap (when and how you open tabs)
-
-Integration with tab group colors and names
-
-Public stats: “How many tabs did I really open today?”
-
-## 🤝 Built with Love, Tabs, and a Bit of Chaos
-This project was crafted by:
-
-* Jean Lucas — Tabslinger, extension whisperer, and eternal enemy of tab overload.
-* ChatGPT — Co-pilot and idea shaper, tirelessly helping turn caffeine into feature sets.
-
-ATO is a labor of curiosity and necessity.
-No fluff. No bloat. Just a better way to browse.
-
-Because 37 open tabs is your workflow.
-
-[ATO] Advanced Tab Organizer
-↳ Close tabs. Sleep tabs. Search tabs. Regain control.
+Because 37 open tabs is not a problem — it's a power move.
