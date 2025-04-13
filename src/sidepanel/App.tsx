@@ -4,7 +4,7 @@ import TabList from "./TabList"
 import "./styles.css"
 import StatsBar from "./StatsBar"
 import { getDuplicateTabs } from "../lib/tabs"
-
+import SearchBar from "./SearchBar"
 
 export default function App() {
   const {
@@ -15,11 +15,13 @@ export default function App() {
     handleTabClick,
     handleTabClose,
     handleCloseDuplicates,
+    query,
+    setQuery
   } = useTabs()
 
   return (
     <div className="ato-container">
-      <h2 className="ato-heading">Open Tabs</h2>
+      <SearchBar value={query} onChange={setQuery} />
       <StatsBar
         total={total}
         duplicates={duplicates.length}

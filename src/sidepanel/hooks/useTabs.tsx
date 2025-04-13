@@ -9,14 +9,25 @@ type UseTabsResult = {
   handleTabClick: (tabId: number) => void
   handleTabClose: (e: React.MouseEvent, tabId: number) => void
   handleCloseDuplicates: () => void
+  query: string
+  setQuery: (q: string) => void
 }
 
 export function useTabs(): UseTabsResult {
   const [tabs, setTabs] = useState<chrome.tabs.Tab[]>([])
   const [currentTabId, setCurrentTabId] = useState<number | null>(null)
+  const [query, setQuery] = useState("")
 
   const duplicates = getDuplicateTabs(tabs)
   const total = tabs.length
+
+  const filteredTabs = tabs.filter((tab) => {
+    const q = query.toLowerCase()
+    return (
+      (tab.title?.toLowerCase().includes(q) ?? false) ||
+      (tab.url?.toLowerCase().includes(q) ?? false)
+    )
+  })
 
   const handleTabClick = (tabId: number) => {
     chrome.tabs.update(tabId, { active: true }, (tab) => {
@@ -47,12 +58,12 @@ export function useTabs(): UseTabsResult {
       chrome.tabs.query({}, (found) => setTabs(found))
     }
 
-    updateTabs() // initial fetch
+    updateTabs()
     chrome.tabs.query({ active: true, currentWindow: true }, (active) => {
       if (active[0]?.id) setCurrentTabId(active[0].id)
     })
 
-    // 🔁 Real-time listeners
+    // Listen for tab events
     chrome.tabs.onCreated.addListener(updateTabs)
     chrome.tabs.onRemoved.addListener(updateTabs)
     chrome.tabs.onUpdated.addListener(updateTabs)
@@ -61,7 +72,6 @@ export function useTabs(): UseTabsResult {
     chrome.tabs.onAttached.addListener(updateTabs)
 
     return () => {
-      // 🚿 Cleanup on unmount
       chrome.tabs.onCreated.removeListener(updateTabs)
       chrome.tabs.onRemoved.removeListener(updateTabs)
       chrome.tabs.onUpdated.removeListener(updateTabs)
@@ -72,13 +82,14 @@ export function useTabs(): UseTabsResult {
   }, [])
 
   return {
-    tabs,
+    tabs: filteredTabs,
     currentTabId,
     total,
     duplicates,
     handleTabClick,
     handleTabClose,
     handleCloseDuplicates,
-
+    query,
+    setQuery,
   }
 }
