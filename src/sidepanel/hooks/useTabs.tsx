@@ -43,12 +43,32 @@ export function useTabs(): UseTabsResult {
   }
 
   useEffect(() => {
-    chrome.tabs.query({}, (found) => setTabs(found))
+    const updateTabs = () => {
+      chrome.tabs.query({}, (found) => setTabs(found))
+    }
+
+    updateTabs() // initial fetch
     chrome.tabs.query({ active: true, currentWindow: true }, (active) => {
-      if (active[0]?.id) {
-        setCurrentTabId(active[0].id)
-      }
+      if (active[0]?.id) setCurrentTabId(active[0].id)
     })
+
+    // 🔁 Real-time listeners
+    chrome.tabs.onCreated.addListener(updateTabs)
+    chrome.tabs.onRemoved.addListener(updateTabs)
+    chrome.tabs.onUpdated.addListener(updateTabs)
+    chrome.tabs.onMoved.addListener(updateTabs)
+    chrome.tabs.onDetached.addListener(updateTabs)
+    chrome.tabs.onAttached.addListener(updateTabs)
+
+    return () => {
+      // 🚿 Cleanup on unmount
+      chrome.tabs.onCreated.removeListener(updateTabs)
+      chrome.tabs.onRemoved.removeListener(updateTabs)
+      chrome.tabs.onUpdated.removeListener(updateTabs)
+      chrome.tabs.onMoved.removeListener(updateTabs)
+      chrome.tabs.onDetached.removeListener(updateTabs)
+      chrome.tabs.onAttached.removeListener(updateTabs)
+    }
   }, [])
 
   return {
@@ -59,5 +79,6 @@ export function useTabs(): UseTabsResult {
     handleTabClick,
     handleTabClose,
     handleCloseDuplicates,
+
   }
 }
