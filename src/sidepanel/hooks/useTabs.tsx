@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { getDuplicateTabs } from "../../lib/tabs"
+import Fuse from "fuse.js"
 
 type UseTabsResult = {
   tabs: chrome.tabs.Tab[]
@@ -21,13 +22,19 @@ export function useTabs(): UseTabsResult {
   const duplicates = getDuplicateTabs(tabs)
   const total = tabs.length
 
-  const filteredTabs = tabs.filter((tab) => {
-    const q = query.toLowerCase()
-    return (
-      (tab.title?.toLowerCase().includes(q) ?? false) ||
-      (tab.url?.toLowerCase().includes(q) ?? false)
-    )
+  const fuse = new Fuse(tabs, {
+    keys: [
+      { name: "title", weight: 0.7 },
+      { name: "url", weight: 0.3 }
+    ],
+    includeScore: true,
+    threshold: 0.4,
+    ignoreLocation: true
   })
+
+  const filteredTabs = query.trim()
+    ? fuse.search(query).map(result => result.item)
+    : tabs
 
   const handleTabClick = (tabId: number) => {
     chrome.tabs.update(tabId, { active: true }, (tab) => {
