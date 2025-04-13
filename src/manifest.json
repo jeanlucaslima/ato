@@ -3,7 +3,7 @@
   "name": "Advanced Tab Organizer",
   "short_name": "ATO",
   "description": "A search-based Chrome extension to organize tabs, windows, and groups.",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "author": "Jean Lucas Lima <github.com/jeanlucaslima>",
 
   "icons": {
