@@ -1,15 +1,21 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
-    "lib": ["DOM", "ESNext"],
+    "target": "ES2020",
     "module": "ESNext",
-    "moduleResolution": "Node",
+    "lib": ["ES2020", "DOM"],
+    "moduleResolution": "bundler",
+    "allowJs": true,
+    "checkJs": false,
     "strict": true,
-    "jsx": "react-jsx",
     "skipLibCheck": true,
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
     "types": ["chrome"]
   },
-  "include": ["src"]
+  "include": ["src/**/*", "vite.config.ts"],
+  "exclude": ["node_modules", "dist"]
 }

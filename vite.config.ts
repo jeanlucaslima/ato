@@ -1,36 +1,43 @@
-import { defineConfig } from "vite"
-import react from "@vitejs/plugin-react"
-import { viteStaticCopy } from "vite-plugin-static-copy"
-import path from "path"
-import { fileURLToPath } from 'url'
-import { dirname } from 'path'
-
-// Required for __dirname in ESM
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
+import { defineConfig } from 'vite'
+import { viteStaticCopy } from 'vite-plugin-static-copy'
+import path from 'path'
 
 export default defineConfig({
-  root: "src",
+  root: 'src',
   build: {
-    outDir: "../dist",
+    outDir: '../dist',
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        sidepanel: path.resolve(__dirname, "src/sidepanel/index.html"),
-        background: path.resolve(__dirname, "src/background/index.ts")
+        'background/service-worker': path.resolve(__dirname, 'src/background/service-worker.js'),
+        'popup/popup': path.resolve(__dirname, 'src/popup/popup.js')
       },
       output: {
-        entryFileNames: "[name]/index.js",
-        assetFileNames: "[name]/[name].[ext]"
+        entryFileNames: '[name].js',
+        chunkFileNames: '[name].js',
+        assetFileNames: '[name].[ext]'
       }
     }
   },
   plugins: [
-    react(),
     viteStaticCopy({
       targets: [
-        { src: "manifest.json", dest: "." },
-        { src: "assets/icons/*", dest: "icons" }
+        {
+          src: 'manifest.json',
+          dest: '.'
+        },
+        {
+          src: 'popup/popup.html',
+          dest: 'popup'
+        },
+        {
+          src: 'popup/popup.css',
+          dest: 'popup'
+        },
+        {
+          src: 'assets/icons/*.png',
+          dest: 'assets/icons'
+        }
       ]
     })
   ]

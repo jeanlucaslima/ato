@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ATO Icon Generator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    canvas {
+      border: 1px solid #ccc;
+      margin: 10px;
+    }
+    .instructions {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="instructions">
+    <h1>ATO Icon Generator</h1>
+    <p>Right-click each canvas below and save as PNG with the specified filename:</p>
+    <ul>
+      <li>16x16 → Save as "icon16.png"</li>
+      <li>32x32 → Save as "icon32.png"</li>
+      <li>48x48 → Save as "icon48.png"</li>
+      <li>128x128 → Save as "icon128.png"</li>
+    </ul>
+    <p>Save all files to the <code>src/assets/icons/</code> directory.</p>
+  </div>
+
+  <div>
+    <h3>16x16</h3>
+    <canvas id="icon16" width="16" height="16"></canvas>
+  </div>
+
+  <div>
+    <h3>32x32</h3>
+    <canvas id="icon32" width="32" height="32"></canvas>
+  </div>
+
+  <div>
+    <h3>48x48</h3>
+    <canvas id="icon48" width="48" height="48"></canvas>
+  </div>
+
+  <div>
+    <h3>128x128</h3>
+    <canvas id="icon128" width="128" height="128"></canvas>
+  </div>
+
+  <script>
+    // Function to draw icon on canvas
+    function drawIcon(canvas) {
+      const ctx = canvas.getContext('2d');
+      const size = canvas.width;
+
+      // Create gradient background
+      const gradient = ctx.createLinearGradient(0, 0, size, size);
+      gradient.addColorStop(0, '#667eea');
+      gradient.addColorStop(1, '#764ba2');
+
+      // Fill background
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, size, size);
+
+      // Draw "ATO" text or icon
+      ctx.fillStyle = 'white';
+      ctx.font = `bold ${size * 0.4}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('ATO', size / 2, size / 2);
+    }
+
+    // Draw all icons
+    drawIcon(document.getElementById('icon16'));
+    drawIcon(document.getElementById('icon32'));
+    drawIcon(document.getElementById('icon48'));
+    drawIcon(document.getElementById('icon128'));
+
+    console.log('✅ Icons generated! Right-click each canvas and save as PNG.');
+  </script>
+</body>
+</html>
