@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ATO - Advanced Tab Organizer</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <h1 class="title">ATO</h1>
+      <p class="subtitle">Advanced Tab Organizer</p>
+    </header>
+
+    <!-- Stats Bar -->
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-label">Total Tabs</span>
+        <span class="stat-value" id="total-tabs">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Duplicates</span>
+        <span class="stat-value" id="duplicate-count">0</span>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="actions" id="actions">
+      <button class="btn btn-danger" id="close-all-btn">
+        🗑 Close All Duplicates
+      </button>
+    </div>
+
+    <!-- Duplicate List -->
+    <div class="duplicates-container">
+      <h2 class="section-title">Duplicate Tabs</h2>
+      <div id="duplicate-list" class="duplicate-list">
+        <!-- Will be populated by JavaScript -->
+      </div>
+      <div id="empty-state" class="empty-state" style="display: none;">
+        <p>✅ No duplicate tabs found!</p>
+        <p class="empty-subtitle">You're all clean.</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -10,7 +10,9 @@ pnpm-debug.log*
 # System
 .DS_Store
 Thumbs.db
-Icon?
+# Icon files (macOS) - commented out as it conflicts with /assets/icons/ folder
+# Icon\r
+# Icon?
 
 # Logs
 *.log
