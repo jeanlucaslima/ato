@@ -11,6 +11,13 @@ const allTabsListEl = document.getElementById('all-tabs-list');
 const emptyStateEl = document.getElementById('empty-state');
 const closeAllBtn = document.getElementById('close-all-btn');
 const actionsEl = document.getElementById('actions');
+const domainButtonsEl = document.getElementById('domain-buttons');
+const domainActionsEl = document.getElementById('domain-actions');
+const clearFilterBtn = document.getElementById('clear-filter-btn');
+const closeDomainBtn = document.getElementById('close-domain-btn');
+
+// State
+let activeDomain = null;
 
 // Count how many times each URL appears
 function countDuplicatesByUrl(tabs) {
@@ -52,6 +59,41 @@ function findDuplicates(tabs) {
   });
 
   return duplicates;
+}
+
+// Extract domain from URL
+function extractDomain(url) {
+  try {
+    const urlObj = new URL(url);
+    return urlObj.hostname;
+  } catch (e) {
+    return null;
+  }
+}
+
+// Group tabs by domain
+function groupTabsByDomain(tabs) {
+  const domainGroups = new Map();
+
+  tabs.forEach(tab => {
+    // Skip chrome:// and edge:// internal pages
+    if (!tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('edge://')) {
+      return;
+    }
+
+    const domain = extractDomain(tab.url);
+    if (!domain) return;
+
+    if (!domainGroups.has(domain)) {
+      domainGroups.set(domain, []);
+    }
+    domainGroups.get(domain).push(tab);
+  });
+
+  // Convert to array and sort by tab count (descending)
+  return Array.from(domainGroups.entries())
+    .sort((a, b) => b[1].length - a[1].length)
+    .map(([domain, tabs]) => ({ domain, tabs, count: tabs.length }));
 }
 
 // Create a tab item element
@@ -174,6 +216,71 @@ async function closeAllDuplicates() {
   }
 }
 
+// Render domain filter buttons
+function renderDomainButtons(tabs) {
+  const domainGroups = groupTabsByDomain(tabs);
+
+  domainButtonsEl.innerHTML = '';
+
+  domainGroups.forEach(({ domain, count }) => {
+    const pill = document.createElement('button');
+    pill.className = 'domain-pill';
+    if (activeDomain === domain) {
+      pill.classList.add('active');
+    }
+
+    const domainName = document.createElement('span');
+    domainName.textContent = domain;
+
+    const countBadge = document.createElement('span');
+    countBadge.className = 'domain-pill-count';
+    countBadge.textContent = count;
+
+    pill.appendChild(domainName);
+    pill.appendChild(countBadge);
+
+    pill.onclick = () => {
+      activeDomain = domain;
+      loadAndRender();
+    };
+
+    domainButtonsEl.appendChild(pill);
+  });
+}
+
+// Close all tabs from active domain
+async function closeAllFromDomain() {
+  if (!activeDomain) return;
+
+  try {
+    const tabs = await chrome.tabs.query({});
+    const domainTabs = tabs.filter(tab => {
+      const domain = extractDomain(tab.url);
+      return domain === activeDomain;
+    });
+
+    // Get active tab to avoid closing it
+    const activeTabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const activeTabId = activeTabs[0]?.id;
+
+    // Filter out active tab
+    const tabsToClose = domainTabs
+      .filter(tab => tab.id !== activeTabId)
+      .map(tab => tab.id);
+
+    if (tabsToClose.length > 0) {
+      await chrome.tabs.remove(tabsToClose);
+      console.log(`✅ Closed ${tabsToClose.length} tabs from ${activeDomain}`);
+    }
+
+    // Clear filter and refresh
+    activeDomain = null;
+    await loadAndRender();
+  } catch (error) {
+    console.error('❌ Error closing domain tabs:', error);
+  }
+}
+
 // Render the UI
 function render(tabs, duplicates) {
   // Calculate duplicate counts by URL
@@ -182,6 +289,16 @@ function render(tabs, duplicates) {
   // Update stats
   totalTabsEl.textContent = tabs.length;
   duplicateCountEl.textContent = duplicates.length;
+
+  // Render domain filter buttons
+  renderDomainButtons(tabs);
+
+  // Show/hide domain actions based on active filter
+  if (activeDomain) {
+    domainActionsEl.style.display = 'flex';
+  } else {
+    domainActionsEl.style.display = 'none';
+  }
 
   // Clear lists
   duplicateListEl.innerHTML = '';
@@ -209,9 +326,17 @@ function render(tabs, duplicates) {
 
   // Render all tabs section
   // Filter out chrome:// and edge:// pages
-  const visibleTabs = tabs.filter(tab =>
+  let visibleTabs = tabs.filter(tab =>
     tab.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('edge://')
   );
+
+  // Apply domain filter if active
+  if (activeDomain) {
+    visibleTabs = visibleTabs.filter(tab => {
+      const domain = extractDomain(tab.url);
+      return domain === activeDomain;
+    });
+  }
 
   visibleTabs.forEach(tab => {
     const count = urlCounts.get(tab.url) || 0;
@@ -236,6 +361,11 @@ async function loadAndRender() {
 
 // Event Listeners
 closeAllBtn.addEventListener('click', closeAllDuplicates);
+clearFilterBtn.addEventListener('click', () => {
+  activeDomain = null;
+  loadAndRender();
+});
+closeDomainBtn.addEventListener('click', closeAllFromDomain);
 
 // Initial load
 loadAndRender();
