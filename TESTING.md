@@ -2,25 +2,32 @@
 
 ## Before You Start
 
-### 1. Generate Icons
+### 1. Install Dependencies & Build
 
-Before loading the extension, you need to create the icon files:
+The extension now uses Vite for building. Run these commands:
 
-1. Open `src/assets/icons/generate-icons.html` in your browser
-2. Right-click each canvas and save as PNG:
-   - 16x16 → `icon16.png`
-   - 32x32 → `icon32.png`
-   - 48x48 → `icon48.png`
-   - 128x128 → `icon128.png`
-3. Save all files to `src/assets/icons/` directory
+```bash
+# Install dependencies
+npm install
+
+# Generate icon PNG files
+npm run icons
+
+# Build extension to dist/
+npm run build
+```
+
+This will create a `dist/` folder with the compiled extension.
 
 ## Loading the Extension
 
 1. Open Chrome and navigate to `chrome://extensions`
 2. Enable **"Developer mode"** (toggle in top-right corner)
 3. Click **"Load unpacked"**
-4. Select the `src/` directory from this project
+4. Select the `dist/` directory from this project (NOT `src/`)
 5. The extension should now appear in your extensions list
+
+**Note:** Load the `dist/` folder, not `src/`. The build process copies and processes files into `dist/`.
 
 ## Testing Checklist
 
@@ -117,11 +124,14 @@ Before loading the extension, you need to create the icon files:
 
 ### Reload Extension After Changes
 ```
-1. Make changes to any file
-2. Go to chrome://extensions
-3. Click reload icon (circular arrow) on ATO card
-4. Test the changes
+1. Make changes to any file in src/
+2. Rebuild the extension: npm run build
+3. Go to chrome://extensions
+4. Click reload icon (circular arrow) on ATO card
+5. Test the changes
 ```
+
+**Tip:** Use `npm run dev` to automatically rebuild when files change (watch mode).
 
 ## Test Scenarios
 

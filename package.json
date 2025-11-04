@@ -1,0 +1,21 @@
+{
+  "name": "ato-v4",
+  "version": "4.0.0",
+  "description": "Advanced Tab Organizer v4 - Kill duplicate tabs instantly",
+  "author": "Jean Lucas Lima",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite build --watch --mode development",
+    "build": "vite build",
+    "icons": "node scripts/generate-icons.js",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.268",
+    "sharp": "^0.33.5",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.0",
+    "vite-plugin-static-copy": "^1.0.6"
+  }
+}

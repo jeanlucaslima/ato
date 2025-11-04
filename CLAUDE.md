@@ -47,26 +47,42 @@ src/
 
 ## Development Workflow
 
-### No Build Step Required
+### Build Process with Vite
 
-Since v4 uses vanilla JS, there's **no build process** for development:
+v4 uses Vite for building the extension. The workflow is:
 
-1. **Make changes** to JS/HTML/CSS files in `src/`
-2. **Load unpacked** at `chrome://extensions`:
-   - Enable "Developer Mode"
-   - Click "Load Unpacked"
-   - Select the `src/` directory
-3. **Test changes**:
-   - Click reload icon in `chrome://extensions`
-   - Test the extension
-4. **Iterate** - edit files and reload
+```bash
+# Install dependencies (first time only)
+npm install
 
-### Optional: TypeScript
+# Generate icon files (first time only)
+npm run icons
 
-If using TypeScript:
-- Files end in `.ts`
-- Use `tsc` to compile to `.js` before loading
-- Keep compiled `.js` files in `src/` for Chrome to read
+# Build extension to dist/
+npm run build
+
+# OR: Watch mode (auto-rebuild on changes)
+npm run dev
+```
+
+**Source structure:**
+- Edit files in `src/` directory
+- Vite builds to `dist/` directory
+- Load `dist/` folder in Chrome (not `src/`)
+
+**Development cycle:**
+1. **Make changes** to files in `src/`
+2. **Rebuild**: `npm run build` (or use `npm run dev` for watch mode)
+3. **Reload extension** in `chrome://extensions` (click reload icon)
+4. **Test changes**
+
+### TypeScript Support
+
+TypeScript is configured but optional:
+- Current files are vanilla `.js` (no changes needed)
+- Future files can be `.ts` for type safety
+- Vite handles compilation automatically
+- Types available via `@types/chrome`
 
 ## Core Architecture
 
