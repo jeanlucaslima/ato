@@ -7,9 +7,27 @@ console.log('🎨 ATO v4 popup loaded');
 const totalTabsEl = document.getElementById('total-tabs');
 const duplicateCountEl = document.getElementById('duplicate-count');
 const duplicateListEl = document.getElementById('duplicate-list');
+const allTabsListEl = document.getElementById('all-tabs-list');
 const emptyStateEl = document.getElementById('empty-state');
 const closeAllBtn = document.getElementById('close-all-btn');
 const actionsEl = document.getElementById('actions');
+
+// Count how many times each URL appears
+function countDuplicatesByUrl(tabs) {
+  const urlCounts = new Map();
+
+  tabs.forEach(tab => {
+    // Skip chrome:// and edge:// internal pages
+    if (!tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('edge://')) {
+      return;
+    }
+
+    const url = tab.url;
+    urlCounts.set(url, (urlCounts.get(url) || 0) + 1);
+  });
+
+  return urlCounts;
+}
 
 // Find duplicate tabs
 function findDuplicates(tabs) {
@@ -37,7 +55,7 @@ function findDuplicates(tabs) {
 }
 
 // Create a tab item element
-function createTabItem(tab) {
+function createTabItem(tab, duplicateCount = 0) {
   const item = document.createElement('div');
   item.className = 'tab-item';
   item.dataset.tabId = tab.id;
@@ -91,6 +109,16 @@ function createTabItem(tab) {
 
   item.appendChild(favicon);
   item.appendChild(info);
+
+  // Duplicate count badge (if count > 1)
+  if (duplicateCount > 1) {
+    const badge = document.createElement('span');
+    badge.className = 'duplicate-badge';
+    badge.textContent = `×${duplicateCount}`;
+    badge.title = `${duplicateCount} tabs with this URL`;
+    item.appendChild(badge);
+  }
+
   item.appendChild(closeBtn);
 
   return item;
@@ -148,13 +176,18 @@ async function closeAllDuplicates() {
 
 // Render the UI
 function render(tabs, duplicates) {
+  // Calculate duplicate counts by URL
+  const urlCounts = countDuplicatesByUrl(tabs);
+
   // Update stats
   totalTabsEl.textContent = tabs.length;
   duplicateCountEl.textContent = duplicates.length;
 
-  // Clear list
+  // Clear lists
   duplicateListEl.innerHTML = '';
+  allTabsListEl.innerHTML = '';
 
+  // Render duplicates section
   if (duplicates.length === 0) {
     // Show empty state
     duplicateListEl.style.display = 'none';
@@ -166,12 +199,25 @@ function render(tabs, duplicates) {
     emptyStateEl.style.display = 'none';
     actionsEl.style.display = 'flex';
 
-    // Render each duplicate
+    // Render each duplicate with count badge
     duplicates.forEach(tab => {
-      const item = createTabItem(tab);
+      const count = urlCounts.get(tab.url) || 0;
+      const item = createTabItem(tab, count);
       duplicateListEl.appendChild(item);
     });
   }
+
+  // Render all tabs section
+  // Filter out chrome:// and edge:// pages
+  const visibleTabs = tabs.filter(tab =>
+    tab.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('edge://')
+  );
+
+  visibleTabs.forEach(tab => {
+    const count = urlCounts.get(tab.url) || 0;
+    const item = createTabItem(tab, count);
+    allTabsListEl.appendChild(item);
+  });
 }
 
 // Load tabs and render
