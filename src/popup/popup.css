@@ -130,60 +130,52 @@ body {
   border-bottom: 1px solid #e5e7eb;
 }
 
-.domain-buttons {
+.domain-filter-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  align-items: center;
+  gap: 12px;
   margin-bottom: 12px;
 }
 
-.domain-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background: #f3f4f6;
-  border: 1px solid #d1d5db;
-  border-radius: 16px;
+.domain-label {
   font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.domain-select {
+  flex: 1;
+  padding: 8px 12px;
+  background: #f9fafb;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
   font-weight: 500;
   color: #1f2937;
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.domain-pill:hover {
-  background: #e5e7eb;
+.domain-select:hover {
+  background: #f3f4f6;
   border-color: #9ca3af;
-  transform: translateY(-1px);
 }
 
-.domain-pill.active {
-  background: #667eea;
+.domain-select:focus {
+  outline: none;
   border-color: #667eea;
-  color: white;
-}
-
-.domain-pill-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 20px;
-  height: 16px;
-  padding: 0 4px;
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.domain-pill.active .domain-pill-count {
-  background: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .domain-actions {
   display: flex;
   gap: 8px;
+}
+
+.btn-small {
+  font-size: 13px;
+  padding: 8px 12px;
 }
 
 /* Duplicate List Container */

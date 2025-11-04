@@ -11,9 +11,8 @@ const allTabsListEl = document.getElementById('all-tabs-list');
 const emptyStateEl = document.getElementById('empty-state');
 const closeAllBtn = document.getElementById('close-all-btn');
 const actionsEl = document.getElementById('actions');
-const domainButtonsEl = document.getElementById('domain-buttons');
+const domainSelectEl = document.getElementById('domain-select');
 const domainActionsEl = document.getElementById('domain-actions');
-const clearFilterBtn = document.getElementById('clear-filter-btn');
 const closeDomainBtn = document.getElementById('close-domain-btn');
 
 // State
@@ -216,36 +215,25 @@ async function closeAllDuplicates() {
   }
 }
 
-// Render domain filter buttons
-function renderDomainButtons(tabs) {
+// Render domain filter dropdown
+function renderDomainDropdown(tabs) {
   const domainGroups = groupTabsByDomain(tabs);
 
-  domainButtonsEl.innerHTML = '';
+  // Clear existing options except the first "All Domains" option
+  while (domainSelectEl.options.length > 1) {
+    domainSelectEl.remove(1);
+  }
 
+  // Add domain options
   domainGroups.forEach(({ domain, count }) => {
-    const pill = document.createElement('button');
-    pill.className = 'domain-pill';
-    if (activeDomain === domain) {
-      pill.classList.add('active');
-    }
-
-    const domainName = document.createElement('span');
-    domainName.textContent = domain;
-
-    const countBadge = document.createElement('span');
-    countBadge.className = 'domain-pill-count';
-    countBadge.textContent = count;
-
-    pill.appendChild(domainName);
-    pill.appendChild(countBadge);
-
-    pill.onclick = () => {
-      activeDomain = domain;
-      loadAndRender();
-    };
-
-    domainButtonsEl.appendChild(pill);
+    const option = document.createElement('option');
+    option.value = domain;
+    option.textContent = `${domain} (${count})`;
+    domainSelectEl.appendChild(option);
   });
+
+  // Set selected value
+  domainSelectEl.value = activeDomain || '';
 }
 
 // Close all tabs from active domain
@@ -290,8 +278,8 @@ function render(tabs, duplicates) {
   totalTabsEl.textContent = tabs.length;
   duplicateCountEl.textContent = duplicates.length;
 
-  // Render domain filter buttons
-  renderDomainButtons(tabs);
+  // Render domain filter dropdown
+  renderDomainDropdown(tabs);
 
   // Show/hide domain actions based on active filter
   if (activeDomain) {
@@ -361,8 +349,8 @@ async function loadAndRender() {
 
 // Event Listeners
 closeAllBtn.addEventListener('click', closeAllDuplicates);
-clearFilterBtn.addEventListener('click', () => {
-  activeDomain = null;
+domainSelectEl.addEventListener('change', (e) => {
+  activeDomain = e.target.value || null;
   loadAndRender();
 });
 closeDomainBtn.addEventListener('click', closeAllFromDomain);

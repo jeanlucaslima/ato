@@ -35,13 +35,15 @@
 
     <!-- Domain Filter -->
     <div class="domain-filter-container" id="domain-filter-container">
-      <h2 class="section-title">🌐 Filter by Domain</h2>
-      <div id="domain-buttons" class="domain-buttons">
-        <!-- Will be populated by JavaScript -->
+      <div class="domain-filter-row">
+        <label for="domain-select" class="domain-label">🌐 Filter by Domain</label>
+        <select id="domain-select" class="domain-select">
+          <option value="">All Domains</option>
+          <!-- Will be populated by JavaScript -->
+        </select>
       </div>
       <div class="domain-actions" id="domain-actions" style="display: none;">
-        <button class="btn btn-secondary" id="clear-filter-btn">Clear Filter</button>
-        <button class="btn btn-danger" id="close-domain-btn">Close All From Domain</button>
+        <button class="btn btn-danger btn-small" id="close-domain-btn">Close All From Domain</button>
       </div>
     </div>
 
