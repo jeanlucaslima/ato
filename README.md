@@ -1,7 +1,9 @@
 # ATO — Advanced Tab Organizer
 ↳ Close tabs. Search smart. Reclaim your browser.
 
-![Version](https://img.shields.io/badge/version-3.0-blue.svg)
+![Version](https://img.shields.io/badge/version-4.0--rebuild-orange.svg)
+
+> **🚧 Branch: v4-rebuild** — This branch is rebuilding ATO from scratch. The v3.0 code is on the `main` branch.
 
 **ATO** is a side panel Chrome Extension that gives you **superpowers** for managing tabs. Whether you’re deep into research, coding, or just riding the chaos of curiosity, ATO helps you **find, close, suspend, and understand** your tab landscape in real time.
 
@@ -32,13 +34,16 @@ Coming soon:
 
 ## 🚀 Getting Started
 
-1. Clone this repo:
-   ```bash
-   git clone https://github.com/yourusername/ato-extension.git
-2. Open chrome://extensions in your browser.
-3. Enable Developer Mode (top-right).
-4. Click Load Unpacked, then select the ato-extension folder.
-5. Click the ATO icon or use Cmd+U / Ctrl+U to open the side panel.
+**This branch is currently being rebuilt from scratch.**
+
+To use the stable v3.0 version:
+```bash
+git checkout main
+npm install
+npm run build
+```
+
+Then load the `dist/` folder in Chrome as an unpacked extension.
 
 ## 🧭 UI Layout Overview
 
