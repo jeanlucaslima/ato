@@ -100,9 +100,9 @@ function createDomainSection(domain, tabs, urlCounts) {
   const section = document.createElement('div');
   section.className = 'domain-section';
 
-  // Create header
+  // Create header (same structure as main section headers)
   const header = document.createElement('button');
-  header.className = 'domain-header';
+  header.className = 'section-header';
   header.setAttribute('data-domain', domain);
   header.setAttribute('aria-expanded', isExpanded);
   header.onclick = () => toggleDomainSection(domain);
@@ -110,17 +110,17 @@ function createDomainSection(domain, tabs, urlCounts) {
   // Arrow
   const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   arrow.setAttribute('class', 'fold-arrow');
-  arrow.setAttribute('width', '10');
-  arrow.setAttribute('height', '10');
+  arrow.setAttribute('width', '12');
+  arrow.setAttribute('height', '12');
   arrow.setAttribute('viewBox', '0 0 12 12');
   arrow.setAttribute('fill', 'currentColor');
   const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
   path.setAttribute('d', 'M4 2l4 4-4 4V2z');
   arrow.appendChild(path);
 
-  // Domain name
-  const domainName = document.createElement('span');
-  domainName.className = 'domain-name';
+  // Domain name (styled as section title)
+  const domainName = document.createElement('h2');
+  domainName.className = 'section-title';
   domainName.textContent = domain;
 
   // Count badge
@@ -134,19 +134,24 @@ function createDomainSection(domain, tabs, urlCounts) {
 
   // Create content container
   const content = document.createElement('div');
-  content.className = 'section-content domain-content';
+  content.className = 'section-content';
   content.id = `domain-content-${domain}`;
   if (!isExpanded) {
     content.classList.add('collapsed');
   }
 
+  // Tab list container
+  const tabList = document.createElement('div');
+  tabList.className = 'domain-tabs-list';
+
   // Add tabs
   tabs.forEach(tab => {
     const dupCount = urlCounts.get(tab.url) || 0;
     const item = createTabItem(tab, dupCount);
-    content.appendChild(item);
+    tabList.appendChild(item);
   });
 
+  content.appendChild(tabList);
   section.appendChild(header);
   section.appendChild(content);
 
