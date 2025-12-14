@@ -12,10 +12,8 @@ const allTabsListEl = document.getElementById('all-tabs-list');
 const emptyStateEl = document.getElementById('empty-state');
 const closeAllBtn = document.getElementById('close-all-btn');
 const domainSelectEl = document.getElementById('domain-select');
-const closeDomainBtn = document.getElementById('close-domain-btn');
 const sortButtonsEl = document.getElementById('sort-buttons');
 const undoDuplicatesBtn = document.getElementById('undo-duplicates-btn');
-const undoDomainBtn = document.getElementById('undo-domain-btn');
 
 // Collapsible section elements
 const duplicatesHeaderEl = document.getElementById('duplicates-header');
@@ -105,17 +103,13 @@ function showUndoButton(context) {
   // Hide all undo buttons first
   hideAllUndoButtons();
 
-  if (context === 'duplicates') {
-    undoDuplicatesBtn.classList.remove('hidden');
-  } else if (context === 'domain') {
-    undoDomainBtn.classList.remove('hidden');
-  }
+  // Show the duplicates undo button for any undo action
+  undoDuplicatesBtn.classList.remove('hidden');
 }
 
 // Hide all undo buttons
 function hideAllUndoButtons() {
   undoDuplicatesBtn.classList.add('hidden');
-  undoDomainBtn.classList.add('hidden');
 }
 
 // Undo the last close action
@@ -125,28 +119,21 @@ async function undoClose() {
     return;
   }
 
-  try {
-    console.log(`🔄 Restoring ${lastClosedCount} tabs...`);
+  console.log(`🔄 Sending undo request for ${lastClosedCount} tabs to background...`);
 
-    // Restore tabs by calling restore() N times (restores most recent each time)
-    for (let i = 0; i < lastClosedCount; i++) {
-      await chrome.sessions.restore();
-    }
+  // Send message to background service worker to restore tabs
+  // (popup may close when tabs are restored, so background handles it)
+  chrome.runtime.sendMessage({
+    action: 'undoCloseTabs',
+    count: lastClosedCount
+  });
 
-    console.log(`✅ Restored ${lastClosedCount} tabs`);
+  // Clear undo state
+  lastClosedCount = 0;
+  undoContext = null;
 
-    // Clear undo state
-    lastClosedCount = 0;
-    undoContext = null;
-
-    // Hide undo buttons
-    hideAllUndoButtons();
-
-    // Refresh the list
-    await loadAndRender();
-  } catch (error) {
-    console.error('❌ Error restoring tabs:', error);
-  }
+  // Hide undo buttons
+  hideAllUndoButtons();
 }
 
 // Close all tabs from a specific domain (used by domain section buttons)
@@ -559,48 +546,6 @@ function renderDomainDropdown(tabs) {
   domainSelectEl.value = activeDomain || '';
 }
 
-// Close all tabs from active domain (action bar button)
-async function closeAllFromDomain() {
-  if (!activeDomain) return;
-
-  try {
-    const tabs = await chrome.tabs.query({});
-    const domainTabs = tabs.filter(tab => {
-      const domain = extractDomain(tab.url);
-      return domain === activeDomain;
-    });
-
-    // Get active tab to avoid closing it
-    const activeTabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    const activeTabId = activeTabs[0]?.id;
-
-    // Filter out active tab
-    const tabsToClose = domainTabs
-      .filter(tab => tab.id !== activeTabId)
-      .map(tab => tab.id);
-
-    if (tabsToClose.length > 0) {
-      const closedCount = tabsToClose.length;
-      const closedDomain = activeDomain;
-      await chrome.tabs.remove(tabsToClose);
-      console.log(`✅ Closed ${closedCount} tabs from ${closedDomain}`);
-
-      // Store count for undo
-      lastClosedCount = closedCount;
-      undoContext = 'domain';
-
-      // Show undo button
-      showUndoButton('domain');
-    }
-
-    // Clear filter and refresh
-    activeDomain = null;
-    await loadAndRender();
-  } catch (error) {
-    console.error('❌ Error closing domain tabs:', error);
-  }
-}
-
 // Render the UI
 function render(tabs, duplicates) {
   // Calculate duplicate counts by URL
@@ -617,12 +562,6 @@ function render(tabs, duplicates) {
 
   // Render domain filter dropdown
   renderDomainDropdown(tabs);
-
-  // Update close domain button based on active filter
-  closeDomainBtn.disabled = !activeDomain;
-  closeDomainBtn.title = activeDomain
-    ? `Close all tabs from ${activeDomain}`
-    : 'Choose a domain to close all tabs from it';
 
   // Enable/disable close all duplicates button
   closeAllBtn.disabled = duplicates.length === 0;
@@ -737,9 +676,7 @@ domainSelectEl.addEventListener('change', (e) => {
   activeDomain = e.target.value || null;
   loadAndRender();
 });
-closeDomainBtn.addEventListener('click', closeAllFromDomain);
 undoDuplicatesBtn.addEventListener('click', undoClose);
-undoDomainBtn.addEventListener('click', undoClose);
 
 // Sort button group event listener
 sortButtonsEl.addEventListener('click', (e) => {

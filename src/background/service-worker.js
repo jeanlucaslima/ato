@@ -74,5 +74,32 @@ chrome.tabs.onReplaced.addListener(() => {
   scanAndUpdateBadge();
 });
 
+// Handle messages from popup
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === 'undoCloseTabs') {
+    const count = message.count;
+    console.log(`🔄 Received undo request for ${count} tabs`);
+
+    // Restore tabs asynchronously
+    (async () => {
+      let restored = 0;
+      for (let i = 0; i < count; i++) {
+        try {
+          await chrome.sessions.restore();
+          restored++;
+          console.log(`✅ Restored tab ${restored}/${count}`);
+        } catch (e) {
+          console.log(`⚠️ Failed to restore tab ${i + 1}:`, e.message);
+          break;
+        }
+      }
+      console.log(`✅ Undo complete: restored ${restored} tabs`);
+    })();
+
+    // Return true to indicate async response (though we don't send one)
+    return true;
+  }
+});
+
 // Initial scan when service worker starts
 scanAndUpdateBadge();
