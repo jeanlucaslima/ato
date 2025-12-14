@@ -17,33 +17,55 @@
     <!-- Stats Bar -->
     <div class="stats">
       <div class="stat">
-        <span class="stat-label">Total Tabs</span>
+        <span class="stat-label">Tabs</span>
         <span class="stat-value" id="total-tabs">0</span>
       </div>
       <div class="stat">
         <span class="stat-label">Duplicates</span>
         <span class="stat-value" id="duplicate-count">0</span>
       </div>
+      <div class="stat">
+        <span class="stat-label">Domains</span>
+        <span class="stat-value" id="domain-count">0</span>
+      </div>
     </div>
 
-    <!-- Action Buttons -->
-    <div class="actions" id="actions">
-      <button class="btn btn-danger" id="close-all-btn">
-        🗑 Close All Duplicates
-      </button>
-    </div>
-
-    <!-- Domain Filter -->
-    <div class="domain-filter-container" id="domain-filter-container">
-      <div class="domain-filter-row">
-        <label for="domain-select" class="domain-label">🌐 Filter by Domain</label>
+    <!-- Action Bar -->
+    <div class="action-bar">
+      <!-- Domain Filter -->
+      <div class="action-row">
         <select id="domain-select" class="domain-select">
           <option value="">All Domains</option>
-          <!-- Will be populated by JavaScript -->
         </select>
       </div>
-      <div class="domain-actions" id="domain-actions" style="display: none;">
-        <button class="btn btn-danger btn-small" id="close-domain-btn">Close All From Domain</button>
+
+      <!-- Sort Buttons -->
+      <div class="action-row">
+        <span class="action-label">Sort:</span>
+        <div class="btn-group" id="sort-buttons">
+          <button class="btn-toggle active" data-sort="default" title="Default order">—</button>
+          <button class="btn-toggle" data-sort="title" title="Title A-Z">A-Z</button>
+          <button class="btn-toggle" data-sort="title-desc" title="Title Z-A">Z-A</button>
+          <button class="btn-toggle" data-sort="domain" title="By domain">Dom</button>
+          <button class="btn-toggle" data-sort="age" title="By last accessed">Age</button>
+          <button class="btn-toggle" data-sort="duplicates" title="Most duplicates">Dupe</button>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="action-row">
+        <button class="btn-action btn-danger" id="close-all-btn" title="Close all duplicate tabs">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+          </svg>
+          <span>Duplicates</span>
+        </button>
+        <button class="btn-action btn-danger" id="close-domain-btn" title="Select a domain first" disabled>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+          </svg>
+          <span id="close-domain-label">Domain</span>
+        </button>
       </div>
     </div>
 
@@ -54,8 +76,7 @@
         <!-- Will be populated by JavaScript -->
       </div>
       <div id="empty-state" class="empty-state" style="display: none;">
-        <p>✅ No duplicate tabs found!</p>
-        <p class="empty-subtitle">You're all clean.</p>
+        <p>No duplicate tabs</p>
       </div>
     </div>
 
