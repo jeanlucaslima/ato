@@ -27,6 +27,7 @@ const domainSectionsContainer = document.getElementById('domain-sections-contain
 // State
 let activeDomain = null;
 let activeSort = 'default';
+let ageSortDirection = 'old'; // 'old' or 'new' - toggles on each click
 let sectionStates = {
   duplicates: true, // expanded by default
   allTabs: true     // expanded by default
@@ -319,10 +320,10 @@ function sortTabs(tabs, sortBy, urlCounts) {
       });
     case 'age':
       return sorted.sort((a, b) => {
-        // Oldest first (smallest lastAccessed = oldest)
         const ageA = a.lastAccessed || 0;
         const ageB = b.lastAccessed || 0;
-        return ageA - ageB;
+        // Toggle between oldest first and newest first
+        return ageSortDirection === 'old' ? ageA - ageB : ageB - ageA;
       });
     case 'duplicates':
       return sorted.sort((a, b) => {
@@ -658,7 +659,15 @@ closeDomainBtn.addEventListener('click', closeAllFromDomain);
 sortButtonsEl.addEventListener('click', (e) => {
   const btn = e.target.closest('.btn-toggle');
   if (btn && btn.dataset.sort) {
-    activeSort = btn.dataset.sort;
+    const newSort = btn.dataset.sort;
+    // Toggle age direction if clicking age button again
+    if (newSort === 'age' && activeSort === 'age') {
+      ageSortDirection = ageSortDirection === 'old' ? 'new' : 'old';
+    } else if (newSort === 'age') {
+      // Reset to 'old' when first selecting age sort
+      ageSortDirection = 'old';
+    }
+    activeSort = newSort;
     loadAndRender();
   }
 });
