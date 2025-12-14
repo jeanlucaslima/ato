@@ -30,13 +30,17 @@ let sectionStates = {
   duplicates: true, // expanded by default
   allTabs: true     // expanded by default
 };
+let domainSectionStates = {}; // Track collapse state per domain
 
 // Load section states from storage
 async function loadSectionStates() {
   try {
-    const result = await chrome.storage.local.get('sectionStates');
+    const result = await chrome.storage.local.get(['sectionStates', 'domainSectionStates']);
     if (result.sectionStates) {
       sectionStates = result.sectionStates;
+    }
+    if (result.domainSectionStates) {
+      domainSectionStates = result.domainSectionStates;
     }
     applySectionStates();
   } catch (error) {
@@ -47,7 +51,7 @@ async function loadSectionStates() {
 // Save section states to storage
 async function saveSectionStates() {
   try {
-    await chrome.storage.local.set({ sectionStates });
+    await chrome.storage.local.set({ sectionStates, domainSectionStates });
   } catch (error) {
     console.error('Error saving section states:', error);
   }
@@ -69,6 +73,83 @@ function toggleSection(section) {
   sectionStates[section] = !sectionStates[section];
   applySectionStates();
   saveSectionStates();
+}
+
+// Toggle domain section visibility
+function toggleDomainSection(domain) {
+  // Default to expanded (true) if not set
+  const currentState = domainSectionStates[domain] !== false;
+  domainSectionStates[domain] = !currentState;
+
+  // Update DOM
+  const header = document.querySelector(`[data-domain="${domain}"]`);
+  const content = document.getElementById(`domain-content-${domain}`);
+  if (header && content) {
+    header.setAttribute('aria-expanded', !currentState);
+    content.classList.toggle('collapsed', currentState);
+  }
+
+  saveSectionStates();
+}
+
+// Create a domain section element
+function createDomainSection(domain, tabs, urlCounts) {
+  const isExpanded = domainSectionStates[domain] !== false; // Default to expanded
+
+  const section = document.createElement('div');
+  section.className = 'domain-section';
+
+  // Create header
+  const header = document.createElement('button');
+  header.className = 'domain-header';
+  header.setAttribute('data-domain', domain);
+  header.setAttribute('aria-expanded', isExpanded);
+  header.onclick = () => toggleDomainSection(domain);
+
+  // Arrow
+  const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  arrow.setAttribute('class', 'fold-arrow');
+  arrow.setAttribute('width', '10');
+  arrow.setAttribute('height', '10');
+  arrow.setAttribute('viewBox', '0 0 12 12');
+  arrow.setAttribute('fill', 'currentColor');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M4 2l4 4-4 4V2z');
+  arrow.appendChild(path);
+
+  // Domain name
+  const domainName = document.createElement('span');
+  domainName.className = 'domain-name';
+  domainName.textContent = domain;
+
+  // Count badge
+  const count = document.createElement('span');
+  count.className = 'section-count';
+  count.textContent = tabs.length;
+
+  header.appendChild(arrow);
+  header.appendChild(domainName);
+  header.appendChild(count);
+
+  // Create content container
+  const content = document.createElement('div');
+  content.className = 'section-content domain-content';
+  content.id = `domain-content-${domain}`;
+  if (!isExpanded) {
+    content.classList.add('collapsed');
+  }
+
+  // Add tabs
+  tabs.forEach(tab => {
+    const dupCount = urlCounts.get(tab.url) || 0;
+    const item = createTabItem(tab, dupCount);
+    content.appendChild(item);
+  });
+
+  section.appendChild(header);
+  section.appendChild(content);
+
+  return section;
 }
 
 // Count how many times each URL appears
@@ -451,11 +532,53 @@ function render(tabs, duplicates) {
   // Update all tabs section count
   allTabsSectionCountEl.textContent = visibleTabs.length;
 
+  // Group tabs by domain for section rendering
+  const domainMap = new Map();
   visibleTabs.forEach(tab => {
-    const count = urlCounts.get(tab.url) || 0;
-    const item = createTabItem(tab, count);
-    allTabsListEl.appendChild(item);
+    const domain = extractDomain(tab.url) || 'other';
+    if (!domainMap.has(domain)) {
+      domainMap.set(domain, []);
+    }
+    domainMap.get(domain).push(tab);
   });
+
+  // Separate domains with 3+ tabs from others
+  const largeDomains = [];
+  const smallDomainTabs = [];
+
+  domainMap.forEach((domainTabs, domain) => {
+    if (domainTabs.length >= 3) {
+      largeDomains.push({ domain, tabs: domainTabs });
+    } else {
+      smallDomainTabs.push(...domainTabs);
+    }
+  });
+
+  // Sort large domains by tab count (descending)
+  largeDomains.sort((a, b) => b.tabs.length - a.tabs.length);
+
+  // Render domain sections for domains with 3+ tabs
+  largeDomains.forEach(({ domain, tabs: domainTabs }) => {
+    const section = createDomainSection(domain, domainTabs, urlCounts);
+    allTabsListEl.appendChild(section);
+  });
+
+  // Render remaining tabs (from domains with < 3 tabs)
+  if (smallDomainTabs.length > 0) {
+    // If there are domain sections, add a separator label
+    if (largeDomains.length > 0) {
+      const otherLabel = document.createElement('div');
+      otherLabel.className = 'other-tabs-label';
+      otherLabel.textContent = 'Other';
+      allTabsListEl.appendChild(otherLabel);
+    }
+
+    smallDomainTabs.forEach(tab => {
+      const count = urlCounts.get(tab.url) || 0;
+      const item = createTabItem(tab, count);
+      allTabsListEl.appendChild(item);
+    });
+  }
 }
 
 // Load tabs and render

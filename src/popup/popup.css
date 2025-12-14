@@ -431,6 +431,92 @@ body {
   gap: 8px;
 }
 
+/* Domain Sections */
+.domain-section {
+  margin-bottom: 8px;
+}
+
+.domain-section:last-child {
+  margin-bottom: 0;
+}
+
+.domain-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 10px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  margin-bottom: 6px;
+}
+
+.domain-header:hover {
+  background: var(--bg-secondary);
+  border-color: var(--border-hover);
+}
+
+.domain-header:focus {
+  outline: none;
+}
+
+.domain-header:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+.domain-header .fold-arrow {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+  transform: rotate(90deg);
+}
+
+.domain-header[aria-expanded="false"] .fold-arrow {
+  transform: rotate(0deg);
+}
+
+.domain-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.domain-header .section-count {
+  font-size: 10px;
+  padding: 1px 6px;
+}
+
+.domain-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 12px;
+}
+
+.domain-content.collapsed {
+  max-height: 0;
+  opacity: 0;
+  margin-bottom: -6px;
+}
+
+/* Other tabs label */
+.other-tabs-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 8px 0 4px;
+  margin-top: 4px;
+}
+
 /* Duplicate Badge */
 .duplicate-badge {
   display: inline-flex;
