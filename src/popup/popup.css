@@ -53,6 +53,8 @@ body {
   font-size: 14px;
   color: var(--text-primary);
   background: var(--bg-primary);
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
 }
 
 .container {
@@ -439,22 +441,26 @@ body {
 }
 
 /* Scrollbar */
+body::-webkit-scrollbar,
 .duplicates-container::-webkit-scrollbar,
 .all-tabs-container::-webkit-scrollbar {
   width: 6px;
 }
 
+body::-webkit-scrollbar-track,
 .duplicates-container::-webkit-scrollbar-track,
 .all-tabs-container::-webkit-scrollbar-track {
   background: transparent;
 }
 
+body::-webkit-scrollbar-thumb,
 .duplicates-container::-webkit-scrollbar-thumb,
 .all-tabs-container::-webkit-scrollbar-thumb {
   background: var(--scrollbar-thumb);
   border-radius: 3px;
 }
 
+body::-webkit-scrollbar-thumb:hover,
 .duplicates-container::-webkit-scrollbar-thumb:hover,
 .all-tabs-container::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-hover);
