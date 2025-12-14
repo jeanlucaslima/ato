@@ -44,19 +44,6 @@
         </select>
       </div>
 
-      <!-- Sort Buttons -->
-      <div class="action-row">
-        <span class="action-label">Sort:</span>
-        <div class="btn-group" id="sort-buttons">
-          <button class="btn-toggle active" data-sort="default" title="Default order">—</button>
-          <button class="btn-toggle" data-sort="title" title="Title A-Z">A-Z</button>
-          <button class="btn-toggle" data-sort="title-desc" title="Title Z-A">Z-A</button>
-          <button class="btn-toggle" data-sort="domain" title="By domain">Dom</button>
-          <button class="btn-toggle" data-sort="age" title="By last accessed">Age</button>
-          <button class="btn-toggle" data-sort="duplicates" title="Most duplicates">Dupe</button>
-        </div>
-      </div>
-
       <!-- Action Buttons -->
       <div class="action-row">
         <button class="btn-action btn-danger" id="close-all-btn" title="Close all duplicate tabs">
@@ -103,6 +90,17 @@
         <span class="section-count" id="all-tabs-section-count">0</span>
       </button>
       <div class="section-content" id="all-tabs-content">
+        <!-- Sort Buttons -->
+        <div class="sort-bar">
+          <span class="action-label">Sort:</span>
+          <div class="btn-group" id="sort-buttons">
+            <button class="btn-toggle active" data-sort="default" title="Default order">Default</button>
+            <button class="btn-toggle" data-sort="title" title="Sort by title A-Z">Title</button>
+            <button class="btn-toggle" data-sort="domain" title="Group by domain">Site</button>
+            <button class="btn-toggle" data-sort="age" title="Oldest first">Oldest</button>
+            <button class="btn-toggle" data-sort="duplicates" title="Most duplicates first">Dupes</button>
+          </div>
+        </div>
         <div id="all-tabs-list" class="all-tabs-list">
           <!-- Will be populated by JavaScript -->
         </div>
