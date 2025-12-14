@@ -37,7 +37,7 @@ let sectionStates = {
 let domainSectionStates = {}; // Track collapse state per domain
 
 // Undo state
-let lastClosedSessionIds = [];  // Session IDs from chrome.sessions
+let lastClosedCount = 0;        // Number of tabs closed (for undo)
 let undoContext = null;         // 'duplicates', 'domain', or specific domain name
 
 // Load section states from storage
@@ -120,23 +120,23 @@ function hideAllUndoButtons() {
 
 // Undo the last close action
 async function undoClose() {
-  if (lastClosedSessionIds.length === 0) {
+  if (lastClosedCount === 0) {
     console.log('⚠️ No tabs to restore');
     return;
   }
 
   try {
-    console.log(`🔄 Restoring ${lastClosedSessionIds.length} tabs...`);
+    console.log(`🔄 Restoring ${lastClosedCount} tabs...`);
 
-    // Restore tabs using chrome.sessions.restore()
-    for (const sessionId of lastClosedSessionIds) {
-      await chrome.sessions.restore(sessionId);
+    // Restore tabs by calling restore() N times (restores most recent each time)
+    for (let i = 0; i < lastClosedCount; i++) {
+      await chrome.sessions.restore();
     }
 
-    console.log(`✅ Restored ${lastClosedSessionIds.length} tabs`);
+    console.log(`✅ Restored ${lastClosedCount} tabs`);
 
     // Clear undo state
-    lastClosedSessionIds = [];
+    lastClosedCount = 0;
     undoContext = null;
 
     // Hide undo buttons
@@ -172,12 +172,8 @@ async function closeTabsFromDomain(domain) {
       await chrome.tabs.remove(tabsToClose);
       console.log(`✅ Closed ${closedCount} tabs from ${domain}`);
 
-      // Get session IDs for undo
-      const sessions = await chrome.sessions.getRecentlyClosed({ maxResults: closedCount });
-      lastClosedSessionIds = sessions
-        .filter(s => s.tab)
-        .map(s => s.tab.sessionId)
-        .slice(0, closedCount);
+      // Store count for undo
+      lastClosedCount = closedCount;
       undoContext = domain;
 
       // Refresh the list first (domain section may disappear)
@@ -527,12 +523,8 @@ async function closeAllDuplicates() {
       await chrome.tabs.remove(tabsToClose);
       console.log(`✅ Closed ${closedCount} duplicate tabs`);
 
-      // Get session IDs for undo
-      const sessions = await chrome.sessions.getRecentlyClosed({ maxResults: closedCount });
-      lastClosedSessionIds = sessions
-        .filter(s => s.tab)
-        .map(s => s.tab.sessionId)
-        .slice(0, closedCount);
+      // Store count for undo
+      lastClosedCount = closedCount;
       undoContext = 'duplicates';
 
       // Show undo button
@@ -593,12 +585,8 @@ async function closeAllFromDomain() {
       await chrome.tabs.remove(tabsToClose);
       console.log(`✅ Closed ${closedCount} tabs from ${closedDomain}`);
 
-      // Get session IDs for undo
-      const sessions = await chrome.sessions.getRecentlyClosed({ maxResults: closedCount });
-      lastClosedSessionIds = sessions
-        .filter(s => s.tab)
-        .map(s => s.tab.sessionId)
-        .slice(0, closedCount);
+      // Store count for undo
+      lastClosedCount = closedCount;
       undoContext = 'domain';
 
       // Show undo button
