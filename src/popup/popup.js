@@ -22,6 +22,7 @@ const duplicatesSectionCountEl = document.getElementById('duplicates-section-cou
 const allTabsHeaderEl = document.getElementById('all-tabs-header');
 const allTabsContentEl = document.getElementById('all-tabs-content');
 const allTabsSectionCountEl = document.getElementById('all-tabs-section-count');
+const domainSectionsContainer = document.getElementById('domain-sections-container');
 
 // State
 let activeDomain = null;
@@ -532,53 +533,47 @@ function render(tabs, duplicates) {
   // Update all tabs section count
   allTabsSectionCountEl.textContent = visibleTabs.length;
 
-  // Group tabs by domain for section rendering
-  const domainMap = new Map();
+  // Render all tabs as flat list (sortable)
   visibleTabs.forEach(tab => {
-    const domain = extractDomain(tab.url) || 'other';
+    const count = urlCounts.get(tab.url) || 0;
+    const item = createTabItem(tab, count);
+    allTabsListEl.appendChild(item);
+  });
+
+  // Render domain sections (for domains with 3+ tabs)
+  domainSectionsContainer.innerHTML = '';
+
+  // Group all tabs by domain (not filtered)
+  const allVisibleTabs = tabs.filter(tab =>
+    tab.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('edge://')
+  );
+
+  const domainMap = new Map();
+  allVisibleTabs.forEach(tab => {
+    const domain = extractDomain(tab.url);
+    if (!domain) return;
     if (!domainMap.has(domain)) {
       domainMap.set(domain, []);
     }
     domainMap.get(domain).push(tab);
   });
 
-  // Separate domains with 3+ tabs from others
+  // Get domains with 3+ tabs
   const largeDomains = [];
-  const smallDomainTabs = [];
-
   domainMap.forEach((domainTabs, domain) => {
     if (domainTabs.length >= 3) {
       largeDomains.push({ domain, tabs: domainTabs });
-    } else {
-      smallDomainTabs.push(...domainTabs);
     }
   });
 
-  // Sort large domains by tab count (descending)
+  // Sort by tab count (descending)
   largeDomains.sort((a, b) => b.tabs.length - a.tabs.length);
 
-  // Render domain sections for domains with 3+ tabs
+  // Render each domain section
   largeDomains.forEach(({ domain, tabs: domainTabs }) => {
     const section = createDomainSection(domain, domainTabs, urlCounts);
-    allTabsListEl.appendChild(section);
+    domainSectionsContainer.appendChild(section);
   });
-
-  // Render remaining tabs (from domains with < 3 tabs)
-  if (smallDomainTabs.length > 0) {
-    // If there are domain sections, add a separator label
-    if (largeDomains.length > 0) {
-      const otherLabel = document.createElement('div');
-      otherLabel.className = 'other-tabs-label';
-      otherLabel.textContent = 'Other';
-      allTabsListEl.appendChild(otherLabel);
-    }
-
-    smallDomainTabs.forEach(tab => {
-      const count = urlCounts.get(tab.url) || 0;
-      const item = createTabItem(tab, count);
-      allTabsListEl.appendChild(item);
-    });
-  }
 }
 
 // Load tabs and render

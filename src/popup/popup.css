@@ -431,9 +431,18 @@ body {
   gap: 8px;
 }
 
+/* Domain Sections Container */
+.domain-sections-container {
+  padding: 0 20px 16px;
+}
+
+.domain-sections-container:empty {
+  display: none;
+}
+
 /* Domain Sections */
 .domain-section {
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .domain-section:last-child {
@@ -504,17 +513,6 @@ body {
   max-height: 0;
   opacity: 0;
   margin-bottom: -6px;
-}
-
-/* Other tabs label */
-.other-tabs-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 8px 0 4px;
-  margin-top: 4px;
 }
 
 /* Duplicate Badge */
