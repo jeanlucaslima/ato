@@ -14,6 +14,8 @@ const closeAllBtn = document.getElementById('close-all-btn');
 const domainSelectEl = document.getElementById('domain-select');
 const closeDomainBtn = document.getElementById('close-domain-btn');
 const sortButtonsEl = document.getElementById('sort-buttons');
+const undoDuplicatesBtn = document.getElementById('undo-duplicates-btn');
+const undoDomainBtn = document.getElementById('undo-domain-btn');
 
 // Collapsible section elements
 const duplicatesHeaderEl = document.getElementById('duplicates-header');
@@ -33,6 +35,10 @@ let sectionStates = {
   allTabs: true     // expanded by default
 };
 let domainSectionStates = {}; // Track collapse state per domain
+
+// Undo state
+let lastClosedSessionIds = [];  // Session IDs from chrome.sessions
+let undoContext = null;         // 'duplicates', 'domain', or specific domain name
 
 // Load section states from storage
 async function loadSectionStates() {
@@ -94,7 +100,61 @@ function toggleDomainSection(domain) {
   saveSectionStates();
 }
 
-// Close all tabs from a specific domain
+// Show undo button based on context
+function showUndoButton(context) {
+  // Hide all undo buttons first
+  hideAllUndoButtons();
+
+  if (context === 'duplicates') {
+    undoDuplicatesBtn.classList.remove('hidden');
+  } else if (context === 'domain') {
+    undoDomainBtn.classList.remove('hidden');
+  }
+  // For domain section undo buttons, they are handled in createDomainSection
+}
+
+// Hide all undo buttons
+function hideAllUndoButtons() {
+  undoDuplicatesBtn.classList.add('hidden');
+  undoDomainBtn.classList.add('hidden');
+  // Hide any domain section undo buttons
+  document.querySelectorAll('.domain-undo-btn').forEach(btn => {
+    btn.classList.add('hidden');
+  });
+}
+
+// Undo the last close action
+async function undoClose() {
+  if (lastClosedSessionIds.length === 0) {
+    console.log('⚠️ No tabs to restore');
+    return;
+  }
+
+  try {
+    console.log(`🔄 Restoring ${lastClosedSessionIds.length} tabs...`);
+
+    // Restore tabs using chrome.sessions.restore()
+    for (const sessionId of lastClosedSessionIds) {
+      await chrome.sessions.restore(sessionId);
+    }
+
+    console.log(`✅ Restored ${lastClosedSessionIds.length} tabs`);
+
+    // Clear undo state
+    lastClosedSessionIds = [];
+    undoContext = null;
+
+    // Hide undo buttons
+    hideAllUndoButtons();
+
+    // Refresh the list
+    await loadAndRender();
+  } catch (error) {
+    console.error('❌ Error restoring tabs:', error);
+  }
+}
+
+// Close all tabs from a specific domain (used by domain section buttons)
 async function closeTabsFromDomain(domain) {
   try {
     const tabs = await chrome.tabs.query({});
@@ -113,8 +173,24 @@ async function closeTabsFromDomain(domain) {
       .map(tab => tab.id);
 
     if (tabsToClose.length > 0) {
+      const closedCount = tabsToClose.length;
       await chrome.tabs.remove(tabsToClose);
-      console.log(`✅ Closed ${tabsToClose.length} tabs from ${domain}`);
+      console.log(`✅ Closed ${closedCount} tabs from ${domain}`);
+
+      // Get session IDs for undo
+      const sessions = await chrome.sessions.getRecentlyClosed({ maxResults: closedCount });
+      lastClosedSessionIds = sessions
+        .filter(s => s.tab)
+        .map(s => s.tab.sessionId)
+        .slice(0, closedCount);
+      undoContext = domain;
+
+      // Show undo button for this domain section
+      const undoBtn = document.querySelector(`[data-undo-domain="${domain}"]`);
+      if (undoBtn) {
+        hideAllUndoButtons();
+        undoBtn.classList.remove('hidden');
+      }
     }
 
     // Refresh the list
@@ -189,7 +265,25 @@ function createDomainSection(domain, tabs, urlCounts) {
     closeTabsFromDomain(domain);
   };
 
+  // Undo button for this domain section
+  const undoBtn = document.createElement('button');
+  undoBtn.className = 'btn-action btn-undo btn-small hidden domain-undo-btn';
+  undoBtn.setAttribute('data-undo-domain', domain);
+  undoBtn.title = 'Undo - restore closed tabs';
+  undoBtn.innerHTML = `
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+      <path d="M3 3v5h5"/>
+    </svg>
+    <span>Undo</span>
+  `;
+  undoBtn.onclick = (e) => {
+    e.stopPropagation();
+    undoClose();
+  };
+
   actionBar.appendChild(closeBtn);
+  actionBar.appendChild(undoBtn);
 
   // Tab list container
   const tabList = document.createElement('div');
@@ -452,8 +546,20 @@ async function closeAllDuplicates() {
       .map(tab => tab.id);
 
     if (tabsToClose.length > 0) {
+      const closedCount = tabsToClose.length;
       await chrome.tabs.remove(tabsToClose);
-      console.log(`✅ Closed ${tabsToClose.length} duplicate tabs`);
+      console.log(`✅ Closed ${closedCount} duplicate tabs`);
+
+      // Get session IDs for undo
+      const sessions = await chrome.sessions.getRecentlyClosed({ maxResults: closedCount });
+      lastClosedSessionIds = sessions
+        .filter(s => s.tab)
+        .map(s => s.tab.sessionId)
+        .slice(0, closedCount);
+      undoContext = 'duplicates';
+
+      // Show undo button
+      showUndoButton('duplicates');
     }
 
     // Refresh the list
@@ -484,7 +590,7 @@ function renderDomainDropdown(tabs) {
   domainSelectEl.value = activeDomain || '';
 }
 
-// Close all tabs from active domain
+// Close all tabs from active domain (action bar button)
 async function closeAllFromDomain() {
   if (!activeDomain) return;
 
@@ -505,8 +611,21 @@ async function closeAllFromDomain() {
       .map(tab => tab.id);
 
     if (tabsToClose.length > 0) {
+      const closedCount = tabsToClose.length;
+      const closedDomain = activeDomain;
       await chrome.tabs.remove(tabsToClose);
-      console.log(`✅ Closed ${tabsToClose.length} tabs from ${activeDomain}`);
+      console.log(`✅ Closed ${closedCount} tabs from ${closedDomain}`);
+
+      // Get session IDs for undo
+      const sessions = await chrome.sessions.getRecentlyClosed({ maxResults: closedCount });
+      lastClosedSessionIds = sessions
+        .filter(s => s.tab)
+        .map(s => s.tab.sessionId)
+        .slice(0, closedCount);
+      undoContext = 'domain';
+
+      // Show undo button
+      showUndoButton('domain');
     }
 
     // Clear filter and refresh
@@ -654,6 +773,8 @@ domainSelectEl.addEventListener('change', (e) => {
   loadAndRender();
 });
 closeDomainBtn.addEventListener('click', closeAllFromDomain);
+undoDuplicatesBtn.addEventListener('click', undoClose);
+undoDomainBtn.addEventListener('click', undoClose);
 
 // Sort button group event listener
 sortButtonsEl.addEventListener('click', (e) => {

@@ -241,6 +241,20 @@ body {
   color: var(--danger-color);
 }
 
+.btn-action.btn-undo {
+  background: var(--accent-light);
+  color: var(--accent-color);
+}
+
+.btn-action.btn-undo:hover {
+  background: var(--accent-color);
+  color: white;
+}
+
+.btn-action.hidden {
+  display: none;
+}
+
 /* Tab Age */
 .tab-age {
   font-size: 10px;
