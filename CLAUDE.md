@@ -264,3 +264,4 @@ v3 was built with React + Vite, used a side panel, and had many features built-i
 | Access | Click icon | Keyboard shortcut |
 
 To view v3 code: `git checkout main`
+- when we finish a task, bump the version and git commit

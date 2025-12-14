@@ -58,33 +58,49 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
           </svg>
-          <span>Duplicates</span>
+          <span>Close duplicates</span>
         </button>
-        <button class="btn-action btn-danger" id="close-domain-btn" title="Select a domain first" disabled>
+        <button class="btn-action btn-danger" id="close-domain-btn" title="Choose a domain to close all tabs from it" disabled>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
           </svg>
-          <span id="close-domain-label">Domain</span>
+          <span>Close all from domain</span>
         </button>
       </div>
     </div>
 
     <!-- Duplicate List -->
     <div class="duplicates-container">
-      <h2 class="section-title">Duplicate Tabs</h2>
-      <div id="duplicate-list" class="duplicate-list">
-        <!-- Will be populated by JavaScript -->
-      </div>
-      <div id="empty-state" class="empty-state" style="display: none;">
-        <p>No duplicate tabs</p>
+      <button class="section-header" id="duplicates-header" aria-expanded="true">
+        <svg class="fold-arrow" width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+          <path d="M4 2l4 4-4 4V2z"/>
+        </svg>
+        <h2 class="section-title">Duplicate Tabs</h2>
+        <span class="section-count" id="duplicates-section-count">0</span>
+      </button>
+      <div class="section-content" id="duplicates-content">
+        <div id="duplicate-list" class="duplicate-list">
+          <!-- Will be populated by JavaScript -->
+        </div>
+        <div id="empty-state" class="empty-state" style="display: none;">
+          <p>No duplicate tabs</p>
+        </div>
       </div>
     </div>
 
     <!-- All Tabs List -->
     <div class="all-tabs-container">
-      <h2 class="section-title">All Tabs</h2>
-      <div id="all-tabs-list" class="all-tabs-list">
-        <!-- Will be populated by JavaScript -->
+      <button class="section-header" id="all-tabs-header" aria-expanded="true">
+        <svg class="fold-arrow" width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+          <path d="M4 2l4 4-4 4V2z"/>
+        </svg>
+        <h2 class="section-title">All Tabs</h2>
+        <span class="section-count" id="all-tabs-section-count">0</span>
+      </button>
+      <div class="section-content" id="all-tabs-content">
+        <div id="all-tabs-list" class="all-tabs-list">
+          <!-- Will be populated by JavaScript -->
+        </div>
       </div>
     </div>
   </div>

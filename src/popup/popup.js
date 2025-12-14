@@ -13,12 +13,63 @@ const emptyStateEl = document.getElementById('empty-state');
 const closeAllBtn = document.getElementById('close-all-btn');
 const domainSelectEl = document.getElementById('domain-select');
 const closeDomainBtn = document.getElementById('close-domain-btn');
-const closeDomainLabel = document.getElementById('close-domain-label');
 const sortButtonsEl = document.getElementById('sort-buttons');
+
+// Collapsible section elements
+const duplicatesHeaderEl = document.getElementById('duplicates-header');
+const duplicatesContentEl = document.getElementById('duplicates-content');
+const duplicatesSectionCountEl = document.getElementById('duplicates-section-count');
+const allTabsHeaderEl = document.getElementById('all-tabs-header');
+const allTabsContentEl = document.getElementById('all-tabs-content');
+const allTabsSectionCountEl = document.getElementById('all-tabs-section-count');
 
 // State
 let activeDomain = null;
 let activeSort = 'default';
+let sectionStates = {
+  duplicates: true, // expanded by default
+  allTabs: true     // expanded by default
+};
+
+// Load section states from storage
+async function loadSectionStates() {
+  try {
+    const result = await chrome.storage.local.get('sectionStates');
+    if (result.sectionStates) {
+      sectionStates = result.sectionStates;
+    }
+    applySectionStates();
+  } catch (error) {
+    console.error('Error loading section states:', error);
+  }
+}
+
+// Save section states to storage
+async function saveSectionStates() {
+  try {
+    await chrome.storage.local.set({ sectionStates });
+  } catch (error) {
+    console.error('Error saving section states:', error);
+  }
+}
+
+// Apply current section states to the DOM
+function applySectionStates() {
+  // Duplicates section
+  duplicatesHeaderEl.setAttribute('aria-expanded', sectionStates.duplicates);
+  duplicatesContentEl.classList.toggle('collapsed', !sectionStates.duplicates);
+
+  // All Tabs section
+  allTabsHeaderEl.setAttribute('aria-expanded', sectionStates.allTabs);
+  allTabsContentEl.classList.toggle('collapsed', !sectionStates.allTabs);
+}
+
+// Toggle section visibility
+function toggleSection(section) {
+  sectionStates[section] = !sectionStates[section];
+  applySectionStates();
+  saveSectionStates();
+}
 
 // Count how many times each URL appears
 function countDuplicatesByUrl(tabs) {
@@ -338,20 +389,17 @@ function render(tabs, duplicates) {
   duplicateCountEl.textContent = duplicates.length;
   domainCountEl.textContent = domainGroups.length;
 
+  // Update section counts
+  duplicatesSectionCountEl.textContent = duplicates.length;
+
   // Render domain filter dropdown
   renderDomainDropdown(tabs);
 
   // Update close domain button based on active filter
   closeDomainBtn.disabled = !activeDomain;
-  if (activeDomain) {
-    closeDomainBtn.title = `Close all tabs from ${activeDomain}`;
-    closeDomainLabel.textContent = activeDomain.length > 12
-      ? activeDomain.substring(0, 12) + '…'
-      : activeDomain;
-  } else {
-    closeDomainBtn.title = 'Select a domain first';
-    closeDomainLabel.textContent = 'Domain';
-  }
+  closeDomainBtn.title = activeDomain
+    ? `Close all tabs from ${activeDomain}`
+    : 'Choose a domain to close all tabs from it';
 
   // Enable/disable close all duplicates button
   closeAllBtn.disabled = duplicates.length === 0;
@@ -400,6 +448,9 @@ function render(tabs, duplicates) {
   // Apply sorting
   visibleTabs = sortTabs(visibleTabs, activeSort, urlCounts);
 
+  // Update all tabs section count
+  allTabsSectionCountEl.textContent = visibleTabs.length;
+
   visibleTabs.forEach(tab => {
     const count = urlCounts.get(tab.url) || 0;
     const item = createTabItem(tab, count);
@@ -438,5 +489,10 @@ sortButtonsEl.addEventListener('click', (e) => {
   }
 });
 
+// Section toggle event listeners
+duplicatesHeaderEl.addEventListener('click', () => toggleSection('duplicates'));
+allTabsHeaderEl.addEventListener('click', () => toggleSection('allTabs'));
+
 // Initial load
+loadSectionStates();
 loadAndRender();
