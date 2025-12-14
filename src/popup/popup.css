@@ -455,7 +455,7 @@ body {
 
 /* Domain Sections Container */
 .domain-sections-container {
-  padding: 0 20px 16px;
+  padding: 0 0 16px;
 }
 
 .domain-sections-container:empty {
@@ -465,7 +465,7 @@ body {
 /* Domain Sections */
 .domain-section {
   border-top: 1px solid var(--border-color);
-  padding-top: 16px;
+  padding: 16px 20px 0;
 }
 
 .domain-section .section-content {
