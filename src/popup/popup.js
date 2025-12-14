@@ -93,6 +93,36 @@ function toggleDomainSection(domain) {
   saveSectionStates();
 }
 
+// Close all tabs from a specific domain
+async function closeTabsFromDomain(domain) {
+  try {
+    const tabs = await chrome.tabs.query({});
+    const domainTabs = tabs.filter(tab => {
+      const tabDomain = extractDomain(tab.url);
+      return tabDomain === domain;
+    });
+
+    // Get active tab to avoid closing it
+    const activeTabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const activeTabId = activeTabs[0]?.id;
+
+    // Filter out active tab
+    const tabsToClose = domainTabs
+      .filter(tab => tab.id !== activeTabId)
+      .map(tab => tab.id);
+
+    if (tabsToClose.length > 0) {
+      await chrome.tabs.remove(tabsToClose);
+      console.log(`✅ Closed ${tabsToClose.length} tabs from ${domain}`);
+    }
+
+    // Refresh the list
+    await loadAndRender();
+  } catch (error) {
+    console.error('❌ Error closing domain tabs:', error);
+  }
+}
+
 // Create a domain section element
 function createDomainSection(domain, tabs, urlCounts) {
   const isExpanded = domainSectionStates[domain] !== false; // Default to expanded
@@ -140,6 +170,26 @@ function createDomainSection(domain, tabs, urlCounts) {
     content.classList.add('collapsed');
   }
 
+  // Action bar with close button
+  const actionBar = document.createElement('div');
+  actionBar.className = 'domain-action-bar';
+
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'btn-action btn-danger btn-small';
+  closeBtn.title = `Close all tabs from ${domain}`;
+  closeBtn.innerHTML = `
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+    </svg>
+    <span>Close all from ${domain}</span>
+  `;
+  closeBtn.onclick = (e) => {
+    e.stopPropagation();
+    closeTabsFromDomain(domain);
+  };
+
+  actionBar.appendChild(closeBtn);
+
   // Tab list container
   const tabList = document.createElement('div');
   tabList.className = 'domain-tabs-list';
@@ -151,6 +201,7 @@ function createDomainSection(domain, tabs, urlCounts) {
     tabList.appendChild(item);
   });
 
+  content.appendChild(actionBar);
   content.appendChild(tabList);
   section.appendChild(header);
   section.appendChild(content);

@@ -472,6 +472,23 @@ body {
   padding-bottom: 0;
 }
 
+/* Domain Action Bar */
+.domain-action-bar {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.btn-action.btn-small {
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
+.btn-action.btn-small svg {
+  width: 12px;
+  height: 12px;
+}
+
 .domain-tabs-list {
   display: flex;
   flex-direction: column;
