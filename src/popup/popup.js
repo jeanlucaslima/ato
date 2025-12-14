@@ -110,17 +110,12 @@ function showUndoButton(context) {
   } else if (context === 'domain') {
     undoDomainBtn.classList.remove('hidden');
   }
-  // For domain section undo buttons, they are handled in createDomainSection
 }
 
 // Hide all undo buttons
 function hideAllUndoButtons() {
   undoDuplicatesBtn.classList.add('hidden');
   undoDomainBtn.classList.add('hidden');
-  // Hide any domain section undo buttons
-  document.querySelectorAll('.domain-undo-btn').forEach(btn => {
-    btn.classList.add('hidden');
-  });
 }
 
 // Undo the last close action
@@ -185,12 +180,12 @@ async function closeTabsFromDomain(domain) {
         .slice(0, closedCount);
       undoContext = domain;
 
-      // Show undo button for this domain section
-      const undoBtn = document.querySelector(`[data-undo-domain="${domain}"]`);
-      if (undoBtn) {
-        hideAllUndoButtons();
-        undoBtn.classList.remove('hidden');
-      }
+      // Refresh the list first (domain section may disappear)
+      await loadAndRender();
+
+      // Show undo button in action bar (domain section may no longer exist)
+      showUndoButton('domain');
+      return; // Already refreshed
     }
 
     // Refresh the list
@@ -265,25 +260,7 @@ function createDomainSection(domain, tabs, urlCounts) {
     closeTabsFromDomain(domain);
   };
 
-  // Undo button for this domain section
-  const undoBtn = document.createElement('button');
-  undoBtn.className = 'btn-action btn-undo btn-small hidden domain-undo-btn';
-  undoBtn.setAttribute('data-undo-domain', domain);
-  undoBtn.title = 'Undo - restore closed tabs';
-  undoBtn.innerHTML = `
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-      <path d="M3 3v5h5"/>
-    </svg>
-    <span>Undo</span>
-  `;
-  undoBtn.onclick = (e) => {
-    e.stopPropagation();
-    undoClose();
-  };
-
   actionBar.appendChild(closeBtn);
-  actionBar.appendChild(undoBtn);
 
   // Tab list container
   const tabList = document.createElement('div');
