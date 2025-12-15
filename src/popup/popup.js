@@ -484,11 +484,24 @@ function switchToTab(tabId, windowId) {
   });
 }
 
-// Close a single tab
+// Close a single tab with animation
 async function closeTab(tabId) {
   try {
+    // Find the tab-item element in DOM and animate it
+    const tabItem = document.querySelector(`[data-tab-id="${tabId}"]`);
+
+    if (tabItem) {
+      // Add closing class to trigger animation
+      tabItem.classList.add('closing');
+
+      // Wait for animation to complete (280ms)
+      await new Promise(resolve => setTimeout(resolve, 280));
+    }
+
+    // Now remove the tab from Chrome
     await chrome.tabs.remove(tabId);
     console.log(`✅ Closed tab ${tabId}`);
+
     // Refresh the list
     await loadAndRender();
   } catch (error) {
@@ -508,16 +521,43 @@ async function closeAllDuplicates() {
 
     // Get active tab to avoid closing it
     const activeTabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    const activeTabId = activeTabs[0]?.id;
+    const activeTab = activeTabs[0];
+    const activeTabId = activeTab?.id;
+    const activeTabUrl = activeTab?.url;
 
-    // Filter out active tab from duplicates
-    const tabsToClose = duplicates
-      .filter(tab => tab.id !== activeTabId)
-      .map(tab => tab.id);
+    // Build a map of URL -> all tabs with that URL (to find "originals")
+    const urlToTabs = new Map();
+    tabs.forEach(tab => {
+      if (!tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('edge://')) return;
+      if (!urlToTabs.has(tab.url)) {
+        urlToTabs.set(tab.url, []);
+      }
+      urlToTabs.get(tab.url).push(tab);
+    });
 
-    if (tabsToClose.length > 0) {
-      const closedCount = tabsToClose.length;
-      await chrome.tabs.remove(tabsToClose);
+    // Start with duplicates list
+    let tabsToClose = duplicates.filter(tab => tab.id !== activeTabId);
+
+    // If active tab is a duplicate, also close the "original" for that URL
+    // (the original is the first tab with that URL, which isn't in duplicates)
+    if (activeTabUrl && urlToTabs.has(activeTabUrl)) {
+      const tabsWithSameUrl = urlToTabs.get(activeTabUrl);
+      if (tabsWithSameUrl.length > 1) {
+        // Active tab's URL has duplicates - close all except active tab
+        tabsWithSameUrl.forEach(tab => {
+          if (tab.id !== activeTabId && !tabsToClose.some(t => t.id === tab.id)) {
+            tabsToClose.push(tab);
+          }
+        });
+      }
+    }
+
+    // Get tab IDs to close
+    const tabIdsToClose = tabsToClose.map(tab => tab.id);
+
+    if (tabIdsToClose.length > 0) {
+      const closedCount = tabIdsToClose.length;
+      await chrome.tabs.remove(tabIdsToClose);
       console.log(`✅ Closed ${closedCount} duplicate tabs`);
 
       // Store count for undo

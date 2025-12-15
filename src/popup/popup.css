@@ -377,6 +377,33 @@ body {
   transform: translateX(2px);
 }
 
+/* Tab Close Animation */
+@keyframes tabClose {
+  0% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  40% {
+    opacity: 0.6;
+    transform: translateX(-15px) scale(0.97);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-40px) scale(0.92);
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-bottom: -8px;
+    border-width: 0;
+  }
+}
+
+.tab-item.closing {
+  animation: tabClose 0.28s ease-out forwards;
+  pointer-events: none;
+  overflow: hidden;
+}
+
 .tab-favicon {
   width: 16px;
   height: 16px;
