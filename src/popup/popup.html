@@ -37,13 +37,6 @@
 
     <!-- Action Bar -->
     <div class="action-bar">
-      <!-- Domain Filter -->
-      <div class="action-row">
-        <select id="domain-select" class="domain-select">
-          <option value="">All Domains</option>
-        </select>
-      </div>
-
       <!-- Action Buttons -->
       <div class="action-row">
         <button class="btn-action btn-danger" id="close-all-btn" title="Close all duplicate tabs">
@@ -91,6 +84,17 @@
         <span class="section-count" id="all-tabs-section-count">0</span>
       </button>
       <div class="section-content" id="all-tabs-content">
+        <!-- Domain Filter (searchable) -->
+        <div class="domain-filter">
+          <div class="domain-filter-input-wrapper">
+            <input type="text" id="domain-filter-input" class="domain-filter-input"
+                   placeholder="Filter by domain..." autocomplete="off">
+            <button type="button" id="domain-filter-clear" class="domain-filter-clear hidden">×</button>
+          </div>
+          <div id="domain-filter-dropdown" class="domain-filter-dropdown hidden">
+            <!-- Options populated by JS -->
+          </div>
+        </div>
         <!-- Sort Buttons -->
         <div class="sort-bar">
           <span class="action-label">Sort:</span>

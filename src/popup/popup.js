@@ -11,7 +11,9 @@ const duplicateListEl = document.getElementById('duplicate-list');
 const allTabsListEl = document.getElementById('all-tabs-list');
 const emptyStateEl = document.getElementById('empty-state');
 const closeAllBtn = document.getElementById('close-all-btn');
-const domainSelectEl = document.getElementById('domain-select');
+const domainFilterInputEl = document.getElementById('domain-filter-input');
+const domainFilterClearEl = document.getElementById('domain-filter-clear');
+const domainFilterDropdownEl = document.getElementById('domain-filter-dropdown');
 const sortButtonsEl = document.getElementById('sort-buttons');
 const undoDuplicatesBtn = document.getElementById('undo-duplicates-btn');
 
@@ -27,6 +29,8 @@ const domainSectionsContainer = document.getElementById('domain-sections-contain
 // State
 let activeDomain = null;
 let activeSort = 'default';
+let allDomainGroups = []; // Store domain groups for filtering
+let highlightedOptionIndex = -1; // Track highlighted option in dropdown
 let ageSortDirection = 'old'; // 'old' or 'new' - toggles on each click
 let sectionStates = {
   duplicates: true, // expanded by default
@@ -180,7 +184,11 @@ async function closeTabsFromDomain(domain) {
 
 // Create a domain section element
 function createDomainSection(domain, tabs, urlCounts) {
-  const isExpanded = domainSectionStates[domain] !== false; // Default to expanded
+  // Explicitly set state if not already set (prevents undefined state issues)
+  if (domainSectionStates[domain] === undefined) {
+    domainSectionStates[domain] = true; // Default to expanded
+  }
+  const isExpanded = domainSectionStates[domain];
 
   const section = document.createElement('div');
   section.className = 'domain-section';
@@ -435,6 +443,8 @@ function createTabItem(tab, duplicateCount = 0) {
   closeBtn.title = 'Close this tab';
   closeBtn.onclick = (e) => {
     e.stopPropagation();
+    e.preventDefault();
+    e.stopImmediatePropagation(); // Prevent any other handlers
     closeTab(tab.id);
   };
 
@@ -525,25 +535,132 @@ async function closeAllDuplicates() {
   }
 }
 
-// Render domain filter dropdown
-function renderDomainDropdown(tabs) {
-  const domainGroups = groupTabsByDomain(tabs);
+// Render domain filter
+function renderDomainFilter(tabs) {
+  allDomainGroups = groupTabsByDomain(tabs);
 
-  // Clear existing options except the first "All Domains" option
-  while (domainSelectEl.options.length > 1) {
-    domainSelectEl.remove(1);
+  // Update input value if domain is selected
+  if (activeDomain) {
+    const selectedGroup = allDomainGroups.find(g => g.domain === activeDomain);
+    if (selectedGroup) {
+      domainFilterInputEl.value = `${selectedGroup.domain} (${selectedGroup.count})`;
+      domainFilterClearEl.classList.remove('hidden');
+    }
+  } else {
+    domainFilterInputEl.value = '';
+    domainFilterClearEl.classList.add('hidden');
+  }
+}
+
+// Render dropdown options based on search query
+function renderDomainDropdownOptions(query = '') {
+  domainFilterDropdownEl.innerHTML = '';
+  highlightedOptionIndex = -1; // Reset highlight
+
+  const filteredDomains = allDomainGroups.filter(({ domain }) =>
+    domain.toLowerCase().includes(query.toLowerCase())
+  );
+
+  if (filteredDomains.length === 0) {
+    const noResults = document.createElement('div');
+    noResults.className = 'domain-filter-no-results';
+    noResults.textContent = 'No domains found';
+    domainFilterDropdownEl.appendChild(noResults);
+    return;
   }
 
-  // Add domain options
-  domainGroups.forEach(({ domain, count }) => {
-    const option = document.createElement('option');
-    option.value = domain;
-    option.textContent = `${domain} (${count})`;
-    domainSelectEl.appendChild(option);
-  });
+  // Add "All Domains" option at the top
+  const allOption = document.createElement('div');
+  allOption.className = 'domain-filter-option' + (activeDomain === null ? ' selected' : '');
+  allOption.dataset.index = '0';
+  allOption.dataset.domain = '';
+  allOption.dataset.count = '';
+  allOption.textContent = 'All Domains';
+  allOption.onclick = () => selectDomain(null);
+  domainFilterDropdownEl.appendChild(allOption);
 
-  // Set selected value
-  domainSelectEl.value = activeDomain || '';
+  // Add filtered domain options
+  filteredDomains.forEach(({ domain, count }, index) => {
+    const option = document.createElement('div');
+    option.className = 'domain-filter-option' + (domain === activeDomain ? ' selected' : '');
+    option.dataset.index = String(index + 1); // +1 because "All Domains" is index 0
+    option.dataset.domain = domain;
+    option.dataset.count = String(count);
+    option.innerHTML = `${domain} <span class="domain-count">(${count})</span>`;
+    option.onclick = () => selectDomain(domain, count);
+    domainFilterDropdownEl.appendChild(option);
+  });
+}
+
+// Update highlighted option in dropdown
+function updateHighlightedOption(newIndex) {
+  const options = domainFilterDropdownEl.querySelectorAll('.domain-filter-option');
+  if (options.length === 0) return;
+
+  // Remove previous highlight
+  options.forEach(opt => opt.classList.remove('highlighted'));
+
+  // Clamp index to valid range
+  if (newIndex < 0) newIndex = options.length - 1;
+  if (newIndex >= options.length) newIndex = 0;
+
+  highlightedOptionIndex = newIndex;
+
+  // Add highlight to new option
+  const highlightedOption = options[highlightedOptionIndex];
+  if (highlightedOption) {
+    highlightedOption.classList.add('highlighted');
+    // Scroll into view if needed
+    highlightedOption.scrollIntoView({ block: 'nearest' });
+  }
+}
+
+// Select the currently highlighted option
+function selectHighlightedOption() {
+  const options = domainFilterDropdownEl.querySelectorAll('.domain-filter-option');
+  if (highlightedOptionIndex >= 0 && highlightedOptionIndex < options.length) {
+    const option = options[highlightedOptionIndex];
+    const domain = option.dataset.domain || null;
+    const count = option.dataset.count ? parseInt(option.dataset.count) : null;
+    selectDomain(domain, count);
+  }
+}
+
+// Select a domain and update filter
+function selectDomain(domain, count = null) {
+  activeDomain = domain;
+
+  if (domain) {
+    domainFilterInputEl.value = `${domain} (${count})`;
+    domainFilterClearEl.classList.remove('hidden');
+  } else {
+    domainFilterInputEl.value = '';
+    domainFilterClearEl.classList.add('hidden');
+  }
+
+  hideDomainDropdown();
+  loadAndRender();
+}
+
+// Clear the domain filter
+function clearDomainFilter() {
+  activeDomain = null;
+  domainFilterInputEl.value = '';
+  domainFilterClearEl.classList.add('hidden');
+  hideDomainDropdown();
+  loadAndRender();
+}
+
+// Show dropdown
+function showDomainDropdown() {
+  const query = activeDomain ? '' : domainFilterInputEl.value;
+  renderDomainDropdownOptions(query);
+  domainFilterDropdownEl.classList.remove('hidden');
+}
+
+// Hide dropdown
+function hideDomainDropdown() {
+  domainFilterDropdownEl.classList.add('hidden');
 }
 
 // Render the UI
@@ -560,8 +677,8 @@ function render(tabs, duplicates) {
   // Update section counts
   duplicatesSectionCountEl.textContent = duplicates.length;
 
-  // Render domain filter dropdown
-  renderDomainDropdown(tabs);
+  // Render domain filter
+  renderDomainFilter(tabs);
 
   // Enable/disable close all duplicates button
   closeAllBtn.disabled = duplicates.length === 0;
@@ -646,8 +763,12 @@ function render(tabs, duplicates) {
     }
   });
 
-  // Sort by tab count (descending)
-  largeDomains.sort((a, b) => b.tabs.length - a.tabs.length);
+  // Sort alphabetically by domain name, ignoring www. prefix (stable order that doesn't change when tabs are closed)
+  largeDomains.sort((a, b) => {
+    const domainA = a.domain.replace(/^www\./, '');
+    const domainB = b.domain.replace(/^www\./, '');
+    return domainA.localeCompare(domainB);
+  });
 
   // Render each domain section
   largeDomains.forEach(({ domain, tabs: domainTabs }) => {
@@ -672,10 +793,83 @@ async function loadAndRender() {
 
 // Event Listeners
 closeAllBtn.addEventListener('click', closeAllDuplicates);
-domainSelectEl.addEventListener('change', (e) => {
-  activeDomain = e.target.value || null;
-  loadAndRender();
+
+// Domain filter event listeners
+domainFilterInputEl.addEventListener('focus', () => {
+  // Clear input if a domain is selected, so user can search
+  if (activeDomain) {
+    domainFilterInputEl.value = '';
+  }
+  showDomainDropdown();
 });
+
+domainFilterInputEl.addEventListener('input', (e) => {
+  const query = e.target.value;
+  renderDomainDropdownOptions(query);
+  domainFilterDropdownEl.classList.remove('hidden');
+
+  // Show/hide clear button based on input
+  if (query) {
+    domainFilterClearEl.classList.remove('hidden');
+  } else if (!activeDomain) {
+    domainFilterClearEl.classList.add('hidden');
+  }
+});
+
+domainFilterInputEl.addEventListener('keydown', (e) => {
+  const isDropdownVisible = !domainFilterDropdownEl.classList.contains('hidden');
+
+  if (!isDropdownVisible) return;
+
+  switch (e.key) {
+    case 'ArrowDown':
+      e.preventDefault();
+      updateHighlightedOption(highlightedOptionIndex + 1);
+      break;
+    case 'ArrowUp':
+      e.preventDefault();
+      updateHighlightedOption(highlightedOptionIndex - 1);
+      break;
+    case 'Enter':
+      e.preventDefault();
+      if (highlightedOptionIndex >= 0) {
+        selectHighlightedOption();
+      }
+      break;
+    case 'Escape':
+      e.preventDefault();
+      hideDomainDropdown();
+      domainFilterInputEl.blur();
+      break;
+  }
+});
+
+domainFilterInputEl.addEventListener('blur', (e) => {
+  // Delay hiding to allow click on dropdown options
+  setTimeout(() => {
+    hideDomainDropdown();
+    // Restore selected domain display if user didn't select anything
+    if (activeDomain) {
+      const selectedGroup = allDomainGroups.find(g => g.domain === activeDomain);
+      if (selectedGroup) {
+        domainFilterInputEl.value = `${selectedGroup.domain} (${selectedGroup.count})`;
+      }
+    }
+  }, 150);
+});
+
+domainFilterClearEl.addEventListener('click', (e) => {
+  e.stopPropagation();
+  clearDomainFilter();
+});
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.domain-filter')) {
+    hideDomainDropdown();
+  }
+});
+
 undoDuplicatesBtn.addEventListener('click', undoClose);
 
 // Sort button group event listener

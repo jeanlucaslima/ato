@@ -453,6 +453,125 @@ body {
   padding-bottom: 16px;
 }
 
+/* Domain Filter (Searchable) */
+.domain-filter {
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.domain-filter-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.domain-filter-input {
+  width: 100%;
+  padding: 8px 32px 8px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-primary);
+  transition: all 0.2s;
+}
+
+.domain-filter-input::placeholder {
+  color: var(--text-muted);
+}
+
+.domain-filter-input:hover {
+  border-color: var(--border-hover);
+}
+
+.domain-filter-input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px var(--accent-light);
+}
+
+.domain-filter-clear {
+  position: absolute;
+  right: 8px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  background: var(--bg-tertiary);
+  border: none;
+  border-radius: 50%;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.domain-filter-clear:hover {
+  background: var(--danger-light);
+  color: var(--danger-color);
+}
+
+.domain-filter-clear.hidden {
+  display: none;
+}
+
+.domain-filter-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+}
+
+.domain-filter-dropdown.hidden {
+  display: none;
+}
+
+.domain-filter-option {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.domain-filter-option:hover,
+.domain-filter-option.highlighted {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.domain-filter-option.selected {
+  background: var(--accent-light);
+  color: var(--accent-color);
+}
+
+.domain-filter-option.selected.highlighted {
+  background: var(--accent-color);
+  color: white;
+}
+
+.domain-filter-option .domain-count {
+  color: var(--text-muted);
+  margin-left: 4px;
+}
+
+.domain-filter-no-results {
+  padding: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
 /* Sort Bar */
 .sort-bar {
   display: flex;
