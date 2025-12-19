@@ -1,7 +1,16 @@
-// ATO v4 Popup Script
+// ATO Popup Script
 // Displays duplicate tabs and handles user actions
 
-console.log('🎨 ATO v4 popup loaded');
+import {
+  findDuplicates,
+  extractDomain,
+  countDuplicatesByUrl,
+  groupTabsByDomain,
+  formatTimeAgo,
+  sortTabs
+} from '../shared/tab-utils.js';
+
+console.log('🎨 ATO popup loaded');
 
 // DOM Elements
 const totalTabsEl = document.getElementById('total-tabs');
@@ -42,7 +51,13 @@ let domainSectionStates = {}; // Track collapse state per domain
 let lastClosedCount = 0;        // Number of tabs closed (for undo)
 let undoContext = null;         // 'duplicates', 'domain', or specific domain name
 
-// Load section states from storage
+/**
+ * Loads and applies section collapse states from Chrome storage.
+ * Restores user preferences for which sections are expanded/collapsed.
+ *
+ * @async
+ * @returns {Promise<void>}
+ */
 async function loadSectionStates() {
   try {
     const result = await chrome.storage.local.get(['sectionStates', 'domainSectionStates']);
@@ -58,7 +73,12 @@ async function loadSectionStates() {
   }
 }
 
-// Save section states to storage
+/**
+ * Saves current section collapse states to Chrome storage.
+ *
+ * @async
+ * @returns {Promise<void>}
+ */
 async function saveSectionStates() {
   try {
     await chrome.storage.local.set({ sectionStates, domainSectionStates });
@@ -140,7 +160,14 @@ async function undoClose() {
   hideAllUndoButtons();
 }
 
-// Close all tabs from a specific domain (used by domain section buttons)
+/**
+ * Closes all tabs from a specific domain (except the active tab).
+ * Used by domain section "Close all from domain" buttons.
+ *
+ * @async
+ * @param {string} domain - The domain to close tabs from
+ * @returns {Promise<void>}
+ */
 async function closeTabsFromDomain(domain) {
   try {
     const tabs = await chrome.tabs.query({});
@@ -272,133 +299,20 @@ function createDomainSection(domain, tabs, urlCounts) {
   return section;
 }
 
-// Count how many times each URL appears
-function countDuplicatesByUrl(tabs) {
-  const urlCounts = new Map();
-
-  tabs.forEach(tab => {
-    // Skip chrome:// and edge:// internal pages
-    if (!tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('edge://')) {
-      return;
-    }
-
-    const url = tab.url;
-    urlCounts.set(url, (urlCounts.get(url) || 0) + 1);
-  });
-
-  return urlCounts;
-}
-
-// Find duplicate tabs
-function findDuplicates(tabs) {
-  const urlMap = new Map();
-  const duplicates = [];
-
-  tabs.forEach(tab => {
-    // Skip chrome:// and edge:// internal pages
-    if (!tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('edge://')) {
-      return;
-    }
-
-    const url = tab.url;
-
-    if (urlMap.has(url)) {
-      // This is a duplicate
-      duplicates.push(tab);
-    } else {
-      // First occurrence
-      urlMap.set(url, tab);
-    }
-  });
-
-  return duplicates;
-}
-
-// Extract domain from URL
-function extractDomain(url) {
-  try {
-    const urlObj = new URL(url);
-    return urlObj.hostname;
-  } catch (e) {
-    return null;
-  }
-}
-
-// Group tabs by domain
-function groupTabsByDomain(tabs) {
-  const domainGroups = new Map();
-
-  tabs.forEach(tab => {
-    // Skip chrome:// and edge:// internal pages
-    if (!tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('edge://')) {
-      return;
-    }
-
-    const domain = extractDomain(tab.url);
-    if (!domain) return;
-
-    if (!domainGroups.has(domain)) {
-      domainGroups.set(domain, []);
-    }
-    domainGroups.get(domain).push(tab);
-  });
-
-  // Convert to array and sort by tab count (descending)
-  return Array.from(domainGroups.entries())
-    .sort((a, b) => b[1].length - a[1].length)
-    .map(([domain, tabs]) => ({ domain, tabs, count: tabs.length }));
-}
-
-// Format time ago (e.g., "2m", "3h", "5d")
-function formatTimeAgo(timestamp) {
-  if (!timestamp) return '—';
-
-  const now = Date.now();
-  const diff = now - timestamp;
-
-  const minutes = Math.floor(diff / 60000);
-  const hours = Math.floor(diff / 3600000);
-  const days = Math.floor(diff / 86400000);
-
-  if (days > 0) return `${days}d`;
-  if (hours > 0) return `${hours}h`;
-  if (minutes > 0) return `${minutes}m`;
-  return 'now';
-}
-
-// Sort tabs based on selected sort option
-function sortTabs(tabs, sortBy, urlCounts) {
-  const sorted = [...tabs];
-  switch (sortBy) {
-    case 'title':
-      return sorted.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
-    case 'title-desc':
-      return sorted.sort((a, b) => (b.title || '').localeCompare(a.title || ''));
-    case 'domain':
-      return sorted.sort((a, b) => {
-        const domainA = extractDomain(a.url) || '';
-        const domainB = extractDomain(b.url) || '';
-        return domainA.localeCompare(domainB);
-      });
-    case 'age':
-      return sorted.sort((a, b) => {
-        const ageA = a.lastAccessed || 0;
-        const ageB = b.lastAccessed || 0;
-        // Toggle between oldest first and newest first
-        return ageSortDirection === 'old' ? ageA - ageB : ageB - ageA;
-      });
-    case 'duplicates':
-      return sorted.sort((a, b) => {
-        const countA = urlCounts.get(a.url) || 0;
-        const countB = urlCounts.get(b.url) || 0;
-        return countB - countA; // Most duplicates first
-      });
-    default:
-      return sorted; // Original tab order
-  }
-}
-
-// Create a tab item element
+/**
+ * Creates a DOM element for a single tab item.
+ * Includes favicon, title, URL, age indicator, duplicate badge, and close button.
+ *
+ * @param {Object} tab - The tab data from Chrome API
+ * @param {number} tab.id - Tab identifier
+ * @param {string} [tab.url] - Tab URL
+ * @param {string} [tab.title] - Tab title
+ * @param {string} [tab.favIconUrl] - Favicon URL
+ * @param {number} [tab.lastAccessed] - Last accessed timestamp
+ * @param {number} [tab.windowId] - Window containing this tab
+ * @param {number} [duplicateCount=0] - Number of tabs with this URL
+ * @returns {HTMLDivElement} The tab item element
+ */
 function createTabItem(tab, duplicateCount = 0) {
   const item = document.createElement('div');
   item.className = 'tab-item';
@@ -509,7 +423,14 @@ async function closeTab(tabId) {
   }
 }
 
-// Close all duplicate tabs
+/**
+ * Closes all duplicate tabs, keeping one instance of each URL.
+ * Preserves the active tab if it's a duplicate (closes other instances instead).
+ * Stores closed count for undo functionality.
+ *
+ * @async
+ * @returns {Promise<void>}
+ */
 async function closeAllDuplicates() {
   try {
     const tabs = await chrome.tabs.query({});
@@ -703,7 +624,13 @@ function hideDomainDropdown() {
   domainFilterDropdownEl.classList.add('hidden');
 }
 
-// Render the UI
+/**
+ * Renders the complete popup UI.
+ * Updates stats, domain filter, duplicate list, all tabs list, and domain sections.
+ *
+ * @param {Object[]} tabs - All tabs from Chrome API
+ * @param {Object[]} duplicates - Duplicate tabs only
+ */
 function render(tabs, duplicates) {
   // Calculate duplicate counts by URL
   const urlCounts = countDuplicatesByUrl(tabs);
@@ -765,7 +692,7 @@ function render(tabs, duplicates) {
   }
 
   // Apply sorting
-  visibleTabs = sortTabs(visibleTabs, activeSort, urlCounts);
+  visibleTabs = sortTabs(visibleTabs, activeSort, urlCounts, ageSortDirection);
 
   // Update all tabs section count
   allTabsSectionCountEl.textContent = visibleTabs.length;
@@ -817,7 +744,13 @@ function render(tabs, duplicates) {
   });
 }
 
-// Load tabs and render
+/**
+ * Loads all tabs from Chrome and renders the popup UI.
+ * Main entry point for UI updates, called on init and after tab changes.
+ *
+ * @async
+ * @returns {Promise<void>}
+ */
 async function loadAndRender() {
   try {
     const tabs = await chrome.tabs.query({});

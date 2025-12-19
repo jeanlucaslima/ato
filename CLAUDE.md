@@ -2,33 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Branch: v4-rebuild
+## Project Overview
 
-**Complete reimagining of ATO** focused on duplicate tab management with a minimal, popup-based approach.
-
-### v4 Project Overview
-
-**ATO v4** is a Manifest V3 Chrome Extension that helps manage duplicate tabs through a lightweight popup interface. Built with **vanilla JavaScript** (no frameworks), it prioritizes simplicity, performance, and focused functionality.
+**ATO** is a Manifest V3 Chrome Extension that helps manage duplicate tabs through a lightweight popup interface. Built with **vanilla JavaScript** (no frameworks), it prioritizes simplicity, performance, and focused functionality.
 
 **Key Principles:**
 - **Duplicates First**: Primary feature is detecting and closing duplicate tabs
-- **Popup Interface**: Quick keyboard access (`Cmd+U` / `Ctrl+U`), not a sidebar
-- **Minimal Start**: Ship essentials first, enhance progressively
-- **Vanilla JS**: Zero build complexity, fast load times, small footprint
+- **Popup Interface**: Quick keyboard access (`Cmd+U` / `Ctrl+U`)
+- **Minimal**: Ship essentials first, enhance progressively
+- **Vanilla JS**: Zero framework complexity, fast load times, small footprint
 - **Real-Time Badge**: Always shows duplicate count
-
-## Current Development Phase
-
-**Phase 1: MVP**
-
-Building the minimum viable product with these features:
-1. Badge showing real-time duplicate count
-2. Background service worker monitoring tabs
-3. Simple popup listing duplicates
-4. "Close All Duplicates" action
-5. Keyboard shortcut activation
-
-**See `V4_GOALS.md` for complete roadmap.**
 
 ## Project Structure
 
@@ -36,20 +19,21 @@ Building the minimum viable product with these features:
 src/
 ├── manifest.json              # Manifest V3 configuration
 ├── background/
-│   └── service-worker.js     # Tab monitoring, duplicate detection, badge updates
+│   └── service-worker.js      # Tab monitoring, duplicate detection, badge updates
 ├── popup/
-│   ├── popup.html            # Popup UI structure
-│   ├── popup.css             # Minimal styling
-│   └── popup.js              # Popup logic (display duplicates, handle actions)
+│   ├── popup.html             # Popup UI structure
+│   ├── popup.css              # Styling
+│   └── popup.js               # Popup logic
+├── shared/
+│   ├── tab-utils.js           # Shared utility functions
+│   └── tab-utils.test.js      # Tests
 └── assets/
-    └── icons/                # Extension icons (16, 32, 48, 128)
+    └── icons/                 # Extension icons (16, 32, 48, 128)
 ```
 
 ## Development Workflow
 
 ### Build Process with Vite
-
-v4 uses Vite for building the extension. The workflow is:
 
 ```bash
 # Install dependencies (first time only)
@@ -61,25 +45,23 @@ npm run icons
 # Build extension to dist/
 npm run build
 
-# OR: Watch mode (auto-rebuild on changes)
+# Watch mode (auto-rebuild on changes)
 npm run dev
+
+# Run tests
+npm test
 ```
 
-**Source structure:**
-- Edit files in `src/` directory
-- Vite builds to `dist/` directory
-- Load `dist/` folder in Chrome (not `src/`)
-
 **Development cycle:**
-1. **Make changes** to files in `src/`
-2. **Rebuild**: `npm run build` (or use `npm run dev` for watch mode)
-3. **Reload extension** in `chrome://extensions` (click reload icon)
-4. **Test changes**
+1. Edit files in `src/`
+2. Rebuild: `npm run build` (or use `npm run dev` for watch mode)
+3. Reload extension in `chrome://extensions` (click reload icon)
+4. Test changes
 
 ### TypeScript Support
 
 TypeScript is configured but optional:
-- Current files are vanilla `.js` (no changes needed)
+- Current files are vanilla `.js`
 - Future files can be `.ts` for type safety
 - Vite handles compilation automatically
 - Types available via `@types/chrome`
@@ -88,7 +70,7 @@ TypeScript is configured but optional:
 
 ### Two-Context Model
 
-Like all Chrome extensions, ATO v4 runs in separate contexts:
+Chrome extensions run in separate contexts:
 
 1. **Background Service Worker** (`background/service-worker.js`)
    - Runs independently in background
@@ -104,26 +86,31 @@ Like all Chrome extensions, ATO v4 runs in separate contexts:
    - Handles user actions (close duplicates, etc.)
    - Separate instance each time popup opens
 
+3. **Shared Utilities** (`shared/tab-utils.js`)
+   - Pure functions used by both contexts
+   - `findDuplicates()`, `extractDomain()`, `sortTabs()`, etc.
+   - Fully tested with Vitest
+
 **Communication:** Use `chrome.runtime.sendMessage()` and `chrome.runtime.onMessage` to pass data between contexts.
 
 ## Key Implementation Details
 
 ### Duplicate Detection Logic
 
-**Location:** `background/service-worker.js`
+**Location:** `shared/tab-utils.js`
 
 ```javascript
-// Basic duplicate detection
 function findDuplicates(tabs) {
   const urlMap = new Map();
   const duplicates = [];
 
   tabs.forEach(tab => {
-    const url = tab.url;
-    if (urlMap.has(url)) {
-      duplicates.push(tab); // Keep later occurrence in duplicates list
+    if (isInternalUrl(tab.url)) return;
+
+    if (urlMap.has(tab.url)) {
+      duplicates.push(tab);
     } else {
-      urlMap.set(url, tab);
+      urlMap.set(tab.url, tab);
     }
   });
 
@@ -131,21 +118,20 @@ function findDuplicates(tabs) {
 }
 ```
 
-**Edge cases to consider:**
-- URLs with different fragments (`#hash`) - treat as same or different?
-- URLs with different query params - when to consider duplicates?
-- Active tab handling - never close the currently active tab
+**Behavior:**
+- Skips `chrome://` and `edge://` internal pages
+- First occurrence = original, subsequent = duplicates
+- Active tab is never closed
 
 ### Badge Updates
 
 **Location:** `background/service-worker.js`
 
 ```javascript
-// Update badge with duplicate count
 function updateBadge(count) {
   if (count > 0) {
     chrome.action.setBadgeText({ text: String(count) });
-    chrome.action.setBadgeBackgroundColor({ color: '#FF0000' });
+    chrome.action.setBadgeBackgroundColor({ color: '#DC2626' });
   } else {
     chrome.action.setBadgeText({ text: '' });
   }
@@ -154,13 +140,11 @@ function updateBadge(count) {
 
 ### Tab Event Listeners
 
-**Location:** `background/service-worker.js`
-
-Monitor these events to keep duplicate count accurate:
+Monitor these events in `service-worker.js`:
 - `chrome.tabs.onCreated`
 - `chrome.tabs.onUpdated`
 - `chrome.tabs.onRemoved`
-- `chrome.tabs.onReplaced` (tab replaced with another, e.g., after restore)
+- `chrome.tabs.onReplaced`
 
 ### Keyboard Shortcut
 
@@ -180,9 +164,16 @@ Monitor these events to keep duplicate count accurate:
 }
 ```
 
-Note: `_execute_action` is a special command that triggers the default action (opening popup).
+## Testing
 
-## Testing the Extension
+### Automated Tests
+
+```bash
+npm test           # Run once
+npm run test:watch # Watch mode
+```
+
+Tests are in `src/shared/tab-utils.test.js` using Vitest.
 
 ### Manual Testing Checklist
 
@@ -197,14 +188,9 @@ Note: `_execute_action` is a special command that triggers the default action (o
    - "Close All Duplicates" should close them
    - Badge should update to 0
 
-3. **Real-Time Updates**
-   - Open popup
-   - Open new duplicate in another window
-   - Badge should update without reloading popup
-
-4. **Edge Cases**
+3. **Edge Cases**
    - Test with 0 duplicates (badge should be empty)
-   - Test with 100+ tabs
+   - Test with many tabs
    - Test with tabs from different windows
 
 ## Common Development Tasks
@@ -217,9 +203,10 @@ Note: `_execute_action` is a special command that triggers the default action (o
 
 ### Changing Duplicate Logic
 
-1. Edit `findDuplicates()` in `background/service-worker.js`
-2. Reload extension in `chrome://extensions`
-3. Test with various tab scenarios
+1. Edit functions in `shared/tab-utils.js`
+2. Update tests in `shared/tab-utils.test.js`
+3. Run `npm test` to verify
+4. Reload extension
 
 ### Styling Changes
 
@@ -227,41 +214,24 @@ Note: `_execute_action` is a special command that triggers the default action (o
 2. Reload extension
 3. Reopen popup to see changes
 
-## Permissions in manifest.json
+## Permissions
 
 ```json
 {
   "permissions": [
-    "tabs",        // Read tab info (title, URL, etc.)
-    "storage"      // Save user preferences (optional, future)
+    "tabs",      // Read tab info (title, URL, etc.)
+    "storage",   // Save user preferences
+    "sessions"   // Undo closed tabs
   ],
   "host_permissions": [
-    "<all_urls>"   // Required to access tab URLs and favicons
+    "<all_urls>" // Required to access tab URLs and favicons
   ]
 }
 ```
 
-## Future Phases
+## Conventions
 
-**Phase 2:** Add full tab list view, click to switch tabs
-**Phase 3:** Add search/filter functionality
-**Phase 4:** Advanced features (suspend tabs, sessions, etc.)
-
-See `V4_GOALS.md` for complete roadmap.
-
----
-
-## Reference: v3.0 (on main branch)
-
-v3 was built with React + Vite, used a side panel, and had many features built-in. Key differences:
-
-| Aspect | v3 (main) | v4 (v4-rebuild) |
-|--------|-----------|-----------------|
-| UI | Side Panel | Popup |
-| Tech | React + Vite + TypeScript | Vanilla JS/TS |
-| Build | Vite bundler required | No build step |
-| Focus | Feature-rich browser | Duplicate management |
-| Access | Click icon | Keyboard shortcut |
-
-To view v3 code: `git checkout main`
-- when we finish a task, bump the version and git commit
+- When finishing a task, bump the version in `manifest.json` and commit
+- Use conventional commits: `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`
+- Keep functions pure where possible
+- Add JSDoc comments to exported functions

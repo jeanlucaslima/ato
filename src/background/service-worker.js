@@ -1,34 +1,16 @@
-// ATO v4 Background Service Worker
+// ATO Background Service Worker
 // Monitors tabs and detects duplicates in real-time
 
-console.log('🚀 ATO v4 service worker loaded');
+import { findDuplicates } from '../shared/tab-utils.js';
 
-// Find duplicate tabs
-function findDuplicates(tabs) {
-  const urlMap = new Map();
-  const duplicates = [];
+console.log('🚀 ATO service worker loaded');
 
-  tabs.forEach(tab => {
-    // Skip chrome:// and edge:// internal pages
-    if (!tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('edge://')) {
-      return;
-    }
-
-    const url = tab.url;
-
-    if (urlMap.has(url)) {
-      // This is a duplicate - add to duplicates array
-      duplicates.push(tab);
-    } else {
-      // First occurrence - store it
-      urlMap.set(url, tab);
-    }
-  });
-
-  return duplicates;
-}
-
-// Update the badge with duplicate count
+/**
+ * Updates the extension badge with the duplicate count.
+ * Shows red badge with count if duplicates exist, clears badge if none.
+ *
+ * @param {number} count - Number of duplicate tabs
+ */
 function updateBadge(count) {
   if (count > 0) {
     chrome.action.setBadgeText({ text: String(count) });
@@ -38,7 +20,13 @@ function updateBadge(count) {
   }
 }
 
-// Scan all tabs and update badge
+/**
+ * Scans all open tabs and updates the badge with duplicate count.
+ * Called on tab events and service worker initialization.
+ *
+ * @async
+ * @returns {Promise<void>}
+ */
 async function scanAndUpdateBadge() {
   try {
     const tabs = await chrome.tabs.query({});

@@ -14,7 +14,7 @@ export default defineConfig({
       },
       output: {
         entryFileNames: '[name].js',
-        chunkFileNames: '[name].js',
+        chunkFileNames: 'shared/[name].js',
         assetFileNames: '[name].[ext]'
       }
     }
@@ -36,6 +36,10 @@ export default defineConfig({
         },
         {
           src: 'assets/icons/*.png',
+          dest: 'assets/icons'
+        },
+        {
+          src: 'assets/icons/ato-logo.svg',
           dest: 'assets/icons'
         }
       ]

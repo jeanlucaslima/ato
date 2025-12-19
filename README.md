@@ -1,221 +1,71 @@
-# ATO — Advanced Tab Organizer
-↳ Kill duplicates. Stay focused. Reclaim your browser.
+# ATO - Advanced Tab Organizer
 
-![Version](https://img.shields.io/badge/version-4.0--rebuild-orange.svg)
+Kill duplicate tabs instantly. Stay focused.
 
-> **🚧 Branch: v4-rebuild** — This branch is rebuilding ATO from scratch with a minimal, duplicate-focused approach. The v3.0 code is on the `main` branch.
+## What It Does
 
----
-
-## What is v4?
-
-**ATO v4** is a complete reimagining of the tab organizer, stripped down to solve one problem exceptionally well: **managing duplicate tabs**.
-
-Unlike v3's feature-rich sidebar, v4 embraces **minimalism and progressive enhancement**:
-
-- 🎯 **Duplicates First** — Real-time detection with badge count
-- ⌨️ **Keyboard Driven** — `Cmd+U` / `Ctrl+U` for instant access
-- 🪶 **Ultra Lightweight** — Vanilla JS, no frameworks, zero build step
-- 🚀 **Fast & Focused** — Does one thing brilliantly
-
----
-
-## The Problem
-
-You open a link. Then another. Then you realize you have **5 tabs of the same Wikipedia article** open.
-
-Multiply this by dozens of tabs, and you're drowning in duplicates, wasting memory and losing focus.
-
-**ATO v4 fixes this instantly.**
-
----
-
-## Features (Phase 1 - MVP)
-
-| Feature | Description |
-|---------|-------------|
-| **🔴 Badge Counter** | Always shows how many duplicate tabs you have |
-| **⚡ One-Click Cleanup** | Instantly close all duplicates with one button |
-| **⌨️ Keyboard Shortcut** | `Cmd+U` (Mac) or `Ctrl+U` (Win/Linux) to open popup |
-| **📋 Duplicate List** | See which tabs are duplicated before closing |
-| **🔄 Real-Time Updates** | Badge updates automatically as you browse |
-
----
-
-## Roadmap
-
-### ✅ Phase 1: MVP (Current)
-- Badge showing duplicate count
-- Simple popup listing duplicates
-- "Close All Duplicates" button
-- Keyboard shortcut activation
-
-### 📋 Phase 2: Tab Overview
-- Show all tabs, not just duplicates
-- Click tab to switch to it
-- Close individual tabs with X icon
-- Display total tab count
-
-### 🔍 Phase 3: Search & Filter
-- Search tabs by title or URL
-- Filter and sort options
-- Keyboard navigation
-
-### 🎯 Phase 4: Advanced Features
-- Suspend tabs to save memory
-- Save/restore tab sessions
-- Custom duplicate detection rules
-- Export tab list
-
-**See `V4_GOALS.md` for complete roadmap.**
-
----
-
-## Why Rebuild from Scratch?
-
-**v3 was great, but...**
-- Built many features before validating the core need
-- Side panel felt heavy for quick actions
-- React/Vite added unnecessary complexity
-- Easter eggs and extras diluted focus
-
-**v4 philosophy:**
-- Start minimal, ship fast, iterate based on real usage
-- Solve the most annoying problem first (duplicates)
-- Keep it simple: vanilla JS, no build step
-- Progressive enhancement: add features only when needed
-
----
-
-## Development Status
-
-**Current Phase:** Planning → Implementation starting
-
-**Next Steps:**
-1. Create `manifest.json` with Manifest V3 config
-2. Build background service worker for duplicate detection
-3. Implement popup UI (HTML + CSS + JS)
-4. Test and polish MVP
-5. Ship Phase 1
-
----
+- **Badge Counter** - Shows how many duplicate tabs you have
+- **One-Click Cleanup** - Close all duplicates with one button
+- **Keyboard Shortcut** - `Cmd+U` (Mac) or `Ctrl+U` (Windows/Linux)
+- **Real-Time Updates** - Badge updates automatically as you browse
 
 ## Installation
 
-### Try v4 MVP (Phase 1)
+### 1. Clone and Build
 
 ```bash
-# Clone the repo and checkout v4-rebuild branch
 git clone https://github.com/jeanlucaslima/ato.git
 cd ato
-git checkout v4-rebuild
-
-# Install dependencies
 npm install
-
-# Generate icons
 npm run icons
-
-# Build extension
 npm run build
 ```
 
-Then:
-1. Open Chrome and go to `chrome://extensions`
-2. Enable "Developer mode"
-3. Click "Load unpacked"
+### 2. Load in Chrome
+
+1. Open `chrome://extensions`
+2. Enable **Developer mode** (toggle in top right)
+3. Click **Load unpacked**
 4. Select the `dist/` folder
 
-### Try v3.0 (Stable)
+### 3. Use It
+
+- Press `Cmd+U` / `Ctrl+U` to open the popup
+- Or click the ATO icon in your toolbar
+- Click **Close duplicates** to remove all duplicate tabs
+
+## Development
 
 ```bash
-git checkout main
-npm install
+# Watch mode (auto-rebuild on changes)
+npm run dev
+
+# Run tests
+npm test
+
+# Build for production
 npm run build
 ```
 
-Then load the `dist/` folder as an unpacked extension in Chrome.
-
----
+After changes, click the refresh icon on `chrome://extensions` to reload.
 
 ## Project Structure
 
-**Source code** (edit these):
 ```
 src/
-├── manifest.json          # Extension configuration
+├── manifest.json           # Extension configuration
 ├── background/
-│   └── service-worker.js  # Tab monitoring, duplicate detection
+│   └── service-worker.js   # Tab monitoring, badge updates
 ├── popup/
-│   ├── popup.html        # Popup interface
-│   ├── popup.css         # Styling
-│   └── popup.js          # Popup logic
-└── assets/
-    └── icons/            # Extension icons (generated)
+│   ├── popup.html          # Popup UI
+│   ├── popup.css           # Styles
+│   └── popup.js            # Popup logic
+├── shared/
+│   ├── tab-utils.js        # Shared utility functions
+│   └── tab-utils.test.js   # Tests
+└── assets/icons/           # Extension icons
 ```
-
-**Build output** (load this in Chrome):
-```
-dist/                     # Generated by Vite
-├── manifest.json
-├── background/
-│   └── service-worker.js
-├── popup/
-│   ├── popup.html
-│   ├── popup.css
-│   └── popup.js
-└── assets/icons/
-```
-
-Vanilla JavaScript with Vite build system for development convenience.
-
----
-
-## Philosophy
-
-> **"Perfection is achieved, not when there is nothing more to add, but when there is nothing left to take away."**
-> — Antoine de Saint-Exupéry
-
-ATO v4 embodies this principle. Every feature must justify its existence.
-
-**We ask:**
-- Does it solve a real pain point?
-- Can it be implemented simply?
-- Does it align with the minimal philosophy?
-
-If not, it doesn't ship.
-
----
-
-## Contributing
-
-v4 is in active rebuild. Contributions welcome once Phase 1 MVP is complete.
-
-**Want to help?**
-- Test the extension and report issues
-- Suggest improvements (but keep minimalism in mind)
-- Contribute code that aligns with v4 philosophy
-
----
-
-## Built With
-
-- **Vanilla JavaScript** — No frameworks, no dependencies
-- **Chrome Extension Manifest V3** — Modern, secure extension platform
-- **Minimalist Design** — Focus on function, not flash
-
----
 
 ## License
 
 MIT
-
----
-
-## Author
-
-**Jean Lucas** — Developer, tab-overloader turned duplicate-destroyer
-
-Built with focus, restraint, and a deep desire to make browsing feel better again.
-
-Because 37 tabs isn't the problem — **37 duplicate tabs** is.
