@@ -36,6 +36,13 @@ const allTabsContentEl = document.getElementById('all-tabs-content');
 const allTabsSectionCountEl = document.getElementById('all-tabs-section-count');
 const domainSectionsContainer = document.getElementById('domain-sections-container');
 
+// Settings (loaded from chrome.storage.sync)
+let settings = {
+  protectPinned: true,
+  advancedMode: false,
+  showMergeButton: false
+};
+
 // State
 let activeDomain = null;
 let activeSort = 'default';
@@ -72,6 +79,25 @@ async function loadSectionStates() {
     applySectionStates();
   } catch (error) {
     console.error('Error loading section states:', error);
+  }
+}
+
+/**
+ * Loads user settings from Chrome storage.
+ *
+ * @async
+ * @returns {Promise<void>}
+ */
+async function loadSettings() {
+  try {
+    const result = await chrome.storage.sync.get({
+      protectPinned: true,
+      advancedMode: false,
+      showMergeButton: false
+    });
+    settings = result;
+  } catch (error) {
+    console.error('Error loading settings:', error);
   }
 }
 
@@ -182,9 +208,10 @@ async function closeTabsFromDomain(domain) {
     const activeTabs = await chrome.tabs.query({ active: true, currentWindow: true });
     const activeTabId = activeTabs[0]?.id;
 
-    // Filter out active tab
+    // Filter out active tab and pinned tabs (if protection enabled)
     const tabsToClose = domainTabs
       .filter(tab => tab.id !== activeTabId)
+      .filter(tab => !settings.protectPinned || !tab.pinned)
       .map(tab => tab.id);
 
     if (tabsToClose.length > 0) {
@@ -208,6 +235,47 @@ async function closeTabsFromDomain(domain) {
     await loadAndRender();
   } catch (error) {
     console.error('❌ Error closing domain tabs:', error);
+  }
+}
+
+/**
+ * Moves all tabs from a specific domain to a new window.
+ * Used by domain section "Merge" buttons (advanced mode only).
+ *
+ * @async
+ * @param {string} domain - The domain to merge tabs from
+ * @returns {Promise<void>}
+ */
+async function mergeTabsFromDomain(domain) {
+  try {
+    const tabs = await chrome.tabs.query({});
+    const domainTabs = tabs.filter(tab => {
+      const tabDomain = extractDomain(tab.url);
+      return tabDomain === domain;
+    });
+
+    if (domainTabs.length === 0) return;
+
+    // Create new window with first tab
+    const newWindow = await chrome.windows.create({
+      tabId: domainTabs[0].id
+    });
+
+    // Move remaining tabs to new window
+    if (domainTabs.length > 1) {
+      const remainingTabIds = domainTabs.slice(1).map(t => t.id);
+      await chrome.tabs.move(remainingTabIds, {
+        windowId: newWindow.id,
+        index: -1
+      });
+    }
+
+    console.log(`✅ Merged ${domainTabs.length} tabs from ${domain} to new window`);
+
+    // Refresh the list
+    await loadAndRender();
+  } catch (error) {
+    console.error('❌ Error merging domain tabs:', error);
   }
 }
 
@@ -262,9 +330,28 @@ function createDomainSection(domain, tabs, urlCounts) {
     content.classList.add('collapsed');
   }
 
-  // Action bar with close button
+  // Action bar with buttons
   const actionBar = document.createElement('div');
   actionBar.className = 'domain-action-bar';
+
+  // Merge button (only shown when advanced mode + showMergeButton are enabled)
+  if (settings.advancedMode && settings.showMergeButton) {
+    const mergeBtn = document.createElement('button');
+    mergeBtn.className = 'btn-action btn-accent btn-small';
+    mergeBtn.title = `Move all tabs from ${domain} to new window`;
+    mergeBtn.innerHTML = `
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+        <line x1="9" y1="3" x2="9" y2="21"/>
+      </svg>
+      <span>Merge</span>
+    `;
+    mergeBtn.onclick = (e) => {
+      e.stopPropagation();
+      mergeTabsFromDomain(domain);
+    };
+    actionBar.appendChild(mergeBtn);
+  }
 
   const closeBtn = document.createElement('button');
   closeBtn.className = 'btn-action btn-danger btn-small';
@@ -473,6 +560,11 @@ async function closeAllDuplicates() {
           }
         });
       }
+    }
+
+    // Filter out pinned tabs if protection is enabled
+    if (settings.protectPinned) {
+      tabsToClose = tabsToClose.filter(tab => !tab.pinned);
     }
 
     // Get tab IDs to close
@@ -885,8 +977,9 @@ duplicatesSortButtonsEl.addEventListener('click', (e) => {
 duplicatesHeaderEl.addEventListener('click', () => toggleSection('duplicates'));
 allTabsHeaderEl.addEventListener('click', () => toggleSection('allTabs'));
 
-// Initial load - wait for section states before rendering
+// Initial load - wait for settings and section states before rendering
 (async () => {
+  await loadSettings();
   await loadSectionStates();
   loadAndRender();
 })();

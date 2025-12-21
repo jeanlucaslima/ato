@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ATO Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <img src="../assets/icons/icon48.png" alt="ATO" class="header-icon">
+      <div class="header-text">
+        <h1 class="title">ATO</h1>
+        <span class="subtitle">Settings</span>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+      <!-- Duplicate Detection Section -->
+      <section class="settings-section">
+        <h2 class="section-title">Duplicate Detection</h2>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label" for="matchMode">URL Matching Mode</label>
+            <p class="setting-description">How to compare URLs when detecting duplicates</p>
+          </div>
+          <select id="matchMode" class="setting-select">
+            <option value="exact">Exact URL</option>
+            <option value="ignoreQuery">Ignore query parameters</option>
+            <option value="ignoreHash">Ignore hash/fragments</option>
+            <option value="ignoreQueryAndHash">Ignore query & hash</option>
+          </select>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label" for="keepTab">When closing duplicates, keep</label>
+            <p class="setting-description">Which tab to preserve when removing duplicates</p>
+          </div>
+          <select id="keepTab" class="setting-select">
+            <option value="oldest">Oldest tab</option>
+            <option value="newest">Newest tab</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- Tab Protection Section -->
+      <section class="settings-section">
+        <h2 class="section-title">Tab Protection</h2>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label" for="protectPinned">Protect pinned tabs</label>
+            <p class="setting-description">Never close pinned tabs as duplicates</p>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="protectPinned" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label" for="protectGroups">Protect tab groups</label>
+            <p class="setting-description">Never close tabs in groups as duplicates</p>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="protectGroups">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </section>
+
+      <!-- Badge Section -->
+      <section class="settings-section">
+        <h2 class="section-title">Badge</h2>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label" for="showBadge">Show duplicate count</label>
+            <p class="setting-description">Display number of duplicates on extension icon</p>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="showBadge" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label" for="badgeColor">Badge color</label>
+            <p class="setting-description">Background color for the badge</p>
+          </div>
+          <input type="color" id="badgeColor" class="setting-color" value="#DC2626">
+        </div>
+      </section>
+
+      <!-- Advanced Section -->
+      <section class="settings-section">
+        <div class="section-header-toggle">
+          <h2 class="section-title">Advanced</h2>
+          <label class="toggle toggle-small">
+            <input type="checkbox" id="advancedMode">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="advanced-settings hidden" id="advancedSettings">
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label" for="scope">Detection scope</label>
+              <p class="setting-description">Where to look for duplicate tabs</p>
+            </div>
+            <select id="scope" class="setting-select">
+              <option value="allWindows">All windows</option>
+              <option value="currentWindow">Current window only</option>
+            </select>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label" for="notifications">Show notifications</label>
+              <p class="setting-description">Notify when duplicates are detected</p>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="notifications">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <label class="setting-label" for="showMergeButton">Show merge button</label>
+              <p class="setting-description">Add button to move domain tabs to a new window</p>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="showMergeButton">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <!-- Save Status -->
+      <div class="save-status" id="saveStatus">
+        <span class="save-icon">&#10003;</span>
+        Settings saved
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <span class="version">ATO v<span id="version">5.4.0</span></span>
+      <a href="https://github.com/jeanlucaslima/ato" target="_blank" class="footer-link">GitHub</a>
+    </footer>
+  </div>
+
+  <script src="options.js" type="module"></script>
+</body>
+</html>

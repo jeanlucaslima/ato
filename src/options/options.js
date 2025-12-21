@@ -1,0 +1,133 @@
+/**
+ * ATO Options Page
+ * Handles loading and saving extension settings
+ */
+
+// Default settings
+const DEFAULT_SETTINGS = {
+  // Duplicate Detection
+  matchMode: 'exact',
+  keepTab: 'oldest',
+
+  // Tab Protection
+  protectPinned: true,
+  protectGroups: false,
+
+  // Badge
+  showBadge: true,
+  badgeColor: '#DC2626',
+
+  // Advanced
+  advancedMode: false,
+  scope: 'allWindows',
+  notifications: false,
+  showMergeButton: false
+};
+
+// Setting element IDs mapped to their types
+const SETTING_TYPES = {
+  matchMode: 'select',
+  keepTab: 'select',
+  protectPinned: 'checkbox',
+  protectGroups: 'checkbox',
+  showBadge: 'checkbox',
+  badgeColor: 'color',
+  advancedMode: 'checkbox',
+  scope: 'select',
+  notifications: 'checkbox',
+  showMergeButton: 'checkbox'
+};
+
+/**
+ * Load settings from chrome.storage and populate form
+ */
+async function loadSettings() {
+  const settings = await chrome.storage.sync.get(DEFAULT_SETTINGS);
+
+  for (const [key, type] of Object.entries(SETTING_TYPES)) {
+    const element = document.getElementById(key);
+    if (!element) continue;
+
+    if (type === 'checkbox') {
+      element.checked = settings[key];
+    } else {
+      element.value = settings[key];
+    }
+  }
+
+  // Update advanced section visibility
+  updateAdvancedVisibility(settings.advancedMode);
+
+  // Load version from manifest
+  const manifest = chrome.runtime.getManifest();
+  document.getElementById('version').textContent = manifest.version;
+}
+
+/**
+ * Save a single setting to chrome.storage
+ */
+async function saveSetting(key, value) {
+  await chrome.storage.sync.set({ [key]: value });
+
+  // Notify background script of settings change
+  chrome.runtime.sendMessage({
+    type: 'SETTINGS_CHANGED',
+    key,
+    value
+  });
+
+  showSaveStatus();
+}
+
+/**
+ * Show save confirmation
+ */
+function showSaveStatus() {
+  const status = document.getElementById('saveStatus');
+  status.classList.add('visible');
+
+  clearTimeout(window.saveStatusTimeout);
+  window.saveStatusTimeout = setTimeout(() => {
+    status.classList.remove('visible');
+  }, 2000);
+}
+
+/**
+ * Toggle advanced settings visibility
+ */
+function updateAdvancedVisibility(show) {
+  const advancedSettings = document.getElementById('advancedSettings');
+  if (show) {
+    advancedSettings.classList.remove('hidden');
+  } else {
+    advancedSettings.classList.add('hidden');
+  }
+}
+
+/**
+ * Initialize event listeners for all settings
+ */
+function initEventListeners() {
+  for (const [key, type] of Object.entries(SETTING_TYPES)) {
+    const element = document.getElementById(key);
+    if (!element) continue;
+
+    const eventType = type === 'checkbox' ? 'change' : 'input';
+
+    element.addEventListener(eventType, (e) => {
+      const value = type === 'checkbox' ? e.target.checked : e.target.value;
+      saveSetting(key, value);
+
+      // Special handling for advanced mode toggle
+      if (key === 'advancedMode') {
+        updateAdvancedVisibility(value);
+      }
+    });
+  }
+}
+
+// Initialize on DOM ready
+document.addEventListener('DOMContentLoaded', () => {
+  loadSettings();
+  initEventListeners();
+});

@@ -258,6 +258,16 @@ body {
   color: white;
 }
 
+.btn-action.btn-accent {
+  background: var(--accent-light);
+  color: var(--accent-color);
+}
+
+.btn-action.btn-accent:hover {
+  background: var(--accent-color);
+  color: white;
+}
+
 .btn-action.hidden {
   display: none;
 }

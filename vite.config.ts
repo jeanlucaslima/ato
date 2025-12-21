@@ -10,7 +10,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         'background/service-worker': path.resolve(__dirname, 'src/background/service-worker.js'),
-        'popup/popup': path.resolve(__dirname, 'src/popup/popup.js')
+        'popup/popup': path.resolve(__dirname, 'src/popup/popup.js'),
+        'options/options': path.resolve(__dirname, 'src/options/options.js')
       },
       output: {
         entryFileNames: '[name].js',
@@ -33,6 +34,14 @@ export default defineConfig({
         {
           src: 'popup/popup.css',
           dest: 'popup'
+        },
+        {
+          src: 'options/options.html',
+          dest: 'options'
+        },
+        {
+          src: 'options/options.css',
+          dest: 'options'
         },
         {
           src: 'assets/icons/*.png',
