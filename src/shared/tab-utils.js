@@ -19,13 +19,13 @@
  */
 
 /**
- * Checks if a URL is an internal browser page that should be skipped.
+ * Checks if a URL is empty or invalid (tab still loading).
  *
  * @param {string|null|undefined} url - The URL to check
- * @returns {boolean} True if the URL is internal or invalid
+ * @returns {boolean} True if the URL is empty or invalid
  */
-function isInternalUrl(url) {
-  return !url || url.startsWith('chrome://') || url.startsWith('edge://');
+function isEmptyUrl(url) {
+  return !url;
 }
 
 /**
@@ -64,7 +64,7 @@ export function normalizeUrl(url, matchMode = 'exact') {
  * Finds duplicate tabs based on URL matching.
  * The first occurrence of a URL is considered the "original",
  * subsequent occurrences are returned as duplicates.
- * Skips chrome:// and edge:// internal pages.
+ * Skips tabs with empty URLs (still loading).
  *
  * @param {Tab[]} tabs - Array of tab objects to search
  * @param {'exact'|'ignoreQuery'|'ignoreHash'|'ignoreQueryAndHash'} [matchMode='exact'] - URL matching mode
@@ -82,7 +82,7 @@ export function findDuplicates(tabs, matchMode = 'exact') {
   const duplicates = [];
 
   tabs.forEach(tab => {
-    if (isInternalUrl(tab.url)) {
+    if (isEmptyUrl(tab.url)) {
       return;
     }
 
@@ -118,7 +118,7 @@ export function extractDomain(url) {
 
 /**
  * Counts how many tabs share each URL.
- * Excludes chrome:// and edge:// internal pages.
+ * Excludes tabs with empty URLs.
  *
  * @param {Tab[]} tabs - Array of tab objects
  * @param {'exact'|'ignoreQuery'|'ignoreHash'|'ignoreQueryAndHash'} [matchMode='exact'] - URL matching mode
@@ -135,7 +135,7 @@ export function countDuplicatesByUrl(tabs, matchMode = 'exact') {
   const urlCounts = new Map();
 
   tabs.forEach(tab => {
-    if (isInternalUrl(tab.url)) {
+    if (isEmptyUrl(tab.url)) {
       return;
     }
 
@@ -148,7 +148,7 @@ export function countDuplicatesByUrl(tabs, matchMode = 'exact') {
 
 /**
  * Groups tabs by their domain and sorts by tab count (descending).
- * Excludes chrome:// and edge:// internal pages.
+ * Excludes tabs with empty URLs.
  *
  * @param {Tab[]} tabs - Array of tab objects
  * @returns {DomainGroup[]} Array of domain groups sorted by count (descending)
@@ -165,7 +165,7 @@ export function groupTabsByDomain(tabs) {
   const domainGroups = new Map();
 
   tabs.forEach(tab => {
-    if (isInternalUrl(tab.url)) {
+    if (isEmptyUrl(tab.url)) {
       return;
     }
 

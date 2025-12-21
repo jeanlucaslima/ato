@@ -45,20 +45,20 @@ describe('findDuplicates', () => {
     expect(duplicates.map(t => t.id)).toEqual([2, 3]);
   });
 
-  it('skips chrome:// internal pages', () => {
+  it('detects chrome:// duplicates', () => {
     const tabs = [
       { id: 1, url: 'chrome://extensions' },
       { id: 2, url: 'chrome://extensions' }
     ];
-    expect(findDuplicates(tabs)).toEqual([]);
+    expect(findDuplicates(tabs)).toEqual([{ id: 2, url: 'chrome://extensions' }]);
   });
 
-  it('skips edge:// internal pages', () => {
+  it('detects edge:// duplicates', () => {
     const tabs = [
       { id: 1, url: 'edge://settings' },
       { id: 2, url: 'edge://settings' }
     ];
-    expect(findDuplicates(tabs)).toEqual([]);
+    expect(findDuplicates(tabs)).toEqual([{ id: 2, url: 'edge://settings' }]);
   });
 
   it('skips tabs with no URL', () => {
@@ -156,16 +156,18 @@ describe('countDuplicatesByUrl', () => {
     expect(result.get('https://other.com')).toBe(1);
   });
 
-  it('skips chrome:// URLs', () => {
+  it('counts chrome:// URLs', () => {
     const tabs = [{ url: 'chrome://extensions' }];
     const result = countDuplicatesByUrl(tabs);
-    expect(result.size).toBe(0);
+    expect(result.size).toBe(1);
+    expect(result.get('chrome://extensions')).toBe(1);
   });
 
-  it('skips edge:// URLs', () => {
+  it('counts edge:// URLs', () => {
     const tabs = [{ url: 'edge://settings' }];
     const result = countDuplicatesByUrl(tabs);
-    expect(result.size).toBe(0);
+    expect(result.size).toBe(1);
+    expect(result.get('edge://settings')).toBe(1);
   });
 
   it('skips tabs with null/undefined URLs', () => {
@@ -208,24 +210,26 @@ describe('groupTabsByDomain', () => {
     expect(groups[1].count).toBe(1);
   });
 
-  it('skips chrome:// pages', () => {
+  it('groups chrome:// pages by their path as domain', () => {
     const tabs = [
       { url: 'chrome://extensions' },
       { url: 'https://example.com' }
     ];
     const groups = groupTabsByDomain(tabs);
-    expect(groups).toHaveLength(1);
-    expect(groups[0].domain).toBe('example.com');
+    expect(groups).toHaveLength(2);
+    expect(groups.map(g => g.domain)).toContain('extensions');
+    expect(groups.map(g => g.domain)).toContain('example.com');
   });
 
-  it('skips edge:// pages', () => {
+  it('groups edge:// pages by their path as domain', () => {
     const tabs = [
       { url: 'edge://settings' },
       { url: 'https://example.com' }
     ];
     const groups = groupTabsByDomain(tabs);
-    expect(groups).toHaveLength(1);
-    expect(groups[0].domain).toBe('example.com');
+    expect(groups).toHaveLength(2);
+    expect(groups.map(g => g.domain)).toContain('settings');
+    expect(groups.map(g => g.domain)).toContain('example.com');
   });
 
   it('returns correct structure with domain, tabs, and count', () => {
