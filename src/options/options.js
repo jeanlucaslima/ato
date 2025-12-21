@@ -5,6 +5,9 @@
 
 // Default settings
 const DEFAULT_SETTINGS = {
+  // Appearance
+  theme: 'dark',
+
   // Duplicate Detection
   matchMode: 'exact',
   keepTab: 'oldest',
@@ -25,6 +28,7 @@ const DEFAULT_SETTINGS = {
 
 // Setting element IDs mapped to their types
 const SETTING_TYPES = {
+  theme: 'select',
   matchMode: 'select',
   keepTab: 'select',
   protectPinned: 'checkbox',
@@ -35,6 +39,13 @@ const SETTING_TYPES = {
   currentWindowOnly: 'checkbox',
   showMergeButton: 'checkbox'
 };
+
+/**
+ * Apply theme to document
+ */
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+}
 
 /**
  * Load settings from chrome.storage and populate form
@@ -52,6 +63,9 @@ async function loadSettings() {
       element.value = settings[key];
     }
   }
+
+  // Apply theme
+  applyTheme(settings.theme);
 
   // Load version from manifest
   const manifest = chrome.runtime.getManifest();
@@ -119,6 +133,11 @@ function initEventListeners() {
       // Special handling for advancedMode toggle
       if (key === 'advancedMode') {
         updateAdvancedVisibility(value);
+      }
+
+      // Special handling for theme change
+      if (key === 'theme') {
+        applyTheme(value);
       }
     });
   }

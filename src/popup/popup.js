@@ -46,6 +46,7 @@ const domainSectionsContainer = document.getElementById('domain-sections-contain
 
 // Settings (loaded from chrome.storage.sync)
 let settings = {
+  theme: 'dark',
   protectPinned: true,
   protectGroups: false,
   advancedMode: false,
@@ -97,6 +98,13 @@ async function loadSectionStates() {
 }
 
 /**
+ * Apply theme to document
+ */
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+}
+
+/**
  * Loads user settings from Chrome storage.
  *
  * @async
@@ -105,6 +113,7 @@ async function loadSectionStates() {
 async function loadSettings() {
   try {
     const result = await chrome.storage.sync.get({
+      theme: 'dark',
       protectPinned: true,
       protectGroups: false,
       advancedMode: false,
@@ -114,6 +123,9 @@ async function loadSettings() {
       currentWindowOnly: false
     });
     settings = result;
+
+    // Apply theme
+    applyTheme(settings.theme);
   } catch (error) {
     console.error('Error loading settings:', error);
   }
