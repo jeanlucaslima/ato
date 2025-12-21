@@ -24,6 +24,7 @@ const domainFilterInputEl = document.getElementById('domain-filter-input');
 const domainFilterClearEl = document.getElementById('domain-filter-clear');
 const domainFilterDropdownEl = document.getElementById('domain-filter-dropdown');
 const sortButtonsEl = document.getElementById('sort-buttons');
+const duplicatesSortButtonsEl = document.getElementById('duplicates-sort-buttons');
 const undoDuplicatesBtn = document.getElementById('undo-duplicates-btn');
 
 // Collapsible section elements
@@ -38,6 +39,7 @@ const domainSectionsContainer = document.getElementById('domain-sections-contain
 // State
 let activeDomain = null;
 let activeSort = 'default';
+let duplicateSortOrder = 'default'; // Sort order for duplicates section
 let allDomainGroups = []; // Store domain groups for filtering
 let highlightedOptionIndex = -1; // Track highlighted option in dropdown
 let ageSortDirection = 'old'; // 'old' or 'new' - toggles on each click
@@ -655,6 +657,11 @@ function render(tabs, duplicates) {
     btn.classList.toggle('active', btn.dataset.sort === activeSort);
   });
 
+  // Update duplicate sort button active states
+  duplicatesSortButtonsEl.querySelectorAll('.btn-toggle').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.sort === duplicateSortOrder);
+  });
+
   // Clear lists
   duplicateListEl.innerHTML = '';
   allTabsListEl.innerHTML = '';
@@ -669,8 +676,11 @@ function render(tabs, duplicates) {
     duplicateListEl.style.display = 'flex';
     emptyStateEl.style.display = 'none';
 
+    // Sort duplicates based on duplicateSortOrder
+    const sortedDuplicates = sortTabs(duplicates, duplicateSortOrder, urlCounts);
+
     // Render each duplicate with count badge
-    duplicates.forEach(tab => {
+    sortedDuplicates.forEach(tab => {
       const count = urlCounts.get(tab.url) || 0;
       const item = createTabItem(tab, count);
       duplicateListEl.appendChild(item);
@@ -845,7 +855,7 @@ document.addEventListener('click', (e) => {
 
 undoDuplicatesBtn.addEventListener('click', undoClose);
 
-// Sort button group event listener
+// Sort button group event listener (All Tabs section)
 sortButtonsEl.addEventListener('click', (e) => {
   const btn = e.target.closest('.btn-toggle');
   if (btn && btn.dataset.sort) {
@@ -862,10 +872,21 @@ sortButtonsEl.addEventListener('click', (e) => {
   }
 });
 
+// Sort button group event listener (Duplicates section)
+duplicatesSortButtonsEl.addEventListener('click', (e) => {
+  const btn = e.target.closest('.btn-toggle');
+  if (btn && btn.dataset.sort) {
+    duplicateSortOrder = btn.dataset.sort;
+    loadAndRender();
+  }
+});
+
 // Section toggle event listeners
 duplicatesHeaderEl.addEventListener('click', () => toggleSection('duplicates'));
 allTabsHeaderEl.addEventListener('click', () => toggleSection('allTabs'));
 
-// Initial load
-loadSectionStates();
-loadAndRender();
+// Initial load - wait for section states before rendering
+(async () => {
+  await loadSectionStates();
+  loadAndRender();
+})();
