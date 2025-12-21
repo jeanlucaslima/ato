@@ -29,12 +29,45 @@ function isInternalUrl(url) {
 }
 
 /**
- * Finds duplicate tabs based on exact URL matching.
+ * Normalizes a URL based on the match mode setting.
+ *
+ * @param {string} url - The URL to normalize
+ * @param {'exact'|'ignoreQuery'|'ignoreHash'|'ignoreQueryAndHash'} matchMode - How to normalize
+ * @returns {string} The normalized URL
+ * @example
+ * normalizeUrl('https://example.com/page?foo=bar#section', 'ignoreQuery');
+ * // Returns 'https://example.com/page#section'
+ */
+export function normalizeUrl(url, matchMode = 'exact') {
+  if (!url || matchMode === 'exact') {
+    return url;
+  }
+
+  try {
+    const urlObj = new URL(url);
+
+    if (matchMode === 'ignoreQuery' || matchMode === 'ignoreQueryAndHash') {
+      urlObj.search = '';
+    }
+
+    if (matchMode === 'ignoreHash' || matchMode === 'ignoreQueryAndHash') {
+      urlObj.hash = '';
+    }
+
+    return urlObj.toString();
+  } catch (e) {
+    return url;
+  }
+}
+
+/**
+ * Finds duplicate tabs based on URL matching.
  * The first occurrence of a URL is considered the "original",
  * subsequent occurrences are returned as duplicates.
  * Skips chrome:// and edge:// internal pages.
  *
  * @param {Tab[]} tabs - Array of tab objects to search
+ * @param {'exact'|'ignoreQuery'|'ignoreHash'|'ignoreQueryAndHash'} [matchMode='exact'] - URL matching mode
  * @returns {Tab[]} Array of duplicate tabs (excludes first occurrence of each URL)
  * @example
  * const tabs = [
@@ -44,7 +77,7 @@ function isInternalUrl(url) {
  * ];
  * findDuplicates(tabs); // Returns [{ id: 2, url: 'https://example.com' }]
  */
-export function findDuplicates(tabs) {
+export function findDuplicates(tabs, matchMode = 'exact') {
   const urlMap = new Map();
   const duplicates = [];
 
@@ -53,7 +86,7 @@ export function findDuplicates(tabs) {
       return;
     }
 
-    const url = tab.url;
+    const url = normalizeUrl(tab.url, matchMode);
 
     if (urlMap.has(url)) {
       duplicates.push(tab);
@@ -88,7 +121,8 @@ export function extractDomain(url) {
  * Excludes chrome:// and edge:// internal pages.
  *
  * @param {Tab[]} tabs - Array of tab objects
- * @returns {Map<string, number>} Map of URL to occurrence count
+ * @param {'exact'|'ignoreQuery'|'ignoreHash'|'ignoreQueryAndHash'} [matchMode='exact'] - URL matching mode
+ * @returns {Map<string, number>} Map of normalized URL to occurrence count
  * @example
  * const tabs = [
  *   { url: 'https://a.com' },
@@ -97,7 +131,7 @@ export function extractDomain(url) {
  * ];
  * countDuplicatesByUrl(tabs); // Returns Map { 'https://a.com' => 2, 'https://b.com' => 1 }
  */
-export function countDuplicatesByUrl(tabs) {
+export function countDuplicatesByUrl(tabs, matchMode = 'exact') {
   const urlCounts = new Map();
 
   tabs.forEach(tab => {
@@ -105,7 +139,7 @@ export function countDuplicatesByUrl(tabs) {
       return;
     }
 
-    const url = tab.url;
+    const url = normalizeUrl(tab.url, matchMode);
     urlCounts.set(url, (urlCounts.get(url) || 0) + 1);
   });
 

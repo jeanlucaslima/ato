@@ -5,7 +5,8 @@ import {
   countDuplicatesByUrl,
   groupTabsByDomain,
   formatTimeAgo,
-  sortTabs
+  sortTabs,
+  normalizeUrl
 } from './tab-utils.js';
 
 describe('findDuplicates', () => {
@@ -385,5 +386,122 @@ describe('sortTabs', () => {
   it('handles empty tabs array', () => {
     const result = sortTabs([], 'title', new Map());
     expect(result).toEqual([]);
+  });
+});
+
+describe('normalizeUrl', () => {
+  it('returns original URL for exact mode', () => {
+    const url = 'https://example.com/page?foo=bar#section';
+    expect(normalizeUrl(url, 'exact')).toBe(url);
+  });
+
+  it('removes query string for ignoreQuery mode', () => {
+    const url = 'https://example.com/page?foo=bar#section';
+    expect(normalizeUrl(url, 'ignoreQuery')).toBe('https://example.com/page#section');
+  });
+
+  it('removes hash for ignoreHash mode', () => {
+    const url = 'https://example.com/page?foo=bar#section';
+    expect(normalizeUrl(url, 'ignoreHash')).toBe('https://example.com/page?foo=bar');
+  });
+
+  it('removes both query and hash for ignoreQueryAndHash mode', () => {
+    const url = 'https://example.com/page?foo=bar#section';
+    expect(normalizeUrl(url, 'ignoreQueryAndHash')).toBe('https://example.com/page');
+  });
+
+  it('returns original URL if matchMode is not provided', () => {
+    const url = 'https://example.com/page?foo=bar';
+    expect(normalizeUrl(url)).toBe(url);
+  });
+
+  it('returns original URL for invalid URL', () => {
+    expect(normalizeUrl('not-a-url', 'ignoreQuery')).toBe('not-a-url');
+  });
+
+  it('returns empty/null URL as-is', () => {
+    expect(normalizeUrl(null, 'ignoreQuery')).toBe(null);
+    expect(normalizeUrl('', 'ignoreQuery')).toBe('');
+  });
+
+  it('handles URL with only query string', () => {
+    const url = 'https://example.com?foo=bar';
+    expect(normalizeUrl(url, 'ignoreQuery')).toBe('https://example.com/');
+  });
+
+  it('handles URL with only hash', () => {
+    const url = 'https://example.com#section';
+    expect(normalizeUrl(url, 'ignoreHash')).toBe('https://example.com/');
+  });
+});
+
+describe('findDuplicates with matchMode', () => {
+  it('treats URLs with different query params as different in exact mode', () => {
+    const tabs = [
+      { id: 1, url: 'https://example.com?page=1' },
+      { id: 2, url: 'https://example.com?page=2' }
+    ];
+    expect(findDuplicates(tabs, 'exact')).toEqual([]);
+  });
+
+  it('treats URLs with different query params as duplicates in ignoreQuery mode', () => {
+    const tabs = [
+      { id: 1, url: 'https://example.com?page=1' },
+      { id: 2, url: 'https://example.com?page=2' }
+    ];
+    const duplicates = findDuplicates(tabs, 'ignoreQuery');
+    expect(duplicates).toHaveLength(1);
+    expect(duplicates[0].id).toBe(2);
+  });
+
+  it('treats URLs with different hashes as different in exact mode', () => {
+    const tabs = [
+      { id: 1, url: 'https://example.com#section1' },
+      { id: 2, url: 'https://example.com#section2' }
+    ];
+    expect(findDuplicates(tabs, 'exact')).toEqual([]);
+  });
+
+  it('treats URLs with different hashes as duplicates in ignoreHash mode', () => {
+    const tabs = [
+      { id: 1, url: 'https://example.com#section1' },
+      { id: 2, url: 'https://example.com#section2' }
+    ];
+    const duplicates = findDuplicates(tabs, 'ignoreHash');
+    expect(duplicates).toHaveLength(1);
+    expect(duplicates[0].id).toBe(2);
+  });
+
+  it('treats URLs with different query and hash as duplicates in ignoreQueryAndHash mode', () => {
+    const tabs = [
+      { id: 1, url: 'https://example.com?a=1#s1' },
+      { id: 2, url: 'https://example.com?b=2#s2' }
+    ];
+    const duplicates = findDuplicates(tabs, 'ignoreQueryAndHash');
+    expect(duplicates).toHaveLength(1);
+    expect(duplicates[0].id).toBe(2);
+  });
+});
+
+describe('countDuplicatesByUrl with matchMode', () => {
+  it('counts using normalized URLs in ignoreQuery mode', () => {
+    const tabs = [
+      { url: 'https://example.com?page=1' },
+      { url: 'https://example.com?page=2' },
+      { url: 'https://other.com' }
+    ];
+    const result = countDuplicatesByUrl(tabs, 'ignoreQuery');
+    expect(result.get('https://example.com/')).toBe(2);
+    expect(result.get('https://other.com/')).toBe(1);
+  });
+
+  it('counts using normalized URLs in ignoreHash mode', () => {
+    const tabs = [
+      { url: 'https://example.com#s1' },
+      { url: 'https://example.com#s2' },
+      { url: 'https://example.com#s3' }
+    ];
+    const result = countDuplicatesByUrl(tabs, 'ignoreHash');
+    expect(result.get('https://example.com/')).toBe(3);
   });
 });

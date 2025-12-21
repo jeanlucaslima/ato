@@ -5,6 +5,9 @@ import { findDuplicates } from '../shared/tab-utils.js';
 
 console.log('🚀 ATO service worker loaded');
 
+// Cache the matchMode setting
+let matchMode = 'exact';
+
 /**
  * Updates the extension badge with the duplicate count.
  * Shows red badge with count if duplicates exist, clears badge if none.
@@ -21,6 +24,22 @@ function updateBadge(count) {
 }
 
 /**
+ * Loads the matchMode setting from Chrome storage.
+ *
+ * @async
+ * @returns {Promise<void>}
+ */
+async function loadSettings() {
+  try {
+    const result = await chrome.storage.sync.get({ matchMode: 'exact' });
+    matchMode = result.matchMode;
+    console.log(`⚙️ Loaded matchMode setting: ${matchMode}`);
+  } catch (error) {
+    console.error('❌ Error loading settings:', error);
+  }
+}
+
+/**
  * Scans all open tabs and updates the badge with duplicate count.
  * Called on tab events and service worker initialization.
  *
@@ -30,7 +49,7 @@ function updateBadge(count) {
 async function scanAndUpdateBadge() {
   try {
     const tabs = await chrome.tabs.query({});
-    const duplicates = findDuplicates(tabs);
+    const duplicates = findDuplicates(tabs, matchMode);
     updateBadge(duplicates.length);
     console.log(`📊 Scanned ${tabs.length} tabs, found ${duplicates.length} duplicates`);
   } catch (error) {
@@ -89,5 +108,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
+// Listen for storage changes to update badge when matchMode changes
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName === 'sync' && changes.matchMode) {
+    matchMode = changes.matchMode.newValue || 'exact';
+    console.log(`⚙️ matchMode setting changed to: ${matchMode}`);
+    scanAndUpdateBadge();
+  }
+});
+
 // Initial scan when service worker starts
-scanAndUpdateBadge();
+(async () => {
+  await loadSettings();
+  scanAndUpdateBadge();
+})();
