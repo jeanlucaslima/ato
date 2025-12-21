@@ -98,13 +98,24 @@
 
         <div class="setting-item">
           <div class="setting-info">
-            <label class="setting-label" for="showBadge">Show duplicate count</label>
-            <p class="setting-description">Display number of duplicates on extension icon</p>
+            <label class="setting-label" for="showBadge">Show badge count</label>
+            <p class="setting-description">Display count on extension icon</p>
           </div>
           <label class="toggle">
             <input type="checkbox" id="showBadge" checked>
             <span class="toggle-slider"></span>
           </label>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label" for="badgeMode">Badge shows</label>
+            <p class="setting-description">What count to display on the badge</p>
+          </div>
+          <select id="badgeMode" class="setting-select">
+            <option value="duplicates">Duplicate tabs</option>
+            <option value="allTabs">All tabs</option>
+          </select>
         </div>
 
         <div class="setting-item">
@@ -165,7 +176,7 @@
 
     <!-- Footer -->
     <footer class="footer">
-      <span class="version">ATO v<span id="version">1.0.0</span></span>
+      <span class="version">ATO v<span id="version">1.1.0</span></span>
       <a href="https://github.com/jeanlucaslima/ato" target="_blank" class="footer-link">GitHub</a>
     </footer>
   </div>

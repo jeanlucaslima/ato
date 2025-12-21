@@ -18,6 +18,7 @@ const DEFAULT_SETTINGS = {
 
   // Badge
   showBadge: true,
+  badgeMode: 'duplicates',
   badgeColor: '#DC2626',
 
   // Advanced
@@ -34,6 +35,7 @@ const SETTING_TYPES = {
   protectPinned: 'checkbox',
   protectGroups: 'checkbox',
   showBadge: 'checkbox',
+  badgeMode: 'select',
   badgeColor: 'color',
   advancedMode: 'checkbox',
   currentWindowOnly: 'checkbox',
