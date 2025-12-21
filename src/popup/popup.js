@@ -26,6 +26,8 @@ const domainFilterDropdownEl = document.getElementById('domain-filter-dropdown')
 const sortButtonsEl = document.getElementById('sort-buttons');
 const duplicatesSortButtonsEl = document.getElementById('duplicates-sort-buttons');
 const undoDuplicatesBtn = document.getElementById('undo-duplicates-btn');
+const pinnedWarningEl = document.getElementById('pinned-warning');
+const pinnedSkipCountEl = document.getElementById('pinned-skip-count');
 
 // Collapsible section elements
 const duplicatesHeaderEl = document.getElementById('duplicates-header');
@@ -59,6 +61,7 @@ let domainSectionStates = {}; // Track collapse state per domain
 // Undo state
 let lastClosedCount = 0;        // Number of tabs closed (for undo)
 let undoContext = null;         // 'duplicates', 'domain', or specific domain name
+let pinnedDuplicatesSkipped = 0; // Track count of pinned duplicates skipped
 
 /**
  * Loads and applies section collapse states from Chrome storage.
@@ -150,18 +153,15 @@ function toggleDomainSection(domain) {
   saveSectionStates();
 }
 
-// Show undo button based on context
+// Enable undo button based on context
 function showUndoButton(context) {
-  // Hide all undo buttons first
-  hideAllUndoButtons();
-
-  // Show the duplicates undo button for any undo action
-  undoDuplicatesBtn.classList.remove('hidden');
+  // Enable the undo button
+  undoDuplicatesBtn.disabled = false;
 }
 
-// Hide all undo buttons
+// Disable undo button
 function hideAllUndoButtons() {
-  undoDuplicatesBtn.classList.add('hidden');
+  undoDuplicatesBtn.disabled = true;
 }
 
 // Undo the last close action
@@ -389,6 +389,142 @@ function createDomainSection(domain, tabs, urlCounts) {
 }
 
 /**
+ * Creates a DOM element for a grouped duplicate row.
+ * Shows one row per URL with count badge and close button to close all duplicates.
+ *
+ * @param {Object} group - The grouped duplicate data
+ * @param {string} group.url - The duplicate URL
+ * @param {Object[]} group.tabs - Array of duplicate tabs
+ * @param {Object} group.representative - Representative tab for display
+ * @param {number} group.totalCount - Total tabs with this URL
+ * @param {Object[]} allTabs - All tabs for finding the original
+ * @returns {HTMLDivElement} The grouped duplicate item element
+ */
+function createGroupedDuplicateItem(group, allTabs) {
+  const { url, tabs: duplicateTabs, representative, totalCount } = group;
+
+  const item = document.createElement('div');
+  item.className = 'tab-item';
+  item.dataset.url = url;
+
+  // Favicon
+  const favicon = document.createElement('img');
+  favicon.className = 'tab-favicon';
+  if (representative.favIconUrl && !representative.favIconUrl.startsWith('chrome://')) {
+    favicon.src = representative.favIconUrl;
+    favicon.onerror = () => {
+      favicon.style.display = 'none';
+    };
+  } else {
+    favicon.className = 'tab-favicon placeholder';
+    favicon.alt = '';
+  }
+
+  // Tab info container
+  const info = document.createElement('div');
+  info.className = 'tab-info';
+
+  // Title
+  const title = document.createElement('div');
+  title.className = 'tab-title';
+  title.textContent = representative.title || 'Untitled';
+  title.title = representative.title || 'Untitled';
+
+  // URL
+  const urlEl = document.createElement('div');
+  urlEl.className = 'tab-url';
+  urlEl.textContent = url;
+  urlEl.title = url;
+
+  info.appendChild(title);
+  info.appendChild(urlEl);
+
+  // Count badge (shows total tabs with this URL)
+  const badge = document.createElement('span');
+  badge.className = 'duplicate-badge';
+  badge.textContent = `×${totalCount}`;
+  badge.title = `${totalCount} tabs with this URL`;
+
+  // Close button - closes all duplicates of this URL
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'tab-close';
+  closeBtn.textContent = '×';
+  closeBtn.title = `Close ${duplicateTabs.length} duplicate(s)`;
+  closeBtn.onclick = async (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    await closeDuplicatesOfUrl(url, allTabs);
+  };
+
+  // Click to switch to first duplicate
+  item.onclick = () => {
+    switchToTab(representative.id, representative.windowId);
+  };
+
+  item.appendChild(favicon);
+  item.appendChild(info);
+  item.appendChild(badge);
+  item.appendChild(closeBtn);
+
+  return item;
+}
+
+/**
+ * Closes all duplicate tabs of a specific URL, keeping one original.
+ *
+ * @async
+ * @param {string} url - The URL to close duplicates of
+ * @param {Object[]} allTabs - All tabs
+ * @returns {Promise<void>}
+ */
+async function closeDuplicatesOfUrl(url, allTabs) {
+  try {
+    const tabsWithUrl = allTabs.filter(tab => tab.url === url);
+    if (tabsWithUrl.length <= 1) return;
+
+    // Get active tab to avoid closing it
+    const activeTabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const activeTabId = activeTabs[0]?.id;
+
+    // Keep the first tab (original) or the active tab if it has this URL
+    let tabsToClose = tabsWithUrl.slice(1); // Keep first as original
+
+    // If active tab has this URL, keep it instead
+    if (tabsWithUrl.some(t => t.id === activeTabId)) {
+      tabsToClose = tabsWithUrl.filter(t => t.id !== activeTabId);
+    }
+
+    // Filter out pinned tabs if protection is enabled
+    if (settings.protectPinned) {
+      const beforeCount = tabsToClose.length;
+      tabsToClose = tabsToClose.filter(tab => !tab.pinned);
+      const skipped = beforeCount - tabsToClose.length;
+      if (skipped > 0) {
+        pinnedDuplicatesSkipped = skipped;
+      }
+    }
+
+    const tabIdsToClose = tabsToClose.map(tab => tab.id);
+
+    if (tabIdsToClose.length > 0) {
+      // Animate the row
+      const rowEl = document.querySelector(`[data-url="${CSS.escape(url)}"]`);
+      if (rowEl) {
+        rowEl.classList.add('closing');
+        await new Promise(resolve => setTimeout(resolve, 400));
+      }
+
+      await chrome.tabs.remove(tabIdsToClose);
+      console.log(`✅ Closed ${tabIdsToClose.length} duplicates of ${url}`);
+    }
+
+    await loadAndRender();
+  } catch (error) {
+    console.error('❌ Error closing duplicates:', error);
+  }
+}
+
+/**
  * Creates a DOM element for a single tab item.
  * Includes favicon, title, URL, age indicator, duplicate badge, and close button.
  *
@@ -497,8 +633,8 @@ async function closeTab(tabId) {
       // Add closing class to trigger animation
       tabItem.classList.add('closing');
 
-      // Wait for animation to complete (280ms)
-      await new Promise(resolve => setTimeout(resolve, 280));
+      // Wait for animation to complete (400ms)
+      await new Promise(resolve => setTimeout(resolve, 400));
     }
 
     // Now remove the tab from Chrome
@@ -563,9 +699,15 @@ async function closeAllDuplicates() {
     }
 
     // Filter out pinned tabs if protection is enabled
+    let skippedPinnedCount = 0;
     if (settings.protectPinned) {
+      const beforeCount = tabsToClose.length;
       tabsToClose = tabsToClose.filter(tab => !tab.pinned);
+      skippedPinnedCount = beforeCount - tabsToClose.length;
     }
+
+    // Track count of pinned duplicates skipped
+    pinnedDuplicatesSkipped = skippedPinnedCount;
 
     // Get tab IDs to close
     const tabIdsToClose = tabsToClose.map(tab => tab.id);
@@ -735,8 +877,9 @@ function render(tabs, duplicates) {
   duplicateCountEl.textContent = duplicates.length;
   domainCountEl.textContent = domainGroups.length;
 
-  // Update section counts
-  duplicatesSectionCountEl.textContent = duplicates.length;
+  // Update section counts - count unique duplicate URLs, not total duplicate tabs
+  const uniqueDuplicateUrls = new Set(duplicates.map(tab => tab.url)).size;
+  duplicatesSectionCountEl.textContent = uniqueDuplicateUrls;
 
   // Render domain filter
   renderDomainFilter(tabs);
@@ -763,18 +906,62 @@ function render(tabs, duplicates) {
     // Show empty state
     duplicateListEl.style.display = 'none';
     emptyStateEl.style.display = 'block';
+    pinnedWarningEl.classList.add('hidden');
+    pinnedDuplicatesSkipped = 0;
   } else {
     // Show duplicates
     duplicateListEl.style.display = 'flex';
     emptyStateEl.style.display = 'none';
 
-    // Sort duplicates based on duplicateSortOrder
-    const sortedDuplicates = sortTabs(duplicates, duplicateSortOrder, urlCounts);
+    // Show pinned warning if there are pinned tabs in duplicate groups
+    if (pinnedDuplicatesSkipped > 0) {
+      // Count all pinned tabs that are part of duplicate URLs
+      const duplicateUrls = new Set(duplicates.map(tab => tab.url));
+      const allTabs = tabs.filter(tab => duplicateUrls.has(tab.url));
+      const pinnedCount = allTabs.filter(tab => tab.pinned).length;
 
-    // Render each duplicate with count badge
-    sortedDuplicates.forEach(tab => {
-      const count = urlCounts.get(tab.url) || 0;
-      const item = createTabItem(tab, count);
+      if (pinnedCount > 0) {
+        pinnedSkipCountEl.textContent = pinnedCount;
+        pinnedWarningEl.classList.remove('hidden');
+      } else {
+        pinnedWarningEl.classList.add('hidden');
+      }
+    } else {
+      pinnedWarningEl.classList.add('hidden');
+    }
+
+    // Group duplicates by URL
+    const duplicatesByUrl = new Map();
+    duplicates.forEach(tab => {
+      if (!duplicatesByUrl.has(tab.url)) {
+        duplicatesByUrl.set(tab.url, []);
+      }
+      duplicatesByUrl.get(tab.url).push(tab);
+    });
+
+    // Convert to array and sort
+    let groupedDuplicates = Array.from(duplicatesByUrl.entries()).map(([url, dupes]) => ({
+      url,
+      tabs: dupes,
+      // Use first duplicate as representative
+      representative: dupes[0],
+      totalCount: urlCounts.get(url) || dupes.length + 1
+    }));
+
+    // Sort groups based on duplicateSortOrder
+    if (duplicateSortOrder === 'title') {
+      groupedDuplicates.sort((a, b) =>
+        (a.representative.title || '').localeCompare(b.representative.title || '')
+      );
+    } else if (duplicateSortOrder === 'domain') {
+      groupedDuplicates.sort((a, b) =>
+        extractDomain(a.url).localeCompare(extractDomain(b.url))
+      );
+    }
+
+    // Render each grouped duplicate
+    groupedDuplicates.forEach(group => {
+      const item = createGroupedDuplicateItem(group, tabs);
       duplicateListEl.appendChild(item);
     });
   }

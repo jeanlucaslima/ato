@@ -37,7 +37,7 @@
     <div class="action-bar">
       <!-- Action Buttons -->
       <div class="action-row">
-        <button class="btn-action btn-undo hidden" id="undo-duplicates-btn" title="Undo - restore closed tabs">
+        <button class="btn-action btn-undo" id="undo-duplicates-btn" title="Undo - restore closed tabs" disabled>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
             <path d="M3 3v5h5"/>
@@ -76,6 +76,12 @@
         </div>
         <div id="empty-state" class="empty-state" style="display: none;">
           <p>No duplicate tabs</p>
+        </div>
+        <div id="pinned-warning" class="pinned-warning hidden">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 9v4M12 17h.01M12 3l9 18H3z"/>
+          </svg>
+          <span><strong id="pinned-skip-count">0</strong> pinned tab(s) not closed</span>
         </div>
       </div>
     </div>
