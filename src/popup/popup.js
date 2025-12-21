@@ -29,6 +29,8 @@ const duplicatesSortButtonsEl = document.getElementById('duplicates-sort-buttons
 const undoDuplicatesBtn = document.getElementById('undo-duplicates-btn');
 const pinnedWarningEl = document.getElementById('pinned-warning');
 const pinnedSkipCountEl = document.getElementById('pinned-skip-count');
+const browserWarningEl = document.getElementById('browser-warning');
+const browserSkipCountEl = document.getElementById('browser-skip-count');
 const optionsBtn = document.getElementById('options-btn');
 const scopeBtn = document.getElementById('scope-btn');
 const scopeIconAll = document.getElementById('scope-icon-all');
@@ -74,6 +76,7 @@ let lastClosedCount = 0;        // Number of tabs closed (for undo)
 let undoContext = null;         // 'duplicates', 'domain', or specific domain name
 let pinnedDuplicatesSkipped = 0; // Track count of pinned duplicates skipped
 let groupedDuplicatesSkipped = 0; // Track count of grouped duplicates skipped
+let browserTabsSkipped = 0;     // Track count of browser tabs (chrome://, edge://) skipped
 
 /**
  * Loads and applies section collapse states from Chrome storage.
@@ -601,6 +604,16 @@ async function closeDuplicatesOfUrl(url, allTabs) {
       }
     }
 
+    // Filter out browser tabs (chrome://, edge://) - they can't be closed by extensions
+    {
+      const beforeCount = tabsToClose.length;
+      tabsToClose = tabsToClose.filter(tab => !isBrowserUrl(tab.url));
+      const skipped = beforeCount - tabsToClose.length;
+      if (skipped > 0) {
+        browserTabsSkipped = skipped;
+      }
+    }
+
     const tabIdsToClose = tabsToClose.map(tab => tab.id);
 
     if (tabIdsToClose.length > 0) {
@@ -613,6 +626,12 @@ async function closeDuplicatesOfUrl(url, allTabs) {
 
       await chrome.tabs.remove(tabIdsToClose);
       console.log(`✅ Closed ${tabIdsToClose.length} duplicates of ${url}`);
+    }
+
+    // Show browser warning if tabs were skipped
+    if (browserTabsSkipped > 0) {
+      browserSkipCountEl.textContent = browserTabsSkipped;
+      browserWarningEl.classList.remove('hidden');
     }
 
     await loadAndRender();
@@ -720,9 +739,39 @@ function switchToTab(tabId, windowId) {
   });
 }
 
+/**
+ * Checks if a URL is a browser internal page (chrome://, edge://).
+ * These pages cannot be closed by extensions due to Chrome security restrictions.
+ *
+ * @param {string} url - The URL to check
+ * @returns {boolean} True if the URL is a browser internal page
+ */
+function isBrowserUrl(url) {
+  return url && (url.startsWith('chrome://') || url.startsWith('edge://'));
+}
+
 // Close a single tab with animation
 async function closeTab(tabId) {
   try {
+    // Get tab info to check if it's a browser URL
+    const tab = await chrome.tabs.get(tabId);
+
+    if (isBrowserUrl(tab.url)) {
+      // Show warning - browser tabs can't be closed by extensions
+      browserTabsSkipped = 1;
+      browserSkipCountEl.textContent = '1';
+      browserWarningEl.classList.remove('hidden');
+
+      // Auto-hide warning after 3 seconds
+      setTimeout(() => {
+        browserWarningEl.classList.add('hidden');
+        browserTabsSkipped = 0;
+      }, 3000);
+
+      console.log(`⚠️ Cannot close browser tab: ${tab.url}`);
+      return;
+    }
+
     // Find the tab-item element in DOM and animate it
     const tabItem = document.querySelector(`[data-tab-id="${tabId}"]`);
 
@@ -771,7 +820,7 @@ async function closeAllDuplicates() {
     // Build a map of normalized URL -> all tabs with that URL
     const urlToTabs = new Map();
     tabs.forEach(tab => {
-      if (!tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('edge://')) return;
+      if (!tab.url) return;
       const normalizedTabUrl = normalizeUrl(tab.url, settings.matchMode);
       if (!urlToTabs.has(normalizedTabUrl)) {
         urlToTabs.set(normalizedTabUrl, []);
@@ -824,9 +873,18 @@ async function closeAllDuplicates() {
       skippedGroupedCount = beforeCount - tabsToClose.length;
     }
 
+    // Filter out browser tabs (chrome://, edge://) - they can't be closed by extensions
+    let skippedBrowserCount = 0;
+    {
+      const beforeCount = tabsToClose.length;
+      tabsToClose = tabsToClose.filter(tab => !isBrowserUrl(tab.url));
+      skippedBrowserCount = beforeCount - tabsToClose.length;
+    }
+
     // Track count of skipped duplicates
     pinnedDuplicatesSkipped = skippedPinnedCount;
     groupedDuplicatesSkipped = skippedGroupedCount;
+    browserTabsSkipped = skippedBrowserCount;
 
     // Get tab IDs to close
     const tabIdsToClose = tabsToClose.map(tab => tab.id);
@@ -1027,8 +1085,10 @@ function render(tabs, duplicates) {
     duplicateListEl.style.display = 'none';
     emptyStateEl.style.display = 'block';
     pinnedWarningEl.classList.add('hidden');
+    browserWarningEl.classList.add('hidden');
     pinnedDuplicatesSkipped = 0;
     groupedDuplicatesSkipped = 0;
+    browserTabsSkipped = 0;
   } else {
     // Show duplicates
     duplicateListEl.style.display = 'flex';
@@ -1055,6 +1115,14 @@ function render(tabs, duplicates) {
       }
     } else {
       pinnedWarningEl.classList.add('hidden');
+    }
+
+    // Show warning if browser tabs were skipped
+    if (browserTabsSkipped > 0) {
+      browserSkipCountEl.textContent = browserTabsSkipped;
+      browserWarningEl.classList.remove('hidden');
+    } else {
+      browserWarningEl.classList.add('hidden');
     }
 
     // Group duplicates by normalized URL
