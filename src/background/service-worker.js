@@ -5,42 +5,58 @@ import { findDuplicates } from '../shared/tab-utils.js';
 
 console.log('🚀 ATO service worker loaded');
 
-// Cache the matchMode setting
+// Cache settings
 let matchMode = 'exact';
+let showBadge = true;
+let badgeColor = '#DC2626';
+let currentWindowOnly = false;
 
 /**
  * Updates the extension badge with the duplicate count.
- * Shows red badge with count if duplicates exist, clears badge if none.
+ * Shows badge with count if duplicates exist and showBadge is enabled.
  *
  * @param {number} count - Number of duplicate tabs
  */
 function updateBadge(count) {
+  if (!showBadge) {
+    chrome.action.setBadgeText({ text: '' });
+    return;
+  }
+
   if (count > 0) {
     chrome.action.setBadgeText({ text: String(count) });
-    chrome.action.setBadgeBackgroundColor({ color: '#DC2626' }); // Red
+    chrome.action.setBadgeBackgroundColor({ color: badgeColor });
   } else {
     chrome.action.setBadgeText({ text: '' });
   }
 }
 
 /**
- * Loads the matchMode setting from Chrome storage.
+ * Loads settings from Chrome storage.
  *
  * @async
  * @returns {Promise<void>}
  */
 async function loadSettings() {
   try {
-    const result = await chrome.storage.sync.get({ matchMode: 'exact' });
+    const result = await chrome.storage.sync.get({
+      matchMode: 'exact',
+      showBadge: true,
+      badgeColor: '#DC2626',
+      currentWindowOnly: false
+    });
     matchMode = result.matchMode;
-    console.log(`⚙️ Loaded matchMode setting: ${matchMode}`);
+    showBadge = result.showBadge;
+    badgeColor = result.badgeColor;
+    currentWindowOnly = result.currentWindowOnly;
+    console.log(`⚙️ Loaded settings: matchMode=${matchMode}, showBadge=${showBadge}, currentWindowOnly=${currentWindowOnly}`);
   } catch (error) {
     console.error('❌ Error loading settings:', error);
   }
 }
 
 /**
- * Scans all open tabs and updates the badge with duplicate count.
+ * Scans tabs and updates the badge with duplicate count.
  * Called on tab events and service worker initialization.
  *
  * @async
@@ -48,10 +64,11 @@ async function loadSettings() {
  */
 async function scanAndUpdateBadge() {
   try {
-    const tabs = await chrome.tabs.query({});
+    const queryOptions = currentWindowOnly ? { currentWindow: true } : {};
+    const tabs = await chrome.tabs.query(queryOptions);
     const duplicates = findDuplicates(tabs, matchMode);
     updateBadge(duplicates.length);
-    console.log(`📊 Scanned ${tabs.length} tabs, found ${duplicates.length} duplicates`);
+    console.log(`📊 Scanned ${tabs.length} tabs (${currentWindowOnly ? 'current window' : 'all windows'}), found ${duplicates.length} duplicates`);
   } catch (error) {
     console.error('❌ Error scanning tabs:', error);
   }
@@ -108,11 +125,37 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
-// Listen for storage changes to update badge when matchMode changes
+// Listen for storage changes to update badge when settings change
 chrome.storage.onChanged.addListener((changes, areaName) => {
-  if (areaName === 'sync' && changes.matchMode) {
+  if (areaName !== 'sync') return;
+
+  let needsRescan = false;
+
+  if (changes.matchMode) {
     matchMode = changes.matchMode.newValue || 'exact';
     console.log(`⚙️ matchMode setting changed to: ${matchMode}`);
+    needsRescan = true;
+  }
+
+  if (changes.showBadge !== undefined) {
+    showBadge = changes.showBadge.newValue;
+    console.log(`⚙️ showBadge setting changed to: ${showBadge}`);
+    needsRescan = true;
+  }
+
+  if (changes.badgeColor) {
+    badgeColor = changes.badgeColor.newValue || '#DC2626';
+    console.log(`⚙️ badgeColor setting changed to: ${badgeColor}`);
+    needsRescan = true;
+  }
+
+  if (changes.currentWindowOnly !== undefined) {
+    currentWindowOnly = changes.currentWindowOnly.newValue;
+    console.log(`⚙️ currentWindowOnly setting changed to: ${currentWindowOnly}`);
+    needsRescan = true;
+  }
+
+  if (needsRescan) {
     scanAndUpdateBadge();
   }
 });

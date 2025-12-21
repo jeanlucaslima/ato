@@ -44,6 +44,19 @@
           </svg>
           <span>Undo</span>
         </button>
+        <button class="btn-action btn-scope hidden" id="scope-btn" title="Toggle detection scope">
+          <svg id="scope-icon-all" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="9" rx="1"/>
+            <rect x="14" y="3" width="7" height="9" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/>
+            <rect x="14" y="14" width="7" height="7" rx="1"/>
+          </svg>
+          <svg id="scope-icon-current" class="hidden" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <line x1="3" y1="9" x2="21" y2="9"/>
+          </svg>
+          <span id="scope-label">All</span>
+        </button>
         <button class="btn-action btn-options" id="options-btn" title="Open settings">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"/>
@@ -88,7 +101,7 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 9v4M12 17h.01M12 3l9 18H3z"/>
           </svg>
-          <span><strong id="pinned-skip-count">0</strong> pinned tab(s) not closed</span>
+          <span><strong id="pinned-skip-count">0</strong> tab(s) protected</span>
         </div>
       </div>
     </div>

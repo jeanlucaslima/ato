@@ -30,6 +30,10 @@ const undoDuplicatesBtn = document.getElementById('undo-duplicates-btn');
 const pinnedWarningEl = document.getElementById('pinned-warning');
 const pinnedSkipCountEl = document.getElementById('pinned-skip-count');
 const optionsBtn = document.getElementById('options-btn');
+const scopeBtn = document.getElementById('scope-btn');
+const scopeIconAll = document.getElementById('scope-icon-all');
+const scopeIconCurrent = document.getElementById('scope-icon-current');
+const scopeLabel = document.getElementById('scope-label');
 
 // Collapsible section elements
 const duplicatesHeaderEl = document.getElementById('duplicates-header');
@@ -43,10 +47,12 @@ const domainSectionsContainer = document.getElementById('domain-sections-contain
 // Settings (loaded from chrome.storage.sync)
 let settings = {
   protectPinned: true,
+  protectGroups: false,
   advancedMode: false,
   showMergeButton: false,
   keepTab: 'oldest',
-  matchMode: 'exact'
+  matchMode: 'exact',
+  currentWindowOnly: false
 };
 
 // State
@@ -66,6 +72,7 @@ let domainSectionStates = {}; // Track collapse state per domain
 let lastClosedCount = 0;        // Number of tabs closed (for undo)
 let undoContext = null;         // 'duplicates', 'domain', or specific domain name
 let pinnedDuplicatesSkipped = 0; // Track count of pinned duplicates skipped
+let groupedDuplicatesSkipped = 0; // Track count of grouped duplicates skipped
 
 /**
  * Loads and applies section collapse states from Chrome storage.
@@ -99,10 +106,12 @@ async function loadSettings() {
   try {
     const result = await chrome.storage.sync.get({
       protectPinned: true,
+      protectGroups: false,
       advancedMode: false,
       showMergeButton: false,
       keepTab: 'oldest',
-      matchMode: 'exact'
+      matchMode: 'exact',
+      currentWindowOnly: false
     });
     settings = result;
   } catch (error) {
@@ -570,6 +579,16 @@ async function closeDuplicatesOfUrl(url, allTabs) {
       }
     }
 
+    // Filter out grouped tabs if protection is enabled
+    if (settings.protectGroups) {
+      const beforeCount = tabsToClose.length;
+      tabsToClose = tabsToClose.filter(tab => tab.groupId === -1 || tab.groupId === undefined);
+      const skipped = beforeCount - tabsToClose.length;
+      if (skipped > 0) {
+        groupedDuplicatesSkipped = skipped;
+      }
+    }
+
     const tabIdsToClose = tabsToClose.map(tab => tab.id);
 
     if (tabIdsToClose.length > 0) {
@@ -785,8 +804,17 @@ async function closeAllDuplicates() {
       skippedPinnedCount = beforeCount - tabsToClose.length;
     }
 
-    // Track count of pinned duplicates skipped
+    // Filter out grouped tabs if protection is enabled
+    let skippedGroupedCount = 0;
+    if (settings.protectGroups) {
+      const beforeCount = tabsToClose.length;
+      tabsToClose = tabsToClose.filter(tab => tab.groupId === -1 || tab.groupId === undefined);
+      skippedGroupedCount = beforeCount - tabsToClose.length;
+    }
+
+    // Track count of skipped duplicates
     pinnedDuplicatesSkipped = skippedPinnedCount;
+    groupedDuplicatesSkipped = skippedGroupedCount;
 
     // Get tab IDs to close
     const tabIdsToClose = tabsToClose.map(tab => tab.id);
@@ -988,20 +1016,27 @@ function render(tabs, duplicates) {
     emptyStateEl.style.display = 'block';
     pinnedWarningEl.classList.add('hidden');
     pinnedDuplicatesSkipped = 0;
+    groupedDuplicatesSkipped = 0;
   } else {
     // Show duplicates
     duplicateListEl.style.display = 'flex';
     emptyStateEl.style.display = 'none';
 
-    // Show pinned warning if there are pinned tabs in duplicate groups
-    if (pinnedDuplicatesSkipped > 0) {
-      // Count all pinned tabs that are part of duplicate URLs
+    // Show warning if there are protected tabs (pinned or grouped) in duplicate groups
+    const hasSkippedTabs = pinnedDuplicatesSkipped > 0 || groupedDuplicatesSkipped > 0;
+    if (hasSkippedTabs) {
+      // Count all protected tabs that are part of duplicate URLs
       const duplicateNormalizedUrlsForWarning = new Set(duplicates.map(tab => normalizeUrl(tab.url, settings.matchMode)));
       const allTabsInDuplicateGroups = tabs.filter(tab => duplicateNormalizedUrlsForWarning.has(normalizeUrl(tab.url, settings.matchMode)));
-      const pinnedCount = allTabsInDuplicateGroups.filter(tab => tab.pinned).length;
+      const pinnedCount = settings.protectPinned ? allTabsInDuplicateGroups.filter(tab => tab.pinned).length : 0;
+      const groupedCount = settings.protectGroups ? allTabsInDuplicateGroups.filter(tab => tab.groupId !== -1 && tab.groupId !== undefined).length : 0;
 
-      if (pinnedCount > 0) {
-        pinnedSkipCountEl.textContent = pinnedCount;
+      if (pinnedCount > 0 || groupedCount > 0) {
+        // Build warning message
+        const parts = [];
+        if (pinnedCount > 0) parts.push(`${pinnedCount} pinned`);
+        if (groupedCount > 0) parts.push(`${groupedCount} grouped`);
+        pinnedSkipCountEl.textContent = parts.join(', ');
         pinnedWarningEl.classList.remove('hidden');
       } else {
         pinnedWarningEl.classList.add('hidden');
@@ -1123,10 +1158,11 @@ function render(tabs, duplicates) {
  */
 async function loadAndRender() {
   try {
-    const tabs = await chrome.tabs.query({});
+    const queryOptions = settings.currentWindowOnly ? { currentWindow: true } : {};
+    const tabs = await chrome.tabs.query(queryOptions);
     const duplicates = findDuplicates(tabs, settings.matchMode);
 
-    console.log(`📊 Loaded ${tabs.length} tabs, ${duplicates.length} duplicates`);
+    console.log(`📊 Loaded ${tabs.length} tabs (${settings.currentWindowOnly ? 'current window' : 'all windows'}), ${duplicates.length} duplicates`);
 
     render(tabs, duplicates);
   } catch (error) {
@@ -1220,6 +1256,43 @@ optionsBtn.addEventListener('click', () => {
   chrome.runtime.openOptionsPage();
 });
 
+// Scope button - toggle detection scope
+scopeBtn.addEventListener('click', async () => {
+  // Toggle currentWindowOnly
+  settings.currentWindowOnly = !settings.currentWindowOnly;
+  await chrome.storage.sync.set({ currentWindowOnly: settings.currentWindowOnly });
+  updateScopeButton();
+  loadAndRender();
+});
+
+/**
+ * Updates the scope button visibility and appearance based on settings.
+ */
+function updateScopeButton() {
+  // Only show if advanced mode is enabled
+  if (settings.advancedMode) {
+    scopeBtn.classList.remove('hidden');
+  } else {
+    scopeBtn.classList.add('hidden');
+    return;
+  }
+
+  // Update icon and label based on current scope
+  if (settings.currentWindowOnly) {
+    scopeIconAll.classList.add('hidden');
+    scopeIconCurrent.classList.remove('hidden');
+    scopeLabel.textContent = 'Window';
+    scopeBtn.title = 'Current window only - click to switch to all windows';
+    scopeBtn.classList.add('active');
+  } else {
+    scopeIconAll.classList.remove('hidden');
+    scopeIconCurrent.classList.add('hidden');
+    scopeLabel.textContent = 'All';
+    scopeBtn.title = 'All windows - click to switch to current window only';
+    scopeBtn.classList.remove('active');
+  }
+}
+
 // Sort button group event listener (All Tabs section)
 sortButtonsEl.addEventListener('click', (e) => {
   const btn = e.target.closest('.btn-toggle');
@@ -1254,5 +1327,6 @@ allTabsHeaderEl.addEventListener('click', () => toggleSection('allTabs'));
 (async () => {
   await loadSettings();
   await loadSectionStates();
+  updateScopeButton();
   loadAndRender();
 })();

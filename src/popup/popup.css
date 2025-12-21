@@ -164,6 +164,21 @@ body {
   color: var(--text-primary);
 }
 
+.btn-action.btn-scope {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.btn-action.btn-scope:hover {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.btn-action.btn-scope.active {
+  background: var(--accent-color);
+  color: white;
+}
+
 .action-label {
   font-size: 11px;
   font-weight: 600;

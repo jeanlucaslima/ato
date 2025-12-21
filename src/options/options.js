@@ -19,8 +19,7 @@ const DEFAULT_SETTINGS = {
 
   // Advanced
   advancedMode: false,
-  scope: 'allWindows',
-  notifications: false,
+  currentWindowOnly: false,
   showMergeButton: false
 };
 
@@ -33,8 +32,7 @@ const SETTING_TYPES = {
   showBadge: 'checkbox',
   badgeColor: 'color',
   advancedMode: 'checkbox',
-  scope: 'select',
-  notifications: 'checkbox',
+  currentWindowOnly: 'checkbox',
   showMergeButton: 'checkbox'
 };
 
@@ -55,12 +53,12 @@ async function loadSettings() {
     }
   }
 
-  // Update advanced section visibility
-  updateAdvancedVisibility(settings.advancedMode);
-
   // Load version from manifest
   const manifest = chrome.runtime.getManifest();
   document.getElementById('version').textContent = manifest.version;
+
+  // Set initial visibility of advanced settings
+  updateAdvancedVisibility(settings.advancedMode);
 }
 
 /**
@@ -93,7 +91,7 @@ function showSaveStatus() {
 }
 
 /**
- * Toggle advanced settings visibility
+ * Update visibility of advanced settings section
  */
 function updateAdvancedVisibility(show) {
   const advancedSettings = document.getElementById('advancedSettings');
@@ -118,7 +116,7 @@ function initEventListeners() {
       const value = type === 'checkbox' ? e.target.checked : e.target.value;
       saveSetting(key, value);
 
-      // Special handling for advanced mode toggle
+      // Special handling for advancedMode toggle
       if (key === 'advancedMode') {
         updateAdvancedVisibility(value);
       }

@@ -101,9 +101,14 @@
 
       <!-- Advanced Section -->
       <section class="settings-section">
-        <div class="section-header-toggle">
-          <h2 class="section-title">Advanced</h2>
-          <label class="toggle toggle-small">
+        <h2 class="section-title">Advanced</h2>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label" for="advancedMode">Show advanced options</label>
+            <p class="setting-description">Show additional controls in popup and settings</p>
+          </div>
+          <label class="toggle">
             <input type="checkbox" id="advancedMode">
             <span class="toggle-slider"></span>
           </label>
@@ -112,22 +117,11 @@
         <div class="advanced-settings hidden" id="advancedSettings">
           <div class="setting-item">
             <div class="setting-info">
-              <label class="setting-label" for="scope">Detection scope</label>
-              <p class="setting-description">Where to look for duplicate tabs</p>
-            </div>
-            <select id="scope" class="setting-select">
-              <option value="allWindows">All windows</option>
-              <option value="currentWindow">Current window only</option>
-            </select>
-          </div>
-
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label" for="notifications">Show notifications</label>
-              <p class="setting-description">Notify when duplicates are detected</p>
+              <label class="setting-label" for="currentWindowOnly">Current window only</label>
+              <p class="setting-description">Only detect duplicates in the current window</p>
             </div>
             <label class="toggle">
-              <input type="checkbox" id="notifications">
+              <input type="checkbox" id="currentWindowOnly">
               <span class="toggle-slider"></span>
             </label>
           </div>
@@ -154,7 +148,7 @@
 
     <!-- Footer -->
     <footer class="footer">
-      <span class="version">ATO v<span id="version">5.4.0</span></span>
+      <span class="version">ATO v<span id="version">5.29.0</span></span>
       <a href="https://github.com/jeanlucaslima/ato" target="_blank" class="footer-link">GitHub</a>
     </footer>
   </div>
