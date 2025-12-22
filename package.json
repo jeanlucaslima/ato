@@ -1,6 +1,6 @@
 {
   "name": "ato",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Advanced Tab Organizer - Kill duplicate tabs instantly",
   "author": "Jean Lucas Lima",
   "private": true,
@@ -9,6 +9,7 @@
     "dev": "vite build --watch --mode development",
     "build": "npm run icons && vite build",
     "icons": "node scripts/generate-icons.js",
+    "zip": "npm run build && cd dist && zip -r ../ato-v$(node -p \"require('../package.json').version\").zip . -x '*.DS_Store'",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"

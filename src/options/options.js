@@ -3,10 +3,13 @@
  * Handles loading and saving extension settings
  */
 
+import { applyFont } from '../shared/font-config.js';
+
 // Default settings
 const DEFAULT_SETTINGS = {
   // Appearance
   theme: 'dark',
+  fontFamily: 'titillium',
 
   // Duplicate Detection
   matchMode: 'exact',
@@ -30,6 +33,7 @@ const DEFAULT_SETTINGS = {
 // Setting element IDs mapped to their types
 const SETTING_TYPES = {
   theme: 'select',
+  fontFamily: 'select',
   matchMode: 'select',
   keepTab: 'select',
   protectPinned: 'checkbox',
@@ -66,8 +70,9 @@ async function loadSettings() {
     }
   }
 
-  // Apply theme
+  // Apply theme and font
   applyTheme(settings.theme);
+  applyFont(settings.fontFamily);
 
   // Load version from manifest
   const manifest = chrome.runtime.getManifest();
@@ -140,6 +145,11 @@ function initEventListeners() {
       // Special handling for theme change
       if (key === 'theme') {
         applyTheme(value);
+      }
+
+      // Special handling for font change
+      if (key === 'fontFamily') {
+        applyFont(value);
       }
     });
   }

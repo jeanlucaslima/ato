@@ -1,4 +1,5 @@
 /* ATO Popup Styles - Minimal & Clean */
+@import "../shared/fonts.css";
 
 /* Theme Variables */
 
@@ -24,6 +25,7 @@
   --warning-bg: #fef9e7;
   --warning-border: #f0e6c0;
   --warning-text: #92690c;
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 /* Dark Theme (Deep Blue) - Default */
@@ -49,6 +51,7 @@
   --warning-bg: #3d3419;
   --warning-border: #5c4f2a;
   --warning-text: #f5d675;
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 /* Darker Theme (Pure Black) */
@@ -73,6 +76,7 @@
   --warning-bg: #1a1400;
   --warning-border: #3d3000;
   --warning-text: #f5d675;
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 * {
@@ -90,7 +94,7 @@ body {
   width: 100%;
   min-height: 300px;
   max-height: 600px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-family);
   font-size: 14px;
   color: var(--text-primary);
   background: var(--bg-primary);

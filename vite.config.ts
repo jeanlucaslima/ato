@@ -50,6 +50,14 @@ export default defineConfig({
         {
           src: 'assets/icons/ato-logo.svg',
           dest: 'assets/icons'
+        },
+        {
+          src: 'assets/fonts/**/*',
+          dest: 'assets/fonts'
+        },
+        {
+          src: 'shared/fonts.css',
+          dest: 'shared'
         }
       ]
     })

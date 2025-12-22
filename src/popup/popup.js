@@ -10,6 +10,7 @@ import {
   sortTabs,
   normalizeUrl
 } from '../shared/tab-utils.js';
+import { applyFont } from '../shared/font-config.js';
 
 console.log('🎨 ATO popup loaded');
 
@@ -49,6 +50,7 @@ const domainSectionsContainer = document.getElementById('domain-sections-contain
 // Settings (loaded from chrome.storage.sync)
 let settings = {
   theme: 'dark',
+  fontFamily: 'titillium',
   protectPinned: true,
   protectGroups: false,
   advancedMode: false,
@@ -117,6 +119,7 @@ async function loadSettings() {
   try {
     const result = await chrome.storage.sync.get({
       theme: 'dark',
+      fontFamily: 'titillium',
       protectPinned: true,
       protectGroups: false,
       advancedMode: false,
@@ -127,8 +130,9 @@ async function loadSettings() {
     });
     settings = result;
 
-    // Apply theme
+    // Apply theme and font
     applyTheme(settings.theme);
+    applyFont(settings.fontFamily);
   } catch (error) {
     console.error('Error loading settings:', error);
   }

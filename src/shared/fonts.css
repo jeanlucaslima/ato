@@ -1,0 +1,80 @@
+/* ATO Custom Fonts */
+
+/* Archivo - Variable Font */
+@font-face {
+  font-family: 'Archivo';
+  src: url('../assets/fonts/Archivo/Archivo-VariableFont_wdth,wght.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Geist - Variable Font */
+@font-face {
+  font-family: 'Geist';
+  src: url('../assets/fonts/Geist/Geist-VariableFont_wght.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Google Sans - Variable Font */
+@font-face {
+  font-family: 'Google Sans';
+  src: url('../assets/fonts/Google_Sans/GoogleSans-VariableFont_GRAD,opsz,wght.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Inter - Variable Font */
+@font-face {
+  font-family: 'Inter';
+  src: url('../assets/fonts/Inter/Inter-VariableFont_opsz,wght.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Mulish - Variable Font */
+@font-face {
+  font-family: 'Mulish';
+  src: url('../assets/fonts/Mulish/Mulish-VariableFont_wght.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Outfit - Variable Font */
+@font-face {
+  font-family: 'Outfit';
+  src: url('../assets/fonts/Outfit/Outfit-VariableFont_wght.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Titillium Web - Static Fonts (no variable font available) */
+@font-face {
+  font-family: 'Titillium Web';
+  src: url('../assets/fonts/Titillium_Web/TitilliumWeb-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Titillium Web';
+  src: url('../assets/fonts/Titillium_Web/TitilliumWeb-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Titillium Web';
+  src: url('../assets/fonts/Titillium_Web/TitilliumWeb-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}

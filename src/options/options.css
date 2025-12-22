@@ -1,4 +1,5 @@
 /* ATO Options Styles */
+@import "../shared/fonts.css";
 
 /* Theme Variables */
 
@@ -18,6 +19,7 @@
   --success-color: #16a34a;
   --success-light: rgba(22, 163, 74, 0.1);
   --header-bg: #1a1a1a;
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 /* Dark Theme (Deep Blue) - Default */
@@ -37,6 +39,7 @@
   --success-color: #22c55e;
   --success-light: rgba(34, 197, 94, 0.15);
   --header-bg: #1a1a1a;
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 /* Darker Theme (Pure Black) */
@@ -55,6 +58,7 @@
   --success-color: #22c55e;
   --success-light: rgba(34, 197, 94, 0.15);
   --header-bg: #000000;
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 * {
@@ -64,7 +68,7 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-family);
   font-size: 14px;
   color: var(--text-primary);
   background: var(--bg-secondary);
