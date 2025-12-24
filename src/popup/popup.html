@@ -17,6 +17,20 @@
       </div>
     </header>
 
+    <!-- Global Search -->
+    <div class="search-container">
+      <div class="search-input-wrapper">
+        <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="M21 21l-4.35-4.35"/>
+        </svg>
+        <input type="text" id="global-search-input" class="global-search-input"
+               placeholder="Search tabs... (/)" autocomplete="off">
+        <button type="button" id="global-search-clear" class="global-search-clear hidden">×</button>
+      </div>
+      <div id="search-results-count" class="search-results-count hidden"></div>
+    </div>
+
     <!-- Stats Bar -->
     <div class="stats">
       <div class="stat">

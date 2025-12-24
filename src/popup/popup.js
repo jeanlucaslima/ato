@@ -8,7 +8,9 @@ import {
   groupTabsByDomain,
   formatTimeAgo,
   sortTabs,
-  normalizeUrl
+  normalizeUrl,
+  fuzzySearchTab,
+  highlightMatches
 } from '../shared/tab-utils.js';
 import { applyFont } from '../shared/font-config.js';
 import { initLogger, log, error } from '../shared/logger.js';
@@ -38,6 +40,11 @@ const scopeBtn = document.getElementById('scope-btn');
 const scopeIconAll = document.getElementById('scope-icon-all');
 const scopeIconCurrent = document.getElementById('scope-icon-current');
 const scopeLabel = document.getElementById('scope-label');
+
+// Global search elements
+const globalSearchInputEl = document.getElementById('global-search-input');
+const globalSearchClearEl = document.getElementById('global-search-clear');
+const searchResultsCountEl = document.getElementById('search-results-count');
 
 // Collapsible section elements
 const duplicatesHeaderEl = document.getElementById('duplicates-header');
@@ -73,6 +80,12 @@ let sectionStates = {
   allTabs: true     // expanded by default
 };
 let domainSectionStates = {}; // Track collapse state per domain
+
+// Search state
+let searchQuery = '';
+let searchResults = null; // Map<tabId, matchResult> when searching, null otherwise
+let searchDebounceTimer = null;
+const SEARCH_DEBOUNCE_MS = 150;
 
 // Undo state
 let lastClosedCount = 0;        // Number of tabs closed (for undo)
@@ -147,6 +160,89 @@ function clearRenderCache() {
     domainMap: null,
     matchMode: null
   };
+}
+
+// =============================================================================
+// Search Functions
+// =============================================================================
+
+/**
+ * Performs fuzzy search across all tabs.
+ * Updates searchResults map with matching tabs.
+ *
+ * @param {string} query - Search query
+ * @param {Object[]} tabs - All tabs
+ * @returns {Map<number, Object>|null} Map of tabId -> matchResult, or null if no query
+ */
+function performSearch(query, tabs) {
+  if (!query || query.trim().length === 0) {
+    return null;
+  }
+
+  const results = new Map();
+  const normalizedQuery = query.trim();
+
+  for (const tab of tabs) {
+    const match = fuzzySearchTab(normalizedQuery, tab);
+    if (match) {
+      results.set(tab.id, match);
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Handles search input changes with debouncing.
+ */
+function handleSearchInput(e) {
+  const query = e.target.value;
+
+  // Show/hide clear button
+  globalSearchClearEl.classList.toggle('hidden', !query);
+
+  // Debounce the search
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(() => {
+    searchQuery = query;
+    loadAndRender();
+  }, SEARCH_DEBOUNCE_MS);
+}
+
+/**
+ * Clears the search and resets results.
+ */
+function clearSearch() {
+  searchQuery = '';
+  searchResults = null;
+  globalSearchInputEl.value = '';
+  globalSearchClearEl.classList.add('hidden');
+  searchResultsCountEl.classList.add('hidden');
+  document.body.classList.remove('search-active');
+  loadAndRender();
+}
+
+/**
+ * Updates the search results count display.
+ *
+ * @param {number} count - Number of matching tabs
+ * @param {number} total - Total number of tabs
+ */
+function updateSearchResultsCount(count, total) {
+  if (!searchQuery) {
+    searchResultsCountEl.classList.add('hidden');
+    searchResultsCountEl.classList.remove('no-results');
+    return;
+  }
+
+  searchResultsCountEl.classList.remove('hidden');
+  if (count === 0) {
+    searchResultsCountEl.textContent = 'No results found';
+    searchResultsCountEl.classList.add('no-results');
+  } else {
+    searchResultsCountEl.textContent = `${count} of ${total} tabs`;
+    searchResultsCountEl.classList.remove('no-results');
+  }
 }
 
 /**
@@ -480,10 +576,11 @@ function createDomainSection(domain, tabs, urlCounts) {
   const tabList = document.createElement('div');
   tabList.className = 'domain-tabs-list';
 
-  // Add tabs
+  // Add tabs (with search highlighting if active)
   tabs.forEach((tab, index) => {
     const dupCount = urlCounts.get(tab.url) || 0;
-    const item = createTabItem(tab, dupCount, index);
+    const matchResult = searchResults?.get(tab.id) || null;
+    const item = createTabItem(tab, dupCount, index, matchResult);
     tabList.appendChild(item);
   });
 
@@ -499,6 +596,7 @@ function createDomainSection(domain, tabs, urlCounts) {
 /**
  * Creates a DOM element for a grouped duplicate row.
  * Shows one row per URL with count badge and close button to close all duplicates.
+ * Supports fuzzy match highlighting when matchResult is provided.
  *
  * @param {Object} group - The grouped duplicate data
  * @param {string} group.url - The duplicate URL
@@ -506,9 +604,10 @@ function createDomainSection(domain, tabs, urlCounts) {
  * @param {Object} group.representative - Representative tab for display
  * @param {number} group.totalCount - Total tabs with this URL
  * @param {number} [index=0] - Index for staggered animation
+ * @param {Object} [matchResult=null] - Fuzzy match result for highlighting
  * @returns {HTMLDivElement} The grouped duplicate item element
  */
-function createGroupedDuplicateItem(group, index = 0) {
+function createGroupedDuplicateItem(group, index = 0, matchResult = null) {
   const { url, tabs: duplicateTabs, representative, totalCount } = group;
 
   const item = document.createElement('div');
@@ -533,16 +632,25 @@ function createGroupedDuplicateItem(group, index = 0) {
   const info = document.createElement('div');
   info.className = 'tab-info';
 
-  // Title
+  // Title - with optional highlighting
   const title = document.createElement('div');
   title.className = 'tab-title';
-  title.textContent = representative.title || 'Untitled';
-  title.title = representative.title || 'Untitled';
+  const titleText = representative.title || 'Untitled';
+  if (matchResult?.matches?.title) {
+    title.innerHTML = highlightMatches(titleText, matchResult.matches.title.indices);
+  } else {
+    title.textContent = titleText;
+  }
+  title.title = titleText;
 
-  // URL
+  // URL - with optional highlighting
   const urlEl = document.createElement('div');
   urlEl.className = 'tab-url';
-  urlEl.textContent = url;
+  if (matchResult?.matches?.url) {
+    urlEl.innerHTML = highlightMatches(url, matchResult.matches.url.indices);
+  } else {
+    urlEl.textContent = url;
+  }
   urlEl.title = url;
 
   info.appendChild(title);
@@ -666,6 +774,7 @@ async function closeDuplicatesOfUrl(url) {
 /**
  * Creates a DOM element for a single tab item.
  * Includes favicon, title, URL, age indicator, duplicate badge, and close button.
+ * Supports fuzzy match highlighting when matchResult is provided.
  *
  * @param {Object} tab - The tab data from Chrome API
  * @param {number} tab.id - Tab identifier
@@ -676,9 +785,10 @@ async function closeDuplicatesOfUrl(url) {
  * @param {number} [tab.windowId] - Window containing this tab
  * @param {number} [duplicateCount=0] - Number of tabs with this URL
  * @param {number} [index=0] - Index for staggered animation
+ * @param {Object} [matchResult=null] - Fuzzy match result for highlighting
  * @returns {HTMLDivElement} The tab item element
  */
-function createTabItem(tab, duplicateCount = 0, index = 0) {
+function createTabItem(tab, duplicateCount = 0, index = 0, matchResult = null) {
   const item = document.createElement('div');
   item.className = 'tab-item';
   item.dataset.tabId = tab.id;
@@ -701,16 +811,25 @@ function createTabItem(tab, duplicateCount = 0, index = 0) {
   const info = document.createElement('div');
   info.className = 'tab-info';
 
-  // Title
+  // Title - with optional highlighting
   const title = document.createElement('div');
   title.className = 'tab-title';
-  title.textContent = tab.title || 'Untitled';
-  title.title = tab.title || 'Untitled';
+  const titleText = tab.title || 'Untitled';
+  if (matchResult?.matches?.title) {
+    title.innerHTML = highlightMatches(titleText, matchResult.matches.title.indices);
+  } else {
+    title.textContent = titleText;
+  }
+  title.title = titleText;
 
-  // URL
+  // URL - with optional highlighting
   const url = document.createElement('div');
   url.className = 'tab-url';
-  url.textContent = tab.url;
+  if (matchResult?.matches?.url) {
+    url.innerHTML = highlightMatches(tab.url || '', matchResult.matches.url.indices);
+  } else {
+    url.textContent = tab.url;
+  }
   url.title = tab.url;
 
   info.appendChild(title);
@@ -1066,6 +1185,21 @@ function render(tabs, duplicates) {
     domainSections: domainSectionsContainer.scrollTop
   };
 
+  // Perform search if query exists
+  if (searchQuery) {
+    searchResults = performSearch(searchQuery, tabs);
+    document.body.classList.add('search-active');
+  } else {
+    searchResults = null;
+    document.body.classList.remove('search-active');
+  }
+
+  // Update search results count
+  updateSearchResultsCount(
+    searchResults ? searchResults.size : 0,
+    tabs.length
+  );
+
   // Use cached single-pass computation
   const { urlCounts, domainMap } = computeRenderData(tabs);
 
@@ -1180,10 +1314,21 @@ function render(tabs, duplicates) {
       );
     }
 
+    // Filter by search if active
+    if (searchResults) {
+      groupedDuplicates = groupedDuplicates.filter(group =>
+        group.tabs.some(tab => searchResults.has(tab.id))
+      );
+    }
+
     // Render each grouped duplicate
-    groupedDuplicates.forEach((group, index) => {
-      const item = createGroupedDuplicateItem(group, index);
+    let duplicateIndex = 0;
+    groupedDuplicates.forEach((group) => {
+      // Get match result from representative tab
+      const matchResult = searchResults?.get(group.representative.id) || null;
+      const item = createGroupedDuplicateItem(group, duplicateIndex, matchResult);
       duplicateListEl.appendChild(item);
+      duplicateIndex++;
     });
   }
 
@@ -1192,6 +1337,11 @@ function render(tabs, duplicates) {
   let visibleTabs = tabs.filter(tab =>
     tab.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('edge://')
   );
+
+  // Apply search filter if active
+  if (searchResults) {
+    visibleTabs = visibleTabs.filter(tab => searchResults.has(tab.id));
+  }
 
   // Apply domain filter if active
   if (activeDomain) {
@@ -1210,7 +1360,8 @@ function render(tabs, duplicates) {
   // Render all tabs as flat list (sortable)
   visibleTabs.forEach((tab, index) => {
     const count = urlCounts.get(tab.url) || 0;
-    const item = createTabItem(tab, count, index);
+    const matchResult = searchResults?.get(tab.id) || null;
+    const item = createTabItem(tab, count, index, matchResult);
     allTabsListEl.appendChild(item);
   });
 
@@ -1233,12 +1384,19 @@ function render(tabs, duplicates) {
   });
 
   // Get domains with 3+ tabs
-  const largeDomains = [];
+  let largeDomains = [];
   sectionDomainMap.forEach((domainTabs, domain) => {
     if (domainTabs.length >= 3) {
       largeDomains.push({ domain, tabs: domainTabs });
     }
   });
+
+  // Filter domain sections by search if active
+  if (searchResults) {
+    largeDomains = largeDomains.filter(({ tabs: domainTabs }) =>
+      domainTabs.some(tab => searchResults.has(tab.id))
+    );
+  }
 
   // Sort alphabetically by domain name, ignoring www. prefix (stable order that doesn't change when tabs are closed)
   largeDomains.sort((a, b) => {
@@ -1249,7 +1407,11 @@ function render(tabs, duplicates) {
 
   // Render each domain section
   largeDomains.forEach(({ domain, tabs: domainTabs }) => {
-    const section = createDomainSection(domain, domainTabs, urlCounts);
+    // Filter tabs by search if active
+    const filteredTabs = searchResults
+      ? domainTabs.filter(tab => searchResults.has(tab.id))
+      : domainTabs;
+    const section = createDomainSection(domain, filteredTabs, urlCounts);
     domainSectionsContainer.appendChild(section);
   });
 
@@ -1287,6 +1449,36 @@ async function loadAndRender() {
 
 // Event Listeners
 closeAllBtn.addEventListener('click', closeAllDuplicates);
+
+// Global search event listeners
+globalSearchInputEl.addEventListener('input', handleSearchInput);
+globalSearchClearEl.addEventListener('click', clearSearch);
+
+// Keyboard shortcuts for search
+document.addEventListener('keydown', (e) => {
+  // Focus search with '/' key (when not in an input)
+  if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
+    e.preventDefault();
+    globalSearchInputEl.focus();
+    globalSearchInputEl.select();
+  }
+
+  // Focus search with Ctrl+F / Cmd+F
+  if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+    e.preventDefault();
+    globalSearchInputEl.focus();
+    globalSearchInputEl.select();
+  }
+
+  // Clear search with Escape (when search is focused)
+  if (e.key === 'Escape' && document.activeElement === globalSearchInputEl) {
+    if (searchQuery) {
+      e.preventDefault();
+      clearSearch();
+    }
+    globalSearchInputEl.blur();
+  }
+});
 
 // Delegated event listeners for tab lists (performance optimization)
 // Handles clicks on tab items and close buttons without per-item handlers

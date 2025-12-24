@@ -252,3 +252,188 @@ export function sortTabs(tabs, sortBy, urlCounts, ageSortDirection = 'old') {
       return sorted;
   }
 }
+
+// =============================================================================
+// Fuzzy Search Utilities
+// =============================================================================
+
+/**
+ * Escapes HTML special characters to prevent XSS.
+ *
+ * @param {string} text - The text to escape
+ * @returns {string} The escaped text
+ */
+function escapeHtml(text) {
+  const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+  return text.replace(/[&<>"']/g, c => map[c]);
+}
+
+/**
+ * Performs fuzzy matching of a pattern against text.
+ * Characters must appear in order but not necessarily consecutively.
+ *
+ * Scoring:
+ * - +1 per matched character
+ * - +5 bonus for consecutive matches
+ * - +10 bonus for word boundary matches (after space, /, -, _, .)
+ * - +15 bonus for start of string match
+ * - +1 bonus for exact case match
+ * - -1 penalty per gap character between matches
+ *
+ * @param {string} pattern - The search pattern
+ * @param {string} text - The text to search within
+ * @returns {{score: number, indices: number[]}|null} Match result or null if no match
+ * @example
+ * fuzzyMatch('fb', 'foo-bar'); // { score: 23, indices: [0, 4] }
+ * fuzzyMatch('xyz', 'hello'); // null
+ */
+export function fuzzyMatch(pattern, text) {
+  if (!pattern || !text) return null;
+
+  const patternLower = pattern.toLowerCase();
+  const textLower = text.toLowerCase();
+  const patternLen = patternLower.length;
+  const textLen = textLower.length;
+
+  if (patternLen > textLen) return null;
+
+  const indices = [];
+  let score = 0;
+  let patternIdx = 0;
+  let prevMatchIdx = -1;
+
+  for (let textIdx = 0; textIdx < textLen && patternIdx < patternLen; textIdx++) {
+    if (textLower[textIdx] === patternLower[patternIdx]) {
+      indices.push(textIdx);
+      score += 1; // Base score per match
+
+      // Consecutive match bonus
+      if (prevMatchIdx === textIdx - 1) {
+        score += 5;
+      }
+
+      // Word boundary bonus
+      if (textIdx === 0) {
+        score += 15; // Start of string
+      } else {
+        const prevChar = text[textIdx - 1];
+        if (' /-_.'.includes(prevChar)) {
+          score += 10; // Word boundary
+        }
+      }
+
+      // Case match bonus
+      if (text[textIdx] === pattern[patternIdx]) {
+        score += 1;
+      }
+
+      prevMatchIdx = textIdx;
+      patternIdx++;
+    }
+  }
+
+  // Return null if pattern not fully matched
+  if (patternIdx !== patternLen) return null;
+
+  // Penalize gaps between matches
+  if (indices.length > 1) {
+    const totalGap = indices[indices.length - 1] - indices[0] - (indices.length - 1);
+    score -= totalGap;
+  }
+
+  return { score, indices };
+}
+
+/**
+ * Searches a tab across title, URL, and domain fields.
+ * Returns the best match result or null if no match found.
+ *
+ * @param {string} pattern - The search pattern
+ * @param {Tab} tab - The tab object to search
+ * @returns {{score: number, matches: {title?: {score: number, indices: number[]}, url?: {score: number, indices: number[]}, domain?: {score: number, indices: number[]}}}|null}
+ * @example
+ * fuzzySearchTab('git', { title: 'GitHub', url: 'https://github.com' });
+ * // { score: 19, matches: { title: {...}, url: {...}, domain: {...} } }
+ */
+export function fuzzySearchTab(pattern, tab) {
+  if (!pattern || !tab) return null;
+
+  const matches = {};
+  let bestScore = 0;
+
+  // Search title
+  if (tab.title) {
+    const titleMatch = fuzzyMatch(pattern, tab.title);
+    if (titleMatch) {
+      matches.title = titleMatch;
+      bestScore = Math.max(bestScore, titleMatch.score);
+    }
+  }
+
+  // Search URL
+  if (tab.url) {
+    const urlMatch = fuzzyMatch(pattern, tab.url);
+    if (urlMatch) {
+      matches.url = urlMatch;
+      bestScore = Math.max(bestScore, urlMatch.score);
+    }
+  }
+
+  // Search domain
+  const domain = extractDomain(tab.url);
+  if (domain) {
+    const domainMatch = fuzzyMatch(pattern, domain);
+    if (domainMatch) {
+      matches.domain = domainMatch;
+      bestScore = Math.max(bestScore, domainMatch.score);
+    }
+  }
+
+  if (Object.keys(matches).length === 0) return null;
+
+  return { score: bestScore, matches };
+}
+
+/**
+ * Highlights matched characters in text by wrapping them in span elements.
+ * Consecutive matches are grouped into a single span for cleaner output.
+ *
+ * @param {string} text - The original text
+ * @param {number[]} indices - Array of character indices to highlight
+ * @returns {string} HTML string with <span class="fuzzy-match"> wrappers
+ * @example
+ * highlightMatches('hello', [0, 2, 4]);
+ * // '<span class="fuzzy-match">h</span>e<span class="fuzzy-match">l</span>l<span class="fuzzy-match">o</span>'
+ *
+ * highlightMatches('hello', [0, 1, 2]);
+ * // '<span class="fuzzy-match">hel</span>lo'
+ */
+export function highlightMatches(text, indices) {
+  if (!text || !indices || indices.length === 0) {
+    return escapeHtml(text || '');
+  }
+
+  const indexSet = new Set(indices);
+  let result = '';
+  let inHighlight = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const shouldHighlight = indexSet.has(i);
+
+    if (shouldHighlight && !inHighlight) {
+      result += '<span class="fuzzy-match">';
+      inHighlight = true;
+    } else if (!shouldHighlight && inHighlight) {
+      result += '</span>';
+      inHighlight = false;
+    }
+
+    result += escapeHtml(text[i]);
+  }
+
+  if (inHighlight) {
+    result += '</span>';
+  }
+
+  return result;
+}

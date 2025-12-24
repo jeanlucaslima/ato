@@ -6,7 +6,10 @@ import {
   groupTabsByDomain,
   formatTimeAgo,
   sortTabs,
-  normalizeUrl
+  normalizeUrl,
+  fuzzyMatch,
+  fuzzySearchTab,
+  highlightMatches
 } from './tab-utils.js';
 
 describe('findDuplicates', () => {
@@ -507,5 +510,236 @@ describe('countDuplicatesByUrl with matchMode', () => {
     ];
     const result = countDuplicatesByUrl(tabs, 'ignoreHash');
     expect(result.get('https://example.com/')).toBe(3);
+  });
+});
+
+// =============================================================================
+// Fuzzy Search Tests
+// =============================================================================
+
+describe('fuzzyMatch', () => {
+  it('returns null for empty pattern', () => {
+    expect(fuzzyMatch('', 'hello')).toBeNull();
+  });
+
+  it('returns null for empty text', () => {
+    expect(fuzzyMatch('hello', '')).toBeNull();
+  });
+
+  it('returns null for null inputs', () => {
+    expect(fuzzyMatch(null, 'hello')).toBeNull();
+    expect(fuzzyMatch('hello', null)).toBeNull();
+  });
+
+  it('returns null when pattern is longer than text', () => {
+    expect(fuzzyMatch('hello world', 'hello')).toBeNull();
+  });
+
+  it('matches exact substring at start', () => {
+    const result = fuzzyMatch('hello', 'hello world');
+    expect(result).not.toBeNull();
+    expect(result.indices).toEqual([0, 1, 2, 3, 4]);
+  });
+
+  it('matches non-consecutive characters', () => {
+    const result = fuzzyMatch('hlo', 'hello');
+    expect(result).not.toBeNull();
+    expect(result.indices).toEqual([0, 2, 4]);
+  });
+
+  it('is case insensitive', () => {
+    const result = fuzzyMatch('HELLO', 'hello world');
+    expect(result).not.toBeNull();
+    expect(result.indices).toEqual([0, 1, 2, 3, 4]);
+  });
+
+  it('returns null when pattern cannot be matched', () => {
+    expect(fuzzyMatch('xyz', 'hello')).toBeNull();
+  });
+
+  it('returns null when pattern order cannot be satisfied', () => {
+    expect(fuzzyMatch('ba', 'ab')).toBeNull();
+  });
+
+  it('scores consecutive matches higher than non-consecutive', () => {
+    const consecutive = fuzzyMatch('abc', 'abcdef');
+    const nonConsecutive = fuzzyMatch('abc', 'axbxcx');
+    expect(consecutive.score).toBeGreaterThan(nonConsecutive.score);
+  });
+
+  it('scores word boundary matches higher', () => {
+    const boundary = fuzzyMatch('fb', 'foo-bar');
+    const nonBoundary = fuzzyMatch('fb', 'foobar');
+    expect(boundary.score).toBeGreaterThan(nonBoundary.score);
+  });
+
+  it('scores start of string matches highest', () => {
+    const atStart = fuzzyMatch('h', 'hello');
+    const notAtStart = fuzzyMatch('e', 'hello');
+    expect(atStart.score).toBeGreaterThan(notAtStart.score);
+  });
+
+  it('gives bonus for exact case match', () => {
+    const exactCase = fuzzyMatch('Hello', 'Hello');
+    const differentCase = fuzzyMatch('hello', 'Hello');
+    expect(exactCase.score).toBeGreaterThan(differentCase.score);
+  });
+
+  it('handles word boundaries with various separators', () => {
+    expect(fuzzyMatch('fb', 'foo bar')).not.toBeNull(); // space
+    expect(fuzzyMatch('fb', 'foo/bar')).not.toBeNull(); // slash
+    expect(fuzzyMatch('fb', 'foo-bar')).not.toBeNull(); // dash
+    expect(fuzzyMatch('fb', 'foo_bar')).not.toBeNull(); // underscore
+    expect(fuzzyMatch('fb', 'foo.bar')).not.toBeNull(); // dot
+  });
+
+  it('penalizes gaps between matches', () => {
+    const small_gap = fuzzyMatch('ac', 'abc');
+    const large_gap = fuzzyMatch('ac', 'axxxxc');
+    expect(small_gap.score).toBeGreaterThan(large_gap.score);
+  });
+});
+
+describe('fuzzySearchTab', () => {
+  it('returns null for empty pattern', () => {
+    const tab = { title: 'Hello', url: 'https://example.com' };
+    expect(fuzzySearchTab('', tab)).toBeNull();
+  });
+
+  it('returns null for null tab', () => {
+    expect(fuzzySearchTab('hello', null)).toBeNull();
+  });
+
+  it('searches title field', () => {
+    const tab = { title: 'GitHub Repository', url: 'https://example.com' };
+    const result = fuzzySearchTab('git', tab);
+    expect(result).not.toBeNull();
+    expect(result.matches).toHaveProperty('title');
+  });
+
+  it('searches URL field', () => {
+    const tab = { title: 'Example', url: 'https://github.com/user/repo' };
+    const result = fuzzySearchTab('github', tab);
+    expect(result).not.toBeNull();
+    expect(result.matches).toHaveProperty('url');
+  });
+
+  it('searches domain field', () => {
+    const tab = { title: 'Example', url: 'https://github.com/user/repo' };
+    const result = fuzzySearchTab('github', tab);
+    expect(result).not.toBeNull();
+    expect(result.matches).toHaveProperty('domain');
+  });
+
+  it('searches across all fields simultaneously', () => {
+    const tab = {
+      title: 'GitHub - My Repository',
+      url: 'https://github.com/user/repo'
+    };
+    const result = fuzzySearchTab('git', tab);
+    expect(result).not.toBeNull();
+    expect(result.matches).toHaveProperty('title');
+    expect(result.matches).toHaveProperty('url');
+    expect(result.matches).toHaveProperty('domain');
+  });
+
+  it('returns null for no matches across any field', () => {
+    const tab = { title: 'Hello World', url: 'https://example.com' };
+    expect(fuzzySearchTab('xyz123', tab)).toBeNull();
+  });
+
+  it('returns best score from all matching fields', () => {
+    const tab = {
+      title: 'git',  // exact match should score higher
+      url: 'https://github.com/user/repo'
+    };
+    const result = fuzzySearchTab('git', tab);
+    expect(result).not.toBeNull();
+    // The title match should give the best score (start of string + consecutive)
+    expect(result.score).toBe(result.matches.title.score);
+  });
+
+  it('handles tabs with missing title', () => {
+    const tab = { url: 'https://github.com' };
+    const result = fuzzySearchTab('git', tab);
+    expect(result).not.toBeNull();
+    expect(result.matches).not.toHaveProperty('title');
+    expect(result.matches).toHaveProperty('url');
+  });
+
+  it('handles tabs with invalid URL for domain extraction', () => {
+    const tab = { title: 'Test', url: 'not-a-valid-url' };
+    const result = fuzzySearchTab('test', tab);
+    expect(result).not.toBeNull();
+    expect(result.matches).toHaveProperty('title');
+    expect(result.matches).not.toHaveProperty('domain');
+  });
+});
+
+describe('highlightMatches', () => {
+  it('returns escaped text for empty indices', () => {
+    expect(highlightMatches('hello', [])).toBe('hello');
+  });
+
+  it('returns escaped text for null indices', () => {
+    expect(highlightMatches('hello', null)).toBe('hello');
+  });
+
+  it('returns empty string for null text', () => {
+    expect(highlightMatches(null, [0])).toBe('');
+  });
+
+  it('returns empty string for empty text', () => {
+    expect(highlightMatches('', [0])).toBe('');
+  });
+
+  it('wraps single matched character in span', () => {
+    const result = highlightMatches('hello', [0]);
+    expect(result).toBe('<span class="fuzzy-match">h</span>ello');
+  });
+
+  it('wraps multiple non-consecutive matches in separate spans', () => {
+    const result = highlightMatches('hello', [0, 2, 4]);
+    expect(result).toBe('<span class="fuzzy-match">h</span>e<span class="fuzzy-match">l</span>l<span class="fuzzy-match">o</span>');
+  });
+
+  it('groups consecutive matches into single span', () => {
+    const result = highlightMatches('hello', [0, 1, 2]);
+    expect(result).toBe('<span class="fuzzy-match">hel</span>lo');
+  });
+
+  it('handles match at end of string', () => {
+    const result = highlightMatches('hello', [4]);
+    expect(result).toBe('hell<span class="fuzzy-match">o</span>');
+  });
+
+  it('handles all characters matched', () => {
+    const result = highlightMatches('hi', [0, 1]);
+    expect(result).toBe('<span class="fuzzy-match">hi</span>');
+  });
+
+  it('escapes HTML special characters in unmatched text', () => {
+    const result = highlightMatches('<script>', []);
+    expect(result).toBe('&lt;script&gt;');
+  });
+
+  it('escapes HTML special characters in matched text', () => {
+    const result = highlightMatches('<b>', [0, 1, 2]);
+    expect(result).toBe('<span class="fuzzy-match">&lt;b&gt;</span>');
+  });
+
+  it('escapes ampersand correctly', () => {
+    const result = highlightMatches('a&b', [0]);
+    expect(result).toBe('<span class="fuzzy-match">a</span>&amp;b');
+  });
+
+  it('escapes quotes correctly', () => {
+    const result = highlightMatches('"test\'s"', []);
+    expect(result).toBe('&quot;test&#39;s&quot;');
+  });
+
+  it('handles mixed consecutive and non-consecutive matches', () => {
+    const result = highlightMatches('abcdef', [0, 1, 3, 4]);
+    expect(result).toBe('<span class="fuzzy-match">ab</span>c<span class="fuzzy-match">de</span>f');
   });
 });
