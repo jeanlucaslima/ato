@@ -6,6 +6,22 @@ import { initLogger, log, error } from '../shared/logger.js';
 
 log('🚀 ATO service worker loaded');
 
+// Debounce state for tab event handling
+let scanTimeoutId = null;
+const SCAN_DEBOUNCE_MS = 300;
+
+/**
+ * Debounced wrapper for scanAndUpdateBadge.
+ * Batches rapid tab events into a single scan.
+ */
+function debouncedScan() {
+  if (scanTimeoutId) clearTimeout(scanTimeoutId);
+  scanTimeoutId = setTimeout(() => {
+    scanAndUpdateBadge();
+    scanTimeoutId = null;
+  }, SCAN_DEBOUNCE_MS);
+}
+
 // Cache settings
 let matchMode = 'exact';
 let showBadge = true;
@@ -84,28 +100,28 @@ async function scanAndUpdateBadge() {
   }
 }
 
-// Listen to tab events
+// Listen to tab events (debounced to batch rapid events)
 chrome.tabs.onCreated.addListener(() => {
   log('➕ Tab created');
-  scanAndUpdateBadge();
+  debouncedScan();
 });
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   // Only scan when URL changes
   if (changeInfo.url) {
     log('🔄 Tab URL updated');
-    scanAndUpdateBadge();
+    debouncedScan();
   }
 });
 
 chrome.tabs.onRemoved.addListener(() => {
   log('➖ Tab removed');
-  scanAndUpdateBadge();
+  debouncedScan();
 });
 
 chrome.tabs.onReplaced.addListener(() => {
   log('🔀 Tab replaced');
-  scanAndUpdateBadge();
+  debouncedScan();
 });
 
 // Handle messages from popup
