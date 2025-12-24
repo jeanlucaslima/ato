@@ -267,6 +267,13 @@ body {
   gap: 3px;
 }
 
+/* Highlighted search result (keyboard navigation) */
+.search-results-list .tab-item.highlighted {
+  background: var(--accent-light);
+  border-color: var(--accent-color);
+  outline: none;
+}
+
 /* Hide other sections during search */
 .searching .duplicates-container,
 .searching .all-tabs-container,

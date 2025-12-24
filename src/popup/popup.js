@@ -92,6 +92,8 @@ let searchQuery = '';
 let searchResults = null; // Map<tabId, matchResult> when searching, null otherwise
 let searchDebounceTimer = null;
 const SEARCH_DEBOUNCE_MS = 150;
+let highlightedResultIndex = -1; // Currently highlighted search result
+let searchResultTabIds = []; // Array of tab IDs in display order for navigation
 
 // Undo state
 let lastClosedCount = 0;        // Number of tabs closed (for undo)
@@ -221,11 +223,54 @@ function handleSearchInput(e) {
 function clearSearch() {
   searchQuery = '';
   searchResults = null;
+  searchResultTabIds = [];
+  highlightedResultIndex = -1;
   globalSearchInputEl.value = '';
   globalSearchClearEl.classList.add('hidden');
   searchResultsCountEl.classList.add('hidden');
   document.body.classList.remove('search-active');
   loadAndRender();
+}
+
+/**
+ * Updates the highlighted search result.
+ * @param {number} newIndex - The new index to highlight
+ */
+function updateHighlightedSearchResult(newIndex) {
+  if (searchResultTabIds.length === 0) return;
+
+  // Remove previous highlight
+  const prevHighlighted = searchResultsListEl.querySelector('.tab-item.highlighted');
+  if (prevHighlighted) {
+    prevHighlighted.classList.remove('highlighted');
+  }
+
+  // Clamp index to valid range (wrap around)
+  if (newIndex < 0) newIndex = searchResultTabIds.length - 1;
+  if (newIndex >= searchResultTabIds.length) newIndex = 0;
+
+  highlightedResultIndex = newIndex;
+
+  // Add highlight to new item
+  const items = searchResultsListEl.querySelectorAll('.tab-item');
+  if (items[highlightedResultIndex]) {
+    items[highlightedResultIndex].classList.add('highlighted');
+    items[highlightedResultIndex].scrollIntoView({ block: 'nearest' });
+  }
+}
+
+/**
+ * Switches to the currently highlighted search result tab.
+ */
+function switchToHighlightedResult() {
+  if (highlightedResultIndex >= 0 && highlightedResultIndex < searchResultTabIds.length) {
+    const tabId = searchResultTabIds[highlightedResultIndex];
+    const item = searchResultsListEl.querySelector(`[data-tab-id="${tabId}"]`);
+    if (item) {
+      const windowId = parseInt(item.dataset.windowId, 10);
+      switchToTab(tabId, windowId);
+    }
+  }
 }
 
 /**
@@ -1226,10 +1271,17 @@ function render(tabs, duplicates) {
       }))
       .filter(r => r.tab);
 
+    // Track tab IDs for keyboard navigation
+    searchResultTabIds = sortedResults.map(r => r.tab.id);
+
     // Render search results
     sortedResults.forEach(({ tab, match }, index) => {
       const count = urlCounts.get(tab.url) || 0;
       const item = createTabItem(tab, count, index, match);
+      // Apply highlight if this is the highlighted result
+      if (index === highlightedResultIndex) {
+        item.classList.add('highlighted');
+      }
       searchResultsListEl.appendChild(item);
     });
   } else if (searchQuery && (!searchResults || searchResults.size === 0)) {
@@ -1238,9 +1290,13 @@ function render(tabs, duplicates) {
     searchEmptyStateEl.classList.remove('hidden');
     searchResultsListEl.innerHTML = '';
     searchResultsSectionCountEl.textContent = '0';
+    searchResultTabIds = [];
+    highlightedResultIndex = -1;
   } else {
     // Hide search results section when not searching
     searchResultsContainerEl.classList.add('hidden');
+    searchResultTabIds = [];
+    highlightedResultIndex = -1;
   }
 
   // Use cached single-pass computation
@@ -1494,6 +1550,20 @@ document.addEventListener('keydown', (e) => {
       clearSearch();
     }
     globalSearchInputEl.blur();
+  }
+
+  // Arrow navigation for search results (when search input is focused and has results)
+  if (document.activeElement === globalSearchInputEl && searchResultTabIds.length > 0) {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      updateHighlightedSearchResult(highlightedResultIndex + 1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      updateHighlightedSearchResult(highlightedResultIndex - 1);
+    } else if (e.key === 'Enter' && highlightedResultIndex >= 0) {
+      e.preventDefault();
+      switchToHighlightedResult();
+    }
   }
 });
 
