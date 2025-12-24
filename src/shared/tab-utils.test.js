@@ -598,6 +598,34 @@ describe('fuzzyMatch', () => {
     const large_gap = fuzzyMatch('ac', 'axxxxc');
     expect(small_gap.score).toBeGreaterThan(large_gap.score);
   });
+
+  it('strongly prefers word matches over scattered matches', () => {
+    // "git" should match "GitHub" much better than "magazine times"
+    const wordMatch = fuzzyMatch('git', 'GitHub');
+    const scatteredMatch = fuzzyMatch('git', 'magazine times');
+    expect(wordMatch).not.toBeNull();
+    expect(scatteredMatch).not.toBeNull();
+    // Word match should score at least 2x higher
+    expect(wordMatch.score).toBeGreaterThan(scatteredMatch.score * 2);
+  });
+
+  it('gives bonus for full word match at start', () => {
+    // "tab" as full word at start vs mid-text
+    const fullWord = fuzzyMatch('go', 'go lang');
+    const partOfWord = fuzzyMatch('go', 'google');
+    expect(fullWord).not.toBeNull();
+    expect(partOfWord).not.toBeNull();
+    expect(fullWord.score).toBeGreaterThan(partOfWord.score);
+  });
+
+  it('penalizes mid-word match starts', () => {
+    // Match at word boundary vs match starting mid-word
+    const wordStart = fuzzyMatch('hub', 'Hub site');
+    const midWord = fuzzyMatch('hub', 'rehub');
+    expect(wordStart).not.toBeNull();
+    expect(midWord).not.toBeNull();
+    expect(wordStart.score).toBeGreaterThan(midWord.score);
+  });
 });
 
 describe('fuzzySearchTab', () => {

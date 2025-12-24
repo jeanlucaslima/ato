@@ -269,23 +269,36 @@ function escapeHtml(text) {
 }
 
 /**
+ * Checks if a character is a word boundary separator.
+ *
+ * @param {string} char - The character to check
+ * @returns {boolean} True if the character is a word separator
+ */
+function isWordBoundary(char) {
+  return ' /-_.:@#?&='.includes(char);
+}
+
+/**
  * Performs fuzzy matching of a pattern against text.
  * Characters must appear in order but not necessarily consecutively.
+ * Prioritizes word matches over scattered letter matches.
  *
  * Scoring:
- * - +1 per matched character
+ * - +1 per matched character (base)
  * - +5 bonus for consecutive matches
- * - +10 bonus for word boundary matches (after space, /, -, _, .)
+ * - +10 bonus for word boundary matches (after space, /, -, _, ., etc.)
  * - +15 bonus for start of string match
+ * - +8 bonus for word prefix match (consecutive chars at word start)
  * - +1 bonus for exact case match
- * - -1 penalty per gap character between matches
+ * - -2 penalty per gap character between matches (stronger penalty)
+ * - -3 penalty for match starting mid-word (not at boundary)
  *
  * @param {string} pattern - The search pattern
  * @param {string} text - The text to search within
  * @returns {{score: number, indices: number[]}|null} Match result or null if no match
  * @example
- * fuzzyMatch('fb', 'foo-bar'); // { score: 23, indices: [0, 4] }
- * fuzzyMatch('xyz', 'hello'); // null
+ * fuzzyMatch('git', 'GitHub'); // High score (word prefix)
+ * fuzzyMatch('git', 'magazine times'); // Low score (scattered)
  */
 export function fuzzyMatch(pattern, text) {
   if (!pattern || !text) return null;
@@ -301,25 +314,47 @@ export function fuzzyMatch(pattern, text) {
   let score = 0;
   let patternIdx = 0;
   let prevMatchIdx = -1;
+  let consecutiveAtWordStart = 0;
+  let matchStartedAtBoundary = false;
 
   for (let textIdx = 0; textIdx < textLen && patternIdx < patternLen; textIdx++) {
     if (textLower[textIdx] === patternLower[patternIdx]) {
       indices.push(textIdx);
       score += 1; // Base score per match
 
+      const isAtStart = textIdx === 0;
+      const isAtWordBoundary = isAtStart || isWordBoundary(text[textIdx - 1]);
+      const isFirstMatch = patternIdx === 0;
+      // Consecutive only if not first match and follows previous
+      const isConsecutive = !isFirstMatch && prevMatchIdx === textIdx - 1;
+
+      // Track if this is the first match
+      if (isFirstMatch) {
+        matchStartedAtBoundary = isAtWordBoundary;
+        consecutiveAtWordStart = 0;
+      }
+
       // Consecutive match bonus
-      if (prevMatchIdx === textIdx - 1) {
+      if (isConsecutive) {
         score += 5;
+        // Track consecutive matches at word start for prefix bonus
+        if (matchStartedAtBoundary) {
+          consecutiveAtWordStart++;
+        }
+      } else if (!isFirstMatch) {
+        // Gap in matches (not first match) - reset consecutive counter
+        consecutiveAtWordStart = 0;
+        matchStartedAtBoundary = isAtWordBoundary;
       }
 
       // Word boundary bonus
-      if (textIdx === 0) {
+      if (isAtStart) {
         score += 15; // Start of string
-      } else {
-        const prevChar = text[textIdx - 1];
-        if (' /-_.'.includes(prevChar)) {
-          score += 10; // Word boundary
-        }
+      } else if (isAtWordBoundary) {
+        score += 10; // Word boundary
+      } else if (isFirstMatch) {
+        // First match is mid-word - penalty
+        score -= 3;
       }
 
       // Case match bonus
@@ -335,10 +370,22 @@ export function fuzzyMatch(pattern, text) {
   // Return null if pattern not fully matched
   if (patternIdx !== patternLen) return null;
 
-  // Penalize gaps between matches
+  // Bonus for word prefix match (all chars consecutive at word boundary)
+  if (consecutiveAtWordStart === patternLen - 1 && matchStartedAtBoundary) {
+    score += 8; // Word prefix bonus
+
+    // Extra bonus if it matches end of a word too (full word match)
+    const lastMatchIdx = indices[indices.length - 1];
+    const nextCharIdx = lastMatchIdx + 1;
+    if (nextCharIdx >= textLen || isWordBoundary(text[nextCharIdx])) {
+      score += 12; // Full word match bonus
+    }
+  }
+
+  // Penalize gaps between matches (stronger penalty)
   if (indices.length > 1) {
     const totalGap = indices[indices.length - 1] - indices[0] - (indices.length - 1);
-    score -= totalGap;
+    score -= totalGap * 2; // Double penalty for gaps
   }
 
   return { score, indices };

@@ -81,6 +81,20 @@
       </div>
     </div>
 
+    <!-- Search Results (shown only when searching) -->
+    <div class="search-results-container hidden" id="search-results-container">
+      <div class="search-results-header">
+        <h2 class="section-title">Search Results</h2>
+        <span class="section-count" id="search-results-section-count">0</span>
+      </div>
+      <div id="search-results-list" class="search-results-list">
+        <!-- Populated by JS -->
+      </div>
+      <div id="search-empty-state" class="empty-state hidden">
+        <p>No tabs match your search</p>
+      </div>
+    </div>
+
     <!-- Duplicate List -->
     <div class="duplicates-container">
       <button class="section-header" id="duplicates-header" aria-expanded="true">

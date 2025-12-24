@@ -55,6 +55,12 @@ const allTabsContentEl = document.getElementById('all-tabs-content');
 const allTabsSectionCountEl = document.getElementById('all-tabs-section-count');
 const domainSectionsContainer = document.getElementById('domain-sections-container');
 
+// Search results section elements
+const searchResultsContainerEl = document.getElementById('search-results-container');
+const searchResultsListEl = document.getElementById('search-results-list');
+const searchResultsSectionCountEl = document.getElementById('search-results-section-count');
+const searchEmptyStateEl = document.getElementById('search-empty-state');
+
 // Settings (loaded from chrome.storage.sync)
 let settings = {
   theme: 'dark',
@@ -576,11 +582,10 @@ function createDomainSection(domain, tabs, urlCounts) {
   const tabList = document.createElement('div');
   tabList.className = 'domain-tabs-list';
 
-  // Add tabs (with search highlighting if active)
+  // Add tabs
   tabs.forEach((tab, index) => {
     const dupCount = urlCounts.get(tab.url) || 0;
-    const matchResult = searchResults?.get(tab.id) || null;
-    const item = createTabItem(tab, dupCount, index, matchResult);
+    const item = createTabItem(tab, dupCount, index, null);
     tabList.appendChild(item);
   });
 
@@ -1189,9 +1194,11 @@ function render(tabs, duplicates) {
   if (searchQuery) {
     searchResults = performSearch(searchQuery, tabs);
     document.body.classList.add('search-active');
+    document.body.classList.add('searching');
   } else {
     searchResults = null;
     document.body.classList.remove('search-active');
+    document.body.classList.remove('searching');
   }
 
   // Update search results count
@@ -1199,6 +1206,42 @@ function render(tabs, duplicates) {
     searchResults ? searchResults.size : 0,
     tabs.length
   );
+
+  // Handle search results section
+  if (searchResults && searchResults.size > 0) {
+    searchResultsContainerEl.classList.remove('hidden');
+    searchEmptyStateEl.classList.add('hidden');
+    searchResultsListEl.innerHTML = '';
+    searchResultsSectionCountEl.textContent = searchResults.size;
+
+    // Use cached single-pass computation
+    const { urlCounts } = computeRenderData(tabs);
+
+    // Sort results by score (descending - best matches first)
+    const sortedResults = [...searchResults.entries()]
+      .sort((a, b) => b[1].score - a[1].score)
+      .map(([tabId, match]) => ({
+        tab: tabs.find(t => t.id === tabId),
+        match
+      }))
+      .filter(r => r.tab);
+
+    // Render search results
+    sortedResults.forEach(({ tab, match }, index) => {
+      const count = urlCounts.get(tab.url) || 0;
+      const item = createTabItem(tab, count, index, match);
+      searchResultsListEl.appendChild(item);
+    });
+  } else if (searchQuery && (!searchResults || searchResults.size === 0)) {
+    // Show empty state for search
+    searchResultsContainerEl.classList.remove('hidden');
+    searchEmptyStateEl.classList.remove('hidden');
+    searchResultsListEl.innerHTML = '';
+    searchResultsSectionCountEl.textContent = '0';
+  } else {
+    // Hide search results section when not searching
+    searchResultsContainerEl.classList.add('hidden');
+  }
 
   // Use cached single-pass computation
   const { urlCounts, domainMap } = computeRenderData(tabs);
@@ -1314,19 +1357,10 @@ function render(tabs, duplicates) {
       );
     }
 
-    // Filter by search if active
-    if (searchResults) {
-      groupedDuplicates = groupedDuplicates.filter(group =>
-        group.tabs.some(tab => searchResults.has(tab.id))
-      );
-    }
-
     // Render each grouped duplicate
     let duplicateIndex = 0;
     groupedDuplicates.forEach((group) => {
-      // Get match result from representative tab
-      const matchResult = searchResults?.get(group.representative.id) || null;
-      const item = createGroupedDuplicateItem(group, duplicateIndex, matchResult);
+      const item = createGroupedDuplicateItem(group, duplicateIndex, null);
       duplicateListEl.appendChild(item);
       duplicateIndex++;
     });
@@ -1337,11 +1371,6 @@ function render(tabs, duplicates) {
   let visibleTabs = tabs.filter(tab =>
     tab.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('edge://')
   );
-
-  // Apply search filter if active
-  if (searchResults) {
-    visibleTabs = visibleTabs.filter(tab => searchResults.has(tab.id));
-  }
 
   // Apply domain filter if active
   if (activeDomain) {
@@ -1360,8 +1389,7 @@ function render(tabs, duplicates) {
   // Render all tabs as flat list (sortable)
   visibleTabs.forEach((tab, index) => {
     const count = urlCounts.get(tab.url) || 0;
-    const matchResult = searchResults?.get(tab.id) || null;
-    const item = createTabItem(tab, count, index, matchResult);
+    const item = createTabItem(tab, count, index, null);
     allTabsListEl.appendChild(item);
   });
 
@@ -1384,19 +1412,12 @@ function render(tabs, duplicates) {
   });
 
   // Get domains with 3+ tabs
-  let largeDomains = [];
+  const largeDomains = [];
   sectionDomainMap.forEach((domainTabs, domain) => {
     if (domainTabs.length >= 3) {
       largeDomains.push({ domain, tabs: domainTabs });
     }
   });
-
-  // Filter domain sections by search if active
-  if (searchResults) {
-    largeDomains = largeDomains.filter(({ tabs: domainTabs }) =>
-      domainTabs.some(tab => searchResults.has(tab.id))
-    );
-  }
 
   // Sort alphabetically by domain name, ignoring www. prefix (stable order that doesn't change when tabs are closed)
   largeDomains.sort((a, b) => {
@@ -1407,11 +1428,7 @@ function render(tabs, duplicates) {
 
   // Render each domain section
   largeDomains.forEach(({ domain, tabs: domainTabs }) => {
-    // Filter tabs by search if active
-    const filteredTabs = searchResults
-      ? domainTabs.filter(tab => searchResults.has(tab.id))
-      : domainTabs;
-    const section = createDomainSection(domain, filteredTabs, urlCounts);
+    const section = createDomainSection(domain, domainTabs, urlCounts);
     domainSectionsContainer.appendChild(section);
   });
 
@@ -1520,6 +1537,24 @@ allTabsListEl.addEventListener('click', (e) => {
 });
 
 domainSectionsContainer.addEventListener('click', (e) => {
+  const closeBtn = e.target.closest('.tab-close');
+  const item = e.target.closest('.tab-item');
+
+  if (closeBtn && item) {
+    e.stopPropagation();
+    const tabId = parseInt(item.dataset.tabId, 10);
+    if (tabId) closeTab(tabId);
+    return;
+  }
+
+  if (item) {
+    const tabId = parseInt(item.dataset.tabId, 10);
+    const windowId = parseInt(item.dataset.windowId, 10);
+    if (tabId) switchToTab(tabId, windowId);
+  }
+});
+
+searchResultsListEl.addEventListener('click', (e) => {
   const closeBtn = e.target.closest('.tab-close');
   const item = e.target.closest('.tab-item');
 
