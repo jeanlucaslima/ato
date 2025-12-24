@@ -81,6 +81,74 @@ let pinnedDuplicatesSkipped = 0; // Track count of pinned duplicates skipped
 let groupedDuplicatesSkipped = 0; // Track count of grouped duplicates skipped
 let browserTabsSkipped = 0;     // Track count of browser tabs (chrome://, edge://) skipped
 
+// Render cache for single-pass computation
+let renderCache = {
+  tabs: null,
+  tabsLength: 0,
+  urlCounts: null,
+  domainMap: null,
+  matchMode: null
+};
+
+/**
+ * Computes render data in a single pass through the tabs array.
+ * Caches results to avoid redundant computation on re-renders.
+ *
+ * @param {Object[]} tabs - Array of tab objects
+ * @returns {Object} Computed render data with urlCounts and domainMap
+ */
+function computeRenderData(tabs) {
+  // Check if cache is valid (same tabs array and settings)
+  if (renderCache.tabs === tabs &&
+      renderCache.tabsLength === tabs.length &&
+      renderCache.matchMode === settings.matchMode) {
+    return renderCache;
+  }
+
+  const urlCounts = new Map();
+  const domainMap = new Map();
+
+  // Single pass through all tabs
+  for (const tab of tabs) {
+    if (!tab.url) continue;
+
+    // Count by normalized URL
+    const normalizedUrl = normalizeUrl(tab.url, settings.matchMode);
+    urlCounts.set(normalizedUrl, (urlCounts.get(normalizedUrl) || 0) + 1);
+
+    // Group by domain
+    const domain = extractDomain(tab.url);
+    if (domain) {
+      if (!domainMap.has(domain)) domainMap.set(domain, []);
+      domainMap.get(domain).push(tab);
+    }
+  }
+
+  // Update cache
+  renderCache = {
+    tabs,
+    tabsLength: tabs.length,
+    urlCounts,
+    domainMap,
+    matchMode: settings.matchMode
+  };
+
+  return renderCache;
+}
+
+/**
+ * Clears the render cache. Call when tabs are modified.
+ */
+function clearRenderCache() {
+  renderCache = {
+    tabs: null,
+    tabsLength: 0,
+    urlCounts: null,
+    domainMap: null,
+    matchMode: null
+  };
+}
+
 /**
  * Loads and applies section collapse states from Chrome storage.
  * Restores user preferences for which sections are expanded/collapsed.
@@ -166,19 +234,9 @@ function applySectionStates() {
 
 // Toggle section visibility
 function toggleSection(section) {
-  const wasCollapsed = !sectionStates[section];
   sectionStates[section] = !sectionStates[section];
   applySectionStates();
   saveSectionStates();
-
-  // If expanding, animate tab items after section opens
-  if (wasCollapsed && sectionStates[section]) {
-    const contentEl = section === 'duplicates' ? duplicatesContentEl : allTabsContentEl;
-    // Hide tabs immediately
-    hideTabItems(contentEl);
-    // Then animate them in after delay
-    setTimeout(() => animateTabItems(contentEl), 200);
-  }
 }
 
 // Toggle domain section visibility
@@ -193,48 +251,9 @@ function toggleDomainSection(domain) {
   if (header && content) {
     header.setAttribute('aria-expanded', !currentState);
     content.classList.toggle('collapsed', currentState);
-
-    // If expanding, animate tab items after section opens
-    if (currentState) {
-      // Hide tabs immediately
-      hideTabItems(content);
-      // Then animate them in after delay
-      setTimeout(() => animateTabItems(content), 200);
-    }
   }
 
   saveSectionStates();
-}
-
-// Hide all tab items immediately (before animation)
-function hideTabItems(containerEl) {
-  const items = containerEl.querySelectorAll('.tab-item');
-  items.forEach(item => {
-    item.classList.remove('animate-in');
-    item.style.opacity = '0';
-  });
-}
-
-// Animate tab items with staggered domino effect (logarithmic acceleration)
-function animateTabItems(containerEl) {
-  const items = containerEl.querySelectorAll('.tab-item');
-  const maxDelay = 120; // First item delay (slowest)
-  const minDelay = 30;  // Top speed delay (fastest)
-
-  let cumulativeDelay = 0;
-
-  items.forEach((item, index) => {
-    // Calculate delay for this item (logarithmic decrease - gets faster)
-    const itemDelay = minDelay + (maxDelay - minDelay) / (1 + index * 0.5);
-
-    // Add delay before this item appears
-    cumulativeDelay += itemDelay;
-
-    setTimeout(() => {
-      item.style.opacity = '';
-      item.classList.add('animate-in');
-    }, cumulativeDelay);
-  });
 }
 
 // Enable undo button based on context
@@ -462,9 +481,9 @@ function createDomainSection(domain, tabs, urlCounts) {
   tabList.className = 'domain-tabs-list';
 
   // Add tabs
-  tabs.forEach(tab => {
+  tabs.forEach((tab, index) => {
     const dupCount = urlCounts.get(tab.url) || 0;
-    const item = createTabItem(tab, dupCount);
+    const item = createTabItem(tab, dupCount, index);
     tabList.appendChild(item);
   });
 
@@ -486,24 +505,25 @@ function createDomainSection(domain, tabs, urlCounts) {
  * @param {Object[]} group.tabs - Array of duplicate tabs
  * @param {Object} group.representative - Representative tab for display
  * @param {number} group.totalCount - Total tabs with this URL
- * @param {Object[]} allTabs - All tabs for finding the original
+ * @param {number} [index=0] - Index for staggered animation
  * @returns {HTMLDivElement} The grouped duplicate item element
  */
-function createGroupedDuplicateItem(group, allTabs) {
+function createGroupedDuplicateItem(group, index = 0) {
   const { url, tabs: duplicateTabs, representative, totalCount } = group;
 
   const item = document.createElement('div');
   item.className = 'tab-item';
   item.dataset.url = url;
+  item.dataset.tabId = representative.id;
+  item.dataset.windowId = representative.windowId;
+  item.style.setProperty('--item-index', index);
 
   // Favicon
   const favicon = document.createElement('img');
   favicon.className = 'tab-favicon';
   if (representative.favIconUrl && !representative.favIconUrl.startsWith('chrome://')) {
     favicon.src = representative.favIconUrl;
-    favicon.onerror = () => {
-      favicon.style.display = 'none';
-    };
+    favicon.loading = 'lazy';
   } else {
     favicon.className = 'tab-favicon placeholder';
     favicon.alt = '';
@@ -534,21 +554,11 @@ function createGroupedDuplicateItem(group, allTabs) {
   badge.textContent = `×${totalCount}`;
   badge.title = `${totalCount} tabs with this URL`;
 
-  // Close button - closes all duplicates of this URL
+  // Close button (handled via event delegation)
   const closeBtn = document.createElement('button');
   closeBtn.className = 'tab-close';
   closeBtn.textContent = '×';
   closeBtn.title = `Close ${duplicateTabs.length} duplicate(s)`;
-  closeBtn.onclick = async (e) => {
-    e.stopPropagation();
-    e.preventDefault();
-    await closeDuplicatesOfUrl(url, allTabs);
-  };
-
-  // Click to switch to first duplicate
-  item.onclick = () => {
-    switchToTab(representative.id, representative.windowId);
-  };
 
   item.appendChild(favicon);
   item.appendChild(info);
@@ -563,11 +573,14 @@ function createGroupedDuplicateItem(group, allTabs) {
  *
  * @async
  * @param {string} url - The URL to close duplicates of
- * @param {Object[]} allTabs - All tabs
  * @returns {Promise<void>}
  */
-async function closeDuplicatesOfUrl(url, allTabs) {
+async function closeDuplicatesOfUrl(url) {
   try {
+    // Query current tabs
+    const queryOptions = settings.currentWindowOnly ? { currentWindow: true } : {};
+    const allTabs = await chrome.tabs.query(queryOptions);
+
     // Normalize the URL for comparison based on matchMode
     const normalizedUrl = normalizeUrl(url, settings.matchMode);
     let tabsWithUrl = allTabs.filter(tab => normalizeUrl(tab.url, settings.matchMode) === normalizedUrl);
@@ -662,21 +675,23 @@ async function closeDuplicatesOfUrl(url, allTabs) {
  * @param {number} [tab.lastAccessed] - Last accessed timestamp
  * @param {number} [tab.windowId] - Window containing this tab
  * @param {number} [duplicateCount=0] - Number of tabs with this URL
+ * @param {number} [index=0] - Index for staggered animation
  * @returns {HTMLDivElement} The tab item element
  */
-function createTabItem(tab, duplicateCount = 0) {
+function createTabItem(tab, duplicateCount = 0, index = 0) {
   const item = document.createElement('div');
   item.className = 'tab-item';
   item.dataset.tabId = tab.id;
+  item.dataset.windowId = tab.windowId;
+  item.style.setProperty('--item-index', index);
 
   // Favicon
   const favicon = document.createElement('img');
   favicon.className = 'tab-favicon';
   if (tab.favIconUrl && !tab.favIconUrl.startsWith('chrome://')) {
     favicon.src = tab.favIconUrl;
-    favicon.onerror = () => {
-      favicon.style.display = 'none';
-    };
+    // Use CSS fallback for broken images
+    favicon.loading = 'lazy';
   } else {
     favicon.className = 'tab-favicon placeholder';
     favicon.alt = '';
@@ -701,22 +716,11 @@ function createTabItem(tab, duplicateCount = 0) {
   info.appendChild(title);
   info.appendChild(url);
 
-  // Close button
+  // Close button (handled via event delegation)
   const closeBtn = document.createElement('button');
   closeBtn.className = 'tab-close';
   closeBtn.textContent = '×';
   closeBtn.title = 'Close this tab';
-  closeBtn.onclick = (e) => {
-    e.stopPropagation();
-    e.preventDefault();
-    e.stopImmediatePropagation(); // Prevent any other handlers
-    closeTab(tab.id);
-  };
-
-  // Click to switch to tab
-  item.onclick = () => {
-    switchToTab(tab.id, tab.windowId);
-  };
 
   item.appendChild(favicon);
   item.appendChild(info);
@@ -1055,9 +1059,20 @@ function hideDomainDropdown() {
  * @param {Object[]} duplicates - Duplicate tabs only
  */
 function render(tabs, duplicates) {
-  // Calculate duplicate counts by URL
-  const urlCounts = countDuplicatesByUrl(tabs, settings.matchMode);
-  const domainGroups = groupTabsByDomain(tabs);
+  // Save scroll positions before re-rendering
+  const scrollPositions = {
+    duplicates: duplicatesContentEl.scrollTop,
+    allTabs: allTabsContentEl.scrollTop,
+    domainSections: domainSectionsContainer.scrollTop
+  };
+
+  // Use cached single-pass computation
+  const { urlCounts, domainMap } = computeRenderData(tabs);
+
+  // Convert domainMap to sorted array for compatibility
+  const domainGroups = Array.from(domainMap.entries())
+    .map(([domain, domainTabs]) => ({ domain, tabs: domainTabs, count: domainTabs.length }))
+    .sort((a, b) => b.count - a.count);
 
   // Update stats
   totalTabsEl.textContent = tabs.length;
@@ -1166,8 +1181,8 @@ function render(tabs, duplicates) {
     }
 
     // Render each grouped duplicate
-    groupedDuplicates.forEach(group => {
-      const item = createGroupedDuplicateItem(group, tabs);
+    groupedDuplicates.forEach((group, index) => {
+      const item = createGroupedDuplicateItem(group, index);
       duplicateListEl.appendChild(item);
     });
   }
@@ -1193,9 +1208,9 @@ function render(tabs, duplicates) {
   allTabsSectionCountEl.textContent = visibleTabs.length;
 
   // Render all tabs as flat list (sortable)
-  visibleTabs.forEach(tab => {
+  visibleTabs.forEach((tab, index) => {
     const count = urlCounts.get(tab.url) || 0;
-    const item = createTabItem(tab, count);
+    const item = createTabItem(tab, count, index);
     allTabsListEl.appendChild(item);
   });
 
@@ -1207,19 +1222,19 @@ function render(tabs, duplicates) {
     tab.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('edge://')
   );
 
-  const domainMap = new Map();
+  const sectionDomainMap = new Map();
   allVisibleTabs.forEach(tab => {
     const domain = extractDomain(tab.url);
     if (!domain) return;
-    if (!domainMap.has(domain)) {
-      domainMap.set(domain, []);
+    if (!sectionDomainMap.has(domain)) {
+      sectionDomainMap.set(domain, []);
     }
-    domainMap.get(domain).push(tab);
+    sectionDomainMap.get(domain).push(tab);
   });
 
   // Get domains with 3+ tabs
   const largeDomains = [];
-  domainMap.forEach((domainTabs, domain) => {
+  sectionDomainMap.forEach((domainTabs, domain) => {
     if (domainTabs.length >= 3) {
       largeDomains.push({ domain, tabs: domainTabs });
     }
@@ -1237,6 +1252,13 @@ function render(tabs, duplicates) {
     const section = createDomainSection(domain, domainTabs, urlCounts);
     domainSectionsContainer.appendChild(section);
   });
+
+  // Restore scroll positions after DOM updates
+  requestAnimationFrame(() => {
+    duplicatesContentEl.scrollTop = scrollPositions.duplicates;
+    allTabsContentEl.scrollTop = scrollPositions.allTabs;
+    domainSectionsContainer.scrollTop = scrollPositions.domainSections;
+  });
 }
 
 /**
@@ -1248,6 +1270,9 @@ function render(tabs, duplicates) {
  */
 async function loadAndRender() {
   try {
+    // Clear cache since we're fetching fresh data
+    clearRenderCache();
+
     const queryOptions = settings.currentWindowOnly ? { currentWindow: true } : {};
     const tabs = await chrome.tabs.query(queryOptions);
     const duplicates = findDuplicates(tabs, settings.matchMode);
@@ -1262,6 +1287,63 @@ async function loadAndRender() {
 
 // Event Listeners
 closeAllBtn.addEventListener('click', closeAllDuplicates);
+
+// Delegated event listeners for tab lists (performance optimization)
+// Handles clicks on tab items and close buttons without per-item handlers
+
+duplicateListEl.addEventListener('click', (e) => {
+  const closeBtn = e.target.closest('.tab-close');
+  const item = e.target.closest('.tab-item');
+
+  if (closeBtn && item) {
+    e.stopPropagation();
+    const url = item.dataset.url;
+    if (url) closeDuplicatesOfUrl(url);
+    return;
+  }
+
+  if (item) {
+    const tabId = parseInt(item.dataset.tabId, 10);
+    const windowId = parseInt(item.dataset.windowId, 10);
+    if (tabId) switchToTab(tabId, windowId);
+  }
+});
+
+allTabsListEl.addEventListener('click', (e) => {
+  const closeBtn = e.target.closest('.tab-close');
+  const item = e.target.closest('.tab-item');
+
+  if (closeBtn && item) {
+    e.stopPropagation();
+    const tabId = parseInt(item.dataset.tabId, 10);
+    if (tabId) closeTab(tabId);
+    return;
+  }
+
+  if (item) {
+    const tabId = parseInt(item.dataset.tabId, 10);
+    const windowId = parseInt(item.dataset.windowId, 10);
+    if (tabId) switchToTab(tabId, windowId);
+  }
+});
+
+domainSectionsContainer.addEventListener('click', (e) => {
+  const closeBtn = e.target.closest('.tab-close');
+  const item = e.target.closest('.tab-item');
+
+  if (closeBtn && item) {
+    e.stopPropagation();
+    const tabId = parseInt(item.dataset.tabId, 10);
+    if (tabId) closeTab(tabId);
+    return;
+  }
+
+  if (item) {
+    const tabId = parseInt(item.dataset.tabId, 10);
+    const windowId = parseInt(item.dataset.windowId, 10);
+    if (tabId) switchToTab(tabId, windowId);
+  }
+});
 
 // Domain filter event listeners
 domainFilterInputEl.addEventListener('focus', () => {

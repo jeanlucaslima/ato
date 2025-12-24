@@ -473,20 +473,29 @@ body {
   transition: all 0.2s;
 }
 
-/* Tab Item Stagger Animation */
+/* Tab Item Stagger Animation - CSS-only with custom property */
 @keyframes tabSlideIn {
-  0% {
+  from {
     opacity: 0;
-    transform: translateX(-30px);
+    transform: translateX(-20px);
   }
-  100% {
+  to {
     opacity: 1;
     transform: translateX(0);
   }
 }
 
-.tab-item.animate-in {
-  animation: tabSlideIn 0.35s ease-out forwards;
+.tab-item {
+  --item-index: 0;
+  opacity: 0;
+  animation: tabSlideIn 0.25s ease-out forwards;
+  animation-delay: calc(var(--item-index) * 15ms);
+}
+
+/* Skip animation for items beyond visible area (performance) */
+.tab-item:nth-child(n+30) {
+  animation: none;
+  opacity: 1;
 }
 
 .tab-item:hover {
