@@ -1792,11 +1792,26 @@ duplicatesSortButtonsEl.addEventListener('click', (e) => {
 duplicatesHeaderEl.addEventListener('click', () => toggleSection('duplicates'));
 allTabsHeaderEl.addEventListener('click', () => toggleSection('allTabs'));
 
+// Initialize footer
+function initFooter() {
+  const versionEl = document.getElementById('footer-version');
+  const shortcutEl = document.getElementById('footer-shortcut');
+
+  // Get version from manifest
+  const manifest = chrome.runtime.getManifest();
+  versionEl.textContent = `v${manifest.version}`;
+
+  // Detect platform for shortcut hint
+  const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+  shortcutEl.textContent = isMac ? 'try ⌘+U' : 'try Ctrl+U';
+}
+
 // Initial load - wait for settings and section states before rendering
 (async () => {
   await initLogger();
   await loadSettings();
   await loadSectionStates();
   updateScopeButton();
+  initFooter();
   loadAndRender();
 })();

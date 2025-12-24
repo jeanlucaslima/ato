@@ -41,7 +41,7 @@
           <path d="M21 21l-4.35-4.35"/>
         </svg>
         <input type="text" id="global-search-input" class="global-search-input"
-               placeholder="Search tabs... (/)" autocomplete="off">
+               placeholder="Search tabs..." autocomplete="off" autofocus>
         <button type="button" id="global-search-clear" class="global-search-clear hidden">×</button>
       </div>
       <div id="search-results-count" class="search-results-count hidden"></div>
@@ -188,6 +188,15 @@
     <div id="domain-sections-container" class="domain-sections-container">
       <!-- Will be populated by JavaScript -->
     </div>
+
+    <!-- Footer -->
+    <footer class="popup-footer">
+      <span id="footer-version">v1.4.3</span>
+      <span class="footer-separator">·</span>
+      <a href="https://github.com/jeanlucaslima/ato" target="_blank" rel="noopener">GitHub</a>
+      <span class="footer-separator">·</span>
+      <span id="footer-shortcut">try ⌘+U</span>
+    </footer>
   </div>
 
   <script type="module" src="popup.js"></script>
