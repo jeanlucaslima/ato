@@ -17,20 +17,6 @@
       </div>
     </header>
 
-    <!-- Global Search -->
-    <div class="search-container">
-      <div class="search-input-wrapper">
-        <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8"/>
-          <path d="M21 21l-4.35-4.35"/>
-        </svg>
-        <input type="text" id="global-search-input" class="global-search-input"
-               placeholder="Search tabs... (/)" autocomplete="off">
-        <button type="button" id="global-search-clear" class="global-search-clear hidden">×</button>
-      </div>
-      <div id="search-results-count" class="search-results-count hidden"></div>
-    </div>
-
     <!-- Stats Bar -->
     <div class="stats">
       <div class="stat">
@@ -47,18 +33,18 @@
       </div>
     </div>
 
-    <!-- Search Results (shown only when searching) -->
-    <div class="search-results-container hidden" id="search-results-container">
-      <div class="search-results-header">
-        <h2 class="section-title">Search Results</h2>
-        <span class="section-count" id="search-results-section-count">0</span>
+    <!-- Global Search -->
+    <div class="search-container">
+      <div class="search-input-wrapper">
+        <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="M21 21l-4.35-4.35"/>
+        </svg>
+        <input type="text" id="global-search-input" class="global-search-input"
+               placeholder="Search tabs... (/)" autocomplete="off">
+        <button type="button" id="global-search-clear" class="global-search-clear hidden">×</button>
       </div>
-      <div id="search-results-list" class="search-results-list">
-        <!-- Populated by JS -->
-      </div>
-      <div id="search-empty-state" class="empty-state hidden">
-        <p>No tabs match your search</p>
-      </div>
+      <div id="search-results-count" class="search-results-count hidden"></div>
     </div>
 
     <!-- Action Bar -->
@@ -92,6 +78,20 @@
           </svg>
           <span>Options</span>
         </button>
+      </div>
+    </div>
+
+    <!-- Search Results (shown only when searching) -->
+    <div class="search-results-container hidden" id="search-results-container">
+      <div class="search-results-header">
+        <h2 class="section-title">Search Results</h2>
+        <span class="section-count" id="search-results-section-count">0</span>
+      </div>
+      <div id="search-results-list" class="search-results-list">
+        <!-- Populated by JS -->
+      </div>
+      <div id="search-empty-state" class="empty-state hidden">
+        <p>No tabs match your search</p>
       </div>
     </div>
 

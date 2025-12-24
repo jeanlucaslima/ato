@@ -748,6 +748,10 @@ body {
   font-size: 13px;
 }
 
+.empty-state.hidden {
+  display: none;
+}
+
 /* Pinned Warning */
 .pinned-warning {
   display: flex;
