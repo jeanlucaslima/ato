@@ -27,7 +27,8 @@ const DEFAULT_SETTINGS = {
   // Advanced
   advancedMode: false,
   currentWindowOnly: false,
-  showMergeButton: false
+  showMergeButton: false,
+  debugLogging: false
 };
 
 // Setting element IDs mapped to their types
@@ -43,7 +44,8 @@ const SETTING_TYPES = {
   badgeColor: 'color',
   advancedMode: 'checkbox',
   currentWindowOnly: 'checkbox',
-  showMergeButton: 'checkbox'
+  showMergeButton: 'checkbox',
+  debugLogging: 'checkbox'
 };
 
 /**

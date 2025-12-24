@@ -2,8 +2,9 @@
 // Monitors tabs and detects duplicates in real-time
 
 import { findDuplicates } from '../shared/tab-utils.js';
+import { initLogger, log, error } from '../shared/logger.js';
 
-console.log('🚀 ATO service worker loaded');
+log('🚀 ATO service worker loaded');
 
 // Cache settings
 let matchMode = 'exact';
@@ -54,9 +55,9 @@ async function loadSettings() {
     badgeMode = result.badgeMode;
     badgeColor = result.badgeColor;
     currentWindowOnly = result.currentWindowOnly;
-    console.log(`⚙️ Loaded settings: matchMode=${matchMode}, showBadge=${showBadge}, badgeMode=${badgeMode}, currentWindowOnly=${currentWindowOnly}`);
-  } catch (error) {
-    console.error('❌ Error loading settings:', error);
+    log(`⚙️ Loaded settings: matchMode=${matchMode}, showBadge=${showBadge}, badgeMode=${badgeMode}, currentWindowOnly=${currentWindowOnly}`);
+  } catch (err) {
+    error('❌ Error loading settings:', err);
   }
 }
 
@@ -77,33 +78,33 @@ async function scanAndUpdateBadge() {
     const count = badgeMode === 'allTabs' ? tabs.length : duplicates.length;
     updateBadge(count);
 
-    console.log(`📊 Scanned ${tabs.length} tabs (${currentWindowOnly ? 'current window' : 'all windows'}), found ${duplicates.length} duplicates, badge shows: ${count} (${badgeMode})`);
-  } catch (error) {
-    console.error('❌ Error scanning tabs:', error);
+    log(`📊 Scanned ${tabs.length} tabs (${currentWindowOnly ? 'current window' : 'all windows'}), found ${duplicates.length} duplicates, badge shows: ${count} (${badgeMode})`);
+  } catch (err) {
+    error('❌ Error scanning tabs:', err);
   }
 }
 
 // Listen to tab events
 chrome.tabs.onCreated.addListener(() => {
-  console.log('➕ Tab created');
+  log('➕ Tab created');
   scanAndUpdateBadge();
 });
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   // Only scan when URL changes
   if (changeInfo.url) {
-    console.log('🔄 Tab URL updated');
+    log('🔄 Tab URL updated');
     scanAndUpdateBadge();
   }
 });
 
 chrome.tabs.onRemoved.addListener(() => {
-  console.log('➖ Tab removed');
+  log('➖ Tab removed');
   scanAndUpdateBadge();
 });
 
 chrome.tabs.onReplaced.addListener(() => {
-  console.log('🔀 Tab replaced');
+  log('🔀 Tab replaced');
   scanAndUpdateBadge();
 });
 
@@ -111,7 +112,7 @@ chrome.tabs.onReplaced.addListener(() => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'undoCloseTabs') {
     const count = message.count;
-    console.log(`🔄 Received undo request for ${count} tabs`);
+    log(`🔄 Received undo request for ${count} tabs`);
 
     // Restore tabs asynchronously
     (async () => {
@@ -120,13 +121,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         try {
           await chrome.sessions.restore();
           restored++;
-          console.log(`✅ Restored tab ${restored}/${count}`);
+          log(`✅ Restored tab ${restored}/${count}`);
         } catch (e) {
-          console.log(`⚠️ Failed to restore tab ${i + 1}:`, e.message);
+          log(`⚠️ Failed to restore tab ${i + 1}:`, e.message);
           break;
         }
       }
-      console.log(`✅ Undo complete: restored ${restored} tabs`);
+      log(`✅ Undo complete: restored ${restored} tabs`);
     })();
 
     // Return true to indicate async response (though we don't send one)
@@ -142,31 +143,31 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 
   if (changes.matchMode) {
     matchMode = changes.matchMode.newValue || 'exact';
-    console.log(`⚙️ matchMode setting changed to: ${matchMode}`);
+    log(`⚙️ matchMode setting changed to: ${matchMode}`);
     needsRescan = true;
   }
 
   if (changes.showBadge !== undefined) {
     showBadge = changes.showBadge.newValue;
-    console.log(`⚙️ showBadge setting changed to: ${showBadge}`);
+    log(`⚙️ showBadge setting changed to: ${showBadge}`);
     needsRescan = true;
   }
 
   if (changes.badgeMode) {
     badgeMode = changes.badgeMode.newValue || 'duplicates';
-    console.log(`⚙️ badgeMode setting changed to: ${badgeMode}`);
+    log(`⚙️ badgeMode setting changed to: ${badgeMode}`);
     needsRescan = true;
   }
 
   if (changes.badgeColor) {
     badgeColor = changes.badgeColor.newValue || '#DC2626';
-    console.log(`⚙️ badgeColor setting changed to: ${badgeColor}`);
+    log(`⚙️ badgeColor setting changed to: ${badgeColor}`);
     needsRescan = true;
   }
 
   if (changes.currentWindowOnly !== undefined) {
     currentWindowOnly = changes.currentWindowOnly.newValue;
-    console.log(`⚙️ currentWindowOnly setting changed to: ${currentWindowOnly}`);
+    log(`⚙️ currentWindowOnly setting changed to: ${currentWindowOnly}`);
     needsRescan = true;
   }
 
@@ -177,6 +178,7 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 
 // Initial scan when service worker starts
 (async () => {
+  await initLogger();
   await loadSettings();
   scanAndUpdateBadge();
 })();

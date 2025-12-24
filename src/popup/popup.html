@@ -77,39 +77,41 @@
         <span class="section-count" id="duplicates-section-count">0</span>
       </button>
       <div class="section-content" id="duplicates-content">
-        <!-- Duplicates Action Bar -->
-        <div class="duplicates-action-bar">
-          <button class="btn-action btn-danger" id="close-all-btn" title="Close all duplicate tabs">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-            </svg>
-            <span>Close duplicates</span>
-          </button>
-          <div class="btn-group" id="duplicates-sort-buttons">
-            <button class="btn-toggle active" data-sort="default" title="Default order">Default</button>
-            <button class="btn-toggle" data-sort="title" title="Sort by title A-Z">Title</button>
-            <button class="btn-toggle" data-sort="domain" title="Group by domain">Site</button>
+        <div class="section-content-inner">
+          <!-- Duplicates Action Bar -->
+          <div class="duplicates-action-bar">
+            <button class="btn-action btn-danger" id="close-all-btn" title="Close all duplicate tabs">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+              </svg>
+              <span>Close duplicates</span>
+            </button>
+            <div class="btn-group" id="duplicates-sort-buttons">
+              <button class="btn-toggle active" data-sort="default" title="Default order">Default</button>
+              <button class="btn-toggle" data-sort="title" title="Sort by title A-Z">Title</button>
+              <button class="btn-toggle" data-sort="domain" title="Group by domain">Site</button>
+            </div>
           </div>
-        </div>
-        <div id="duplicate-list" class="duplicate-list">
-          <!-- Will be populated by JavaScript -->
-        </div>
-        <div id="empty-state" class="empty-state" style="display: none;">
-          <p>No duplicate tabs</p>
-        </div>
-        <div id="pinned-warning" class="pinned-warning hidden">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 9v4M12 17h.01M12 3l9 18H3z"/>
-          </svg>
-          <span><strong id="pinned-skip-count">0</strong> tab(s) protected</span>
-        </div>
-        <div id="browser-warning" class="pinned-warning hidden">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="12" y1="8" x2="12" y2="12"/>
-            <line x1="12" y1="16" x2="12.01" y2="16"/>
-          </svg>
-          <span><strong id="browser-skip-count">0</strong> browser tab(s) can't be closed by extensions</span>
+          <div id="duplicate-list" class="duplicate-list">
+            <!-- Will be populated by JavaScript -->
+          </div>
+          <div id="empty-state" class="empty-state" style="display: none;">
+            <p>No duplicate tabs</p>
+          </div>
+          <div id="pinned-warning" class="pinned-warning hidden">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 9v4M12 17h.01M12 3l9 18H3z"/>
+            </svg>
+            <span><strong id="pinned-skip-count">0</strong> tab(s) protected</span>
+          </div>
+          <div id="browser-warning" class="pinned-warning hidden">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span><strong id="browser-skip-count">0</strong> browser tab(s) can't be closed by extensions</span>
+          </div>
         </div>
       </div>
     </div>
@@ -124,30 +126,32 @@
         <span class="section-count" id="all-tabs-section-count">0</span>
       </button>
       <div class="section-content" id="all-tabs-content">
-        <!-- Domain Filter (searchable) -->
-        <div class="domain-filter">
-          <div class="domain-filter-input-wrapper">
-            <input type="text" id="domain-filter-input" class="domain-filter-input"
-                   placeholder="Filter by domain..." autocomplete="off">
-            <button type="button" id="domain-filter-clear" class="domain-filter-clear hidden">×</button>
+        <div class="section-content-inner">
+          <!-- Domain Filter (searchable) -->
+          <div class="domain-filter">
+            <div class="domain-filter-input-wrapper">
+              <input type="text" id="domain-filter-input" class="domain-filter-input"
+                     placeholder="Filter by domain..." autocomplete="off">
+              <button type="button" id="domain-filter-clear" class="domain-filter-clear hidden">×</button>
+            </div>
+            <div id="domain-filter-dropdown" class="domain-filter-dropdown hidden">
+              <!-- Options populated by JS -->
+            </div>
           </div>
-          <div id="domain-filter-dropdown" class="domain-filter-dropdown hidden">
-            <!-- Options populated by JS -->
+          <!-- Sort Buttons -->
+          <div class="sort-bar">
+            <span class="action-label">Sort:</span>
+            <div class="btn-group" id="sort-buttons">
+              <button class="btn-toggle active" data-sort="default" title="Default order">Default</button>
+              <button class="btn-toggle" data-sort="title" title="Sort by title A-Z">Title</button>
+              <button class="btn-toggle" data-sort="domain" title="Group by domain">Site</button>
+              <button class="btn-toggle" data-sort="age" title="Toggle oldest/newest first">Old/New</button>
+              <button class="btn-toggle" data-sort="duplicates" title="Most duplicates first">Dupes</button>
+            </div>
           </div>
-        </div>
-        <!-- Sort Buttons -->
-        <div class="sort-bar">
-          <span class="action-label">Sort:</span>
-          <div class="btn-group" id="sort-buttons">
-            <button class="btn-toggle active" data-sort="default" title="Default order">Default</button>
-            <button class="btn-toggle" data-sort="title" title="Sort by title A-Z">Title</button>
-            <button class="btn-toggle" data-sort="domain" title="Group by domain">Site</button>
-            <button class="btn-toggle" data-sort="age" title="Toggle oldest/newest first">Old/New</button>
-            <button class="btn-toggle" data-sort="duplicates" title="Most duplicates first">Dupes</button>
+          <div id="all-tabs-list" class="all-tabs-list">
+            <!-- Will be populated by JavaScript -->
           </div>
-        </div>
-        <div id="all-tabs-list" class="all-tabs-list">
-          <!-- Will be populated by JavaScript -->
         </div>
       </div>
     </div>

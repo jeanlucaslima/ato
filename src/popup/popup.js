@@ -11,8 +11,9 @@ import {
   normalizeUrl
 } from '../shared/tab-utils.js';
 import { applyFont } from '../shared/font-config.js';
+import { initLogger, log, error } from '../shared/logger.js';
 
-console.log('🎨 ATO popup loaded');
+log('🎨 ATO popup loaded');
 
 // DOM Elements
 const totalTabsEl = document.getElementById('total-tabs');
@@ -97,8 +98,8 @@ async function loadSectionStates() {
       domainSectionStates = result.domainSectionStates;
     }
     applySectionStates();
-  } catch (error) {
-    console.error('Error loading section states:', error);
+  } catch (err) {
+    error('Error loading section states:', err);
   }
 }
 
@@ -133,8 +134,8 @@ async function loadSettings() {
     // Apply theme and font
     applyTheme(settings.theme);
     applyFont(settings.fontFamily);
-  } catch (error) {
-    console.error('Error loading settings:', error);
+  } catch (err) {
+    error('Error loading settings:', err);
   }
 }
 
@@ -147,8 +148,8 @@ async function loadSettings() {
 async function saveSectionStates() {
   try {
     await chrome.storage.local.set({ sectionStates, domainSectionStates });
-  } catch (error) {
-    console.error('Error saving section states:', error);
+  } catch (err) {
+    error('Error saving section states:', err);
   }
 }
 
@@ -250,11 +251,11 @@ function hideAllUndoButtons() {
 // Undo the last close action
 async function undoClose() {
   if (lastClosedCount === 0) {
-    console.log('⚠️ No tabs to restore');
+    log('⚠️ No tabs to restore');
     return;
   }
 
-  console.log(`🔄 Sending undo request for ${lastClosedCount} tabs to background...`);
+  log(`🔄 Sending undo request for ${lastClosedCount} tabs to background...`);
 
   // Send message to background service worker to restore tabs
   // (popup may close when tabs are restored, so background handles it)
@@ -300,7 +301,7 @@ async function closeTabsFromDomain(domain) {
     if (tabsToClose.length > 0) {
       const closedCount = tabsToClose.length;
       await chrome.tabs.remove(tabsToClose);
-      console.log(`✅ Closed ${closedCount} tabs from ${domain}`);
+      log(`✅ Closed ${closedCount} tabs from ${domain}`);
 
       // Store count for undo
       lastClosedCount = closedCount;
@@ -316,8 +317,8 @@ async function closeTabsFromDomain(domain) {
 
     // Refresh the list
     await loadAndRender();
-  } catch (error) {
-    console.error('❌ Error closing domain tabs:', error);
+  } catch (err) {
+    error('❌ Error closing domain tabs:', err);
   }
 }
 
@@ -353,12 +354,12 @@ async function mergeTabsFromDomain(domain) {
       });
     }
 
-    console.log(`✅ Merged ${domainTabs.length} tabs from ${domain} to new window`);
+    log(`✅ Merged ${domainTabs.length} tabs from ${domain} to new window`);
 
     // Refresh the list
     await loadAndRender();
-  } catch (error) {
-    console.error('❌ Error merging domain tabs:', error);
+  } catch (err) {
+    error('❌ Error merging domain tabs:', err);
   }
 }
 
@@ -413,6 +414,10 @@ function createDomainSection(domain, tabs, urlCounts) {
     content.classList.add('collapsed');
   }
 
+  // Inner wrapper for grid animation
+  const contentInner = document.createElement('div');
+  contentInner.className = 'section-content-inner';
+
   // Action bar with buttons
   const actionBar = document.createElement('div');
   actionBar.className = 'domain-action-bar';
@@ -463,8 +468,9 @@ function createDomainSection(domain, tabs, urlCounts) {
     tabList.appendChild(item);
   });
 
-  content.appendChild(actionBar);
-  content.appendChild(tabList);
+  contentInner.appendChild(actionBar);
+  contentInner.appendChild(tabList);
+  content.appendChild(contentInner);
   section.appendChild(header);
   section.appendChild(content);
 
@@ -629,7 +635,7 @@ async function closeDuplicatesOfUrl(url, allTabs) {
       }
 
       await chrome.tabs.remove(tabIdsToClose);
-      console.log(`✅ Closed ${tabIdsToClose.length} duplicates of ${url}`);
+      log(`✅ Closed ${tabIdsToClose.length} duplicates of ${url}`);
     }
 
     // Show browser warning if tabs were skipped
@@ -639,8 +645,8 @@ async function closeDuplicatesOfUrl(url, allTabs) {
     }
 
     await loadAndRender();
-  } catch (error) {
-    console.error('❌ Error closing duplicates:', error);
+  } catch (err) {
+    error('❌ Error closing duplicates:', err);
   }
 }
 
@@ -772,7 +778,7 @@ async function closeTab(tabId) {
         browserTabsSkipped = 0;
       }, 3000);
 
-      console.log(`⚠️ Cannot close browser tab: ${tab.url}`);
+      log(`⚠️ Cannot close browser tab: ${tab.url}`);
       return;
     }
 
@@ -789,12 +795,12 @@ async function closeTab(tabId) {
 
     // Now remove the tab from Chrome
     await chrome.tabs.remove(tabId);
-    console.log(`✅ Closed tab ${tabId}`);
+    log(`✅ Closed tab ${tabId}`);
 
     // Refresh the list
     await loadAndRender();
-  } catch (error) {
-    console.error('❌ Error closing tab:', error);
+  } catch (err) {
+    error('❌ Error closing tab:', err);
   }
 }
 
@@ -896,7 +902,7 @@ async function closeAllDuplicates() {
     if (tabIdsToClose.length > 0) {
       const closedCount = tabIdsToClose.length;
       await chrome.tabs.remove(tabIdsToClose);
-      console.log(`✅ Closed ${closedCount} duplicate tabs`);
+      log(`✅ Closed ${closedCount} duplicate tabs`);
 
       // Store count for undo
       lastClosedCount = closedCount;
@@ -908,8 +914,8 @@ async function closeAllDuplicates() {
 
     // Refresh the list
     await loadAndRender();
-  } catch (error) {
-    console.error('❌ Error closing duplicates:', error);
+  } catch (err) {
+    error('❌ Error closing duplicates:', err);
   }
 }
 
@@ -1246,11 +1252,11 @@ async function loadAndRender() {
     const tabs = await chrome.tabs.query(queryOptions);
     const duplicates = findDuplicates(tabs, settings.matchMode);
 
-    console.log(`📊 Loaded ${tabs.length} tabs (${settings.currentWindowOnly ? 'current window' : 'all windows'}), ${duplicates.length} duplicates`);
+    log(`📊 Loaded ${tabs.length} tabs (${settings.currentWindowOnly ? 'current window' : 'all windows'}), ${duplicates.length} duplicates`);
 
     render(tabs, duplicates);
-  } catch (error) {
-    console.error('❌ Error loading tabs:', error);
+  } catch (err) {
+    error('❌ Error loading tabs:', err);
   }
 }
 
@@ -1409,6 +1415,7 @@ allTabsHeaderEl.addEventListener('click', () => toggleSection('allTabs'));
 
 // Initial load - wait for settings and section states before rendering
 (async () => {
+  await initLogger();
   await loadSettings();
   await loadSectionStates();
   updateScopeButton();

@@ -408,14 +408,19 @@ body {
 
 /* Section Content (Collapsible) */
 .section-content {
-  overflow: hidden;
-  transition: max-height 0.25s ease, opacity 0.2s ease;
-  max-height: 2000px;
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.25s ease, opacity 0.2s ease;
   opacity: 1;
 }
 
+.section-content-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
 .section-content.collapsed {
-  max-height: 0;
+  grid-template-rows: 0fr;
   opacity: 0;
 }
 
