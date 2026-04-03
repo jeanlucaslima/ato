@@ -54,6 +54,8 @@ const allTabsHeaderEl = document.getElementById('all-tabs-header');
 const allTabsContentEl = document.getElementById('all-tabs-content');
 const allTabsSectionCountEl = document.getElementById('all-tabs-section-count');
 const domainSectionsContainer = document.getElementById('domain-sections-container');
+const domainSortBarEl = document.getElementById('domain-sort-bar');
+const domainSortButtonsEl = document.getElementById('domain-sort-buttons');
 
 // Search results section elements
 const searchResultsContainerEl = document.getElementById('search-results-container');
@@ -78,6 +80,7 @@ let settings = {
 let activeDomain = null;
 let activeSort = 'default';
 let duplicateSortOrder = 'default'; // Sort order for duplicates section
+let domainSectionSort = 'az'; // Sort order for domain sections
 let allDomainGroups = []; // Store domain groups for filtering
 let highlightedOptionIndex = -1; // Track highlighted option in dropdown
 let ageSortDirection = 'old'; // 'old' or 'new' - toggles on each click
@@ -1475,11 +1478,32 @@ function render(tabs, duplicates) {
     }
   });
 
-  // Sort alphabetically by domain name, ignoring www. prefix (stable order that doesn't change when tabs are closed)
+  // Sort domain sections based on selected sort order
   largeDomains.sort((a, b) => {
     const domainA = a.domain.replace(/^www\./, '');
     const domainB = b.domain.replace(/^www\./, '');
-    return domainA.localeCompare(domainB);
+    switch (domainSectionSort) {
+      case 'za':
+        return domainB.localeCompare(domainA);
+      case 'count':
+        return b.tabs.length - a.tabs.length || domainA.localeCompare(domainB);
+      case 'recent': {
+        const recentA = a.tabs.reduce((max, t) => Math.max(max, t.lastAccessed || 0), 0);
+        const recentB = b.tabs.reduce((max, t) => Math.max(max, t.lastAccessed || 0), 0);
+        return recentB - recentA || domainA.localeCompare(domainB);
+      }
+      case 'az':
+      default:
+        return domainA.localeCompare(domainB);
+    }
+  });
+
+  // Show/hide domain sort bar based on whether there are domain sections
+  domainSortBarEl.classList.toggle('hidden', largeDomains.length === 0);
+
+  // Update active state on domain sort buttons
+  domainSortButtonsEl.querySelectorAll('.btn-toggle').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.sort === domainSectionSort);
   });
 
   // Render each domain section
@@ -1784,6 +1808,15 @@ duplicatesSortButtonsEl.addEventListener('click', (e) => {
   const btn = e.target.closest('.btn-toggle');
   if (btn && btn.dataset.sort) {
     duplicateSortOrder = btn.dataset.sort;
+    loadAndRender();
+  }
+});
+
+// Sort button group event listener (Domain sections)
+domainSortButtonsEl.addEventListener('click', (e) => {
+  const btn = e.target.closest('.btn-toggle');
+  if (btn && btn.dataset.sort) {
+    domainSectionSort = btn.dataset.sort;
     loadAndRender();
   }
 });

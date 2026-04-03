@@ -334,6 +334,7 @@ body {
 .btn-action.btn-options {
   background: var(--bg-tertiary);
   color: var(--text-secondary);
+  padding: 6px 8px;
 }
 
 .btn-action.btn-options:hover {
@@ -940,6 +941,11 @@ body {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+/* Domain Sections Sort Bar */
+.domain-sections-sort-bar {
+  padding: 8px 16px 0;
 }
 
 /* Domain Sections Container */

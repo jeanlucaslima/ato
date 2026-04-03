@@ -76,7 +76,6 @@
             <circle cx="12" cy="12" r="3"/>
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
           </svg>
-          <span>Options</span>
         </button>
       </div>
     </div>
@@ -184,6 +183,17 @@
       </div>
     </div>
 
+    <!-- Domain Sections Sort Bar -->
+    <div class="domain-sections-sort-bar sort-bar hidden" id="domain-sort-bar">
+      <span class="action-label">Sort groups:</span>
+      <div class="btn-group" id="domain-sort-buttons">
+        <button class="btn-toggle active" data-sort="az" title="Alphabetical A-Z">A-Z</button>
+        <button class="btn-toggle" data-sort="za" title="Alphabetical Z-A">Z-A</button>
+        <button class="btn-toggle" data-sort="count" title="Most tabs first">Most</button>
+        <button class="btn-toggle" data-sort="recent" title="Most recently accessed first">Recent</button>
+      </div>
+    </div>
+
     <!-- Domain Sections (for domains with 3+ tabs) -->
     <div id="domain-sections-container" class="domain-sections-container">
       <!-- Will be populated by JavaScript -->
@@ -191,7 +201,7 @@
 
     <!-- Footer -->
     <footer class="popup-footer">
-      <span id="footer-version">v1.4.3</span>
+      <span id="footer-version">v1.5.0</span>
       <span class="footer-separator">·</span>
       <a href="https://github.com/jeanlucaslima/ato" target="_blank" rel="noopener">GitHub</a>
       <span class="footer-separator">·</span>
