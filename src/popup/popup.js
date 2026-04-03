@@ -80,7 +80,9 @@ let settings = {
 let activeDomain = null;
 let activeSort = 'default';
 let duplicateSortOrder = 'default'; // Sort order for duplicates section
-let domainSectionSort = 'az'; // Sort order for domain sections
+let domainSectionSort = 'name'; // Sort order for domain sections
+let domainNameDirection = 'az'; // 'az' or 'za' - toggles on click
+let domainCountDirection = 'most'; // 'most' or 'few' - toggles on click
 let allDomainGroups = []; // Store domain groups for filtering
 let highlightedOptionIndex = -1; // Track highlighted option in dropdown
 let ageSortDirection = 'old'; // 'old' or 'new' - toggles on each click
@@ -1483,16 +1485,21 @@ function render(tabs, duplicates) {
     const domainA = a.domain.replace(/^www\./, '');
     const domainB = b.domain.replace(/^www\./, '');
     switch (domainSectionSort) {
-      case 'za':
-        return domainB.localeCompare(domainA);
-      case 'count':
-        return b.tabs.length - a.tabs.length || domainA.localeCompare(domainB);
+      case 'name':
+        return domainNameDirection === 'az'
+          ? domainA.localeCompare(domainB)
+          : domainB.localeCompare(domainA);
+      case 'count': {
+        const diff = domainCountDirection === 'most'
+          ? b.tabs.length - a.tabs.length
+          : a.tabs.length - b.tabs.length;
+        return diff || domainA.localeCompare(domainB);
+      }
       case 'recent': {
         const recentA = a.tabs.reduce((max, t) => Math.max(max, t.lastAccessed || 0), 0);
         const recentB = b.tabs.reduce((max, t) => Math.max(max, t.lastAccessed || 0), 0);
         return recentB - recentA || domainA.localeCompare(domainB);
       }
-      case 'az':
       default:
         return domainA.localeCompare(domainB);
     }
@@ -1501,9 +1508,14 @@ function render(tabs, duplicates) {
   // Show/hide domain sort bar based on whether there are domain sections
   domainSortBarEl.classList.toggle('hidden', largeDomains.length === 0);
 
-  // Update active state on domain sort buttons
+  // Update active state and labels on domain sort buttons
   domainSortButtonsEl.querySelectorAll('.btn-toggle').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.sort === domainSectionSort);
+    if (btn.dataset.sort === 'name') {
+      btn.textContent = domainNameDirection === 'az' ? 'A-Z' : 'Z-A';
+    } else if (btn.dataset.sort === 'count') {
+      btn.textContent = domainCountDirection === 'most' ? 'Most' : 'Few';
+    }
   });
 
   // Render each domain section
@@ -1816,7 +1828,19 @@ duplicatesSortButtonsEl.addEventListener('click', (e) => {
 domainSortButtonsEl.addEventListener('click', (e) => {
   const btn = e.target.closest('.btn-toggle');
   if (btn && btn.dataset.sort) {
-    domainSectionSort = btn.dataset.sort;
+    const newSort = btn.dataset.sort;
+    // Toggle direction if clicking the same button again
+    if (newSort === 'name' && domainSectionSort === 'name') {
+      domainNameDirection = domainNameDirection === 'az' ? 'za' : 'az';
+    } else if (newSort === 'name') {
+      domainNameDirection = 'az';
+    }
+    if (newSort === 'count' && domainSectionSort === 'count') {
+      domainCountDirection = domainCountDirection === 'most' ? 'few' : 'most';
+    } else if (newSort === 'count') {
+      domainCountDirection = 'most';
+    }
+    domainSectionSort = newSort;
     loadAndRender();
   }
 });
