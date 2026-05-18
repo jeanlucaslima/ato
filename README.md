@@ -2,12 +2,28 @@
 
 Kill duplicate tabs instantly. Stay focused.
 
+<p align="center">
+  <img src="docs/screenshots/popup.png" alt="ATO popup showing tab stats, search, duplicates section, and domain-grouped tab list" width="420">
+</p>
+
 ## What It Does
 
 - **Badge Counter** - Shows how many duplicate tabs you have
 - **One-Click Cleanup** - Close all duplicates with one button
+- **Search** - Filter open tabs by title or URL with keyboard navigation
+- **Domain Groups** - Tabs grouped by site, sortable A-Z / Most / Recent
+- **Merge & Close per Domain** - Consolidate or clear all tabs from a site
+- **Undo** - Restore tabs you just closed
 - **Keyboard Shortcut** - `Cmd+U` (Mac) or `Ctrl+U` (Windows/Linux)
 - **Real-Time Updates** - Badge updates automatically as you browse
+
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/popup.png" alt="Popup overview with stats, search, view toggle, duplicates section, and domain groups" width="420">
+</p>
+
+Stats header (tabs / duplicates / domains), search bar, view toggle, duplicates section with sort options, and domain-grouped tab list with per-domain Merge and Close actions.
 
 ## Installation
 
