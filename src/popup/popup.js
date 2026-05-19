@@ -62,6 +62,7 @@ const searchResultsContainerEl = document.getElementById('search-results-contain
 const searchResultsListEl = document.getElementById('search-results-list');
 const searchResultsSectionCountEl = document.getElementById('search-results-section-count');
 const searchEmptyStateEl = document.getElementById('search-empty-state');
+const closeSearchResultsBtn = document.getElementById('close-search-results-btn');
 
 // Settings (loaded from chrome.storage.sync)
 let settings = {
@@ -1097,6 +1098,51 @@ async function closeAllDuplicates() {
   }
 }
 
+/**
+ * Closes all tabs currently shown in the search results.
+ * Honors protectPinned / protectGroups, never closes the active tab,
+ * and skips browser-internal URLs that Chrome won't let extensions close.
+ */
+async function closeAllSearchResults() {
+  try {
+    if (!searchResultTabIds || searchResultTabIds.length === 0) return;
+
+    const idSet = new Set(searchResultTabIds);
+    const allTabs = await chrome.tabs.query({});
+    let tabsToClose = allTabs.filter(tab => idSet.has(tab.id));
+
+    const activeTabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const activeTabId = activeTabs[0]?.id;
+    tabsToClose = tabsToClose.filter(tab => tab.id !== activeTabId);
+
+    if (settings.protectPinned) {
+      tabsToClose = tabsToClose.filter(tab => !tab.pinned);
+    }
+    if (settings.protectGroups) {
+      tabsToClose = tabsToClose.filter(tab => tab.groupId === -1 || tab.groupId === undefined);
+    }
+    tabsToClose = tabsToClose.filter(tab => !isBrowserUrl(tab.url));
+
+    const tabIdsToClose = tabsToClose.map(tab => tab.id);
+    if (tabIdsToClose.length === 0) {
+      await loadAndRender();
+      return;
+    }
+
+    const closedCount = tabIdsToClose.length;
+    await chrome.tabs.remove(tabIdsToClose);
+    log(`✅ Closed ${closedCount} search-result tabs`);
+
+    lastClosedCount = closedCount;
+    undoContext = 'search';
+    showUndoButton('search');
+
+    await loadAndRender();
+  } catch (err) {
+    error('❌ Error closing search results:', err);
+  }
+}
+
 // Render domain filter
 function renderDomainFilter(tabs) {
   allDomainGroups = groupTabsByDomain(tabs);
@@ -1263,6 +1309,7 @@ function render(tabs, duplicates) {
     searchEmptyStateEl.classList.add('hidden');
     searchResultsListEl.innerHTML = '';
     searchResultsSectionCountEl.textContent = searchResults.size;
+    closeSearchResultsBtn.classList.remove('hidden');
 
     // Use cached single-pass computation
     const { urlCounts } = computeRenderData(tabs);
@@ -1297,11 +1344,13 @@ function render(tabs, duplicates) {
     searchResultsSectionCountEl.textContent = '0';
     searchResultTabIds = [];
     highlightedResultIndex = -1;
+    closeSearchResultsBtn.classList.add('hidden');
   } else {
     // Hide search results section when not searching
     searchResultsContainerEl.classList.add('hidden');
     searchResultTabIds = [];
     highlightedResultIndex = -1;
+    closeSearchResultsBtn.classList.add('hidden');
   }
 
   // Use cached single-pass computation
@@ -1558,6 +1607,7 @@ async function loadAndRender() {
 
 // Event Listeners
 closeAllBtn.addEventListener('click', closeAllDuplicates);
+closeSearchResultsBtn.addEventListener('click', closeAllSearchResults);
 
 // Global search event listeners
 globalSearchInputEl.addEventListener('input', handleSearchInput);
