@@ -260,6 +260,14 @@ body {
   margin-bottom: 10px;
 }
 
+#close-search-results-btn {
+  margin-left: auto;
+}
+
+#close-search-results-btn.hidden {
+  display: none;
+}
+
 .search-results-list {
   display: flex;
   flex-direction: column;
