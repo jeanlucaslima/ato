@@ -9,7 +9,7 @@ import {
   formatTimeAgo,
   sortTabs,
   normalizeUrl,
-  fuzzySearchTab,
+  searchTab,
   highlightMatches
 } from '../shared/tab-utils.js';
 import { applyFont } from '../shared/font-config.js';
@@ -194,10 +194,9 @@ function performSearch(query, tabs) {
   }
 
   const results = new Map();
-  const normalizedQuery = query.trim();
 
   for (const tab of tabs) {
-    const match = fuzzySearchTab(normalizedQuery, tab);
+    const match = searchTab(query, tab);
     if (match) {
       results.set(tab.id, match);
     }

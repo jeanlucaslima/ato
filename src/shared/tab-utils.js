@@ -392,7 +392,145 @@ export function fuzzyMatch(pattern, text) {
 }
 
 /**
+ * Performs an exact whole-word match of a pattern against text.
+ * Unlike fuzzyMatch, the pattern must appear as a complete word (or phrase),
+ * delimited by word boundaries (start/end of string or a separator character).
+ * Matching is case-insensitive. All whole-word occurrences are highlighted.
+ *
+ * "burger" matches "tasty burger here" and "shop/burger" but NOT "burgers",
+ * "hamburger", or scattered subsets like "bu rger".
+ *
+ * @param {string} pattern - The exact word (or phrase) to match
+ * @param {string} text - The text to search within
+ * @returns {{score: number, indices: number[]}|null} Match result or null if no whole-word match
+ * @example
+ * exactWordMatch('burger', 'tasty burger'); // { score: ..., indices: [6,7,8,9,10,11] }
+ * exactWordMatch('burger', 'hamburger');     // null (not a whole word)
+ */
+export function exactWordMatch(pattern, text) {
+  if (!pattern || !text) return null;
+
+  const patternLower = pattern.toLowerCase();
+  const textLower = text.toLowerCase();
+  const patternLen = patternLower.length;
+  const textLen = textLower.length;
+
+  if (patternLen === 0 || patternLen > textLen) return null;
+
+  const indices = [];
+  let occurrences = 0;
+  let searchFrom = 0;
+
+  while (searchFrom <= textLen - patternLen) {
+    const idx = textLower.indexOf(patternLower, searchFrom);
+    if (idx === -1) break;
+
+    const endIdx = idx + patternLen;
+    const boundaryBefore = idx === 0 || isWordBoundary(text[idx - 1]);
+    const boundaryAfter = endIdx >= textLen || isWordBoundary(text[endIdx]);
+
+    if (boundaryBefore && boundaryAfter) {
+      for (let i = idx; i < endIdx; i++) {
+        indices.push(i);
+      }
+      occurrences++;
+    }
+
+    searchFrom = idx + 1;
+  }
+
+  if (occurrences === 0) return null;
+
+  // High base score so exact matches outrank fuzzy ones, plus a bonus per hit.
+  const score = 100 + occurrences * 10;
+  return { score, indices };
+}
+
+/**
+ * Parses a raw search query, detecting exact whole-word mode.
+ * A query wrapped in double quotes (e.g. `"burger"`) requests an exact
+ * whole-word match; otherwise the query is treated as a fuzzy search.
+ *
+ * @param {string} query - The raw search query
+ * @returns {{term: string, exact: boolean}} The cleaned term and whether exact mode is requested
+ * @example
+ * parseSearchQuery('"burger"'); // { term: 'burger', exact: true }
+ * parseSearchQuery('burger');   // { term: 'burger', exact: false }
+ */
+export function parseSearchQuery(query) {
+  if (typeof query !== 'string') {
+    return { term: '', exact: false };
+  }
+
+  const trimmed = query.trim();
+
+  if (trimmed.length >= 2 && trimmed.startsWith('"') && trimmed.endsWith('"')) {
+    return { term: trimmed.slice(1, -1).trim(), exact: true };
+  }
+
+  return { term: trimmed, exact: false };
+}
+
+/**
  * Searches a tab across title, URL, and domain fields.
+ * Returns the best match result or null if no match found.
+ *
+ * Supports two modes, selected by {@link parseSearchQuery}:
+ * - Fuzzy (default): characters match in order, scored by proximity.
+ * - Exact (query wrapped in double quotes, e.g. `"burger"`): whole-word match only.
+ *
+ * @param {string} query - The raw search query (may be quoted for exact mode)
+ * @param {Tab} tab - The tab object to search
+ * @returns {{score: number, matches: {title?: {score: number, indices: number[]}, url?: {score: number, indices: number[]}, domain?: {score: number, indices: number[]}}}|null}
+ * @example
+ * searchTab('git', { title: 'GitHub' });        // fuzzy match
+ * searchTab('"git"', { title: 'GitHub - git' }); // exact whole-word match
+ */
+export function searchTab(query, tab) {
+  if (!tab) return null;
+
+  const { term, exact } = parseSearchQuery(query);
+  if (!term) return null;
+
+  const matcher = exact ? exactWordMatch : fuzzyMatch;
+  const matches = {};
+  let bestScore = 0;
+
+  // Search title
+  if (tab.title) {
+    const titleMatch = matcher(term, tab.title);
+    if (titleMatch) {
+      matches.title = titleMatch;
+      bestScore = Math.max(bestScore, titleMatch.score);
+    }
+  }
+
+  // Search URL
+  if (tab.url) {
+    const urlMatch = matcher(term, tab.url);
+    if (urlMatch) {
+      matches.url = urlMatch;
+      bestScore = Math.max(bestScore, urlMatch.score);
+    }
+  }
+
+  // Search domain
+  const domain = extractDomain(tab.url);
+  if (domain) {
+    const domainMatch = matcher(term, domain);
+    if (domainMatch) {
+      matches.domain = domainMatch;
+      bestScore = Math.max(bestScore, domainMatch.score);
+    }
+  }
+
+  if (Object.keys(matches).length === 0) return null;
+
+  return { score: bestScore, matches };
+}
+
+/**
+ * Searches a tab across title, URL, and domain fields using fuzzy matching.
  * Returns the best match result or null if no match found.
  *
  * @param {string} pattern - The search pattern

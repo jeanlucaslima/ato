@@ -9,6 +9,9 @@ import {
   normalizeUrl,
   fuzzyMatch,
   fuzzySearchTab,
+  exactWordMatch,
+  parseSearchQuery,
+  searchTab,
   highlightMatches
 } from './tab-utils.js';
 
@@ -701,6 +704,125 @@ describe('fuzzySearchTab', () => {
     expect(result).not.toBeNull();
     expect(result.matches).toHaveProperty('title');
     expect(result.matches).not.toHaveProperty('domain');
+  });
+});
+
+describe('exactWordMatch', () => {
+  it('returns null for empty pattern or text', () => {
+    expect(exactWordMatch('', 'hello')).toBeNull();
+    expect(exactWordMatch('hello', '')).toBeNull();
+  });
+
+  it('matches a standalone word', () => {
+    const result = exactWordMatch('burger', 'tasty burger here');
+    expect(result).not.toBeNull();
+    expect(result.indices).toEqual([6, 7, 8, 9, 10, 11]);
+  });
+
+  it('matches the whole word case-insensitively', () => {
+    const result = exactWordMatch('burger', 'Best BURGER ever');
+    expect(result).not.toBeNull();
+    expect(result.indices).toEqual([5, 6, 7, 8, 9, 10]);
+  });
+
+  it('matches a word at start of string', () => {
+    const result = exactWordMatch('burger', 'burger time');
+    expect(result.indices).toEqual([0, 1, 2, 3, 4, 5]);
+  });
+
+  it('matches a word at end of string', () => {
+    const result = exactWordMatch('burger', 'i want burger');
+    expect(result.indices).toEqual([7, 8, 9, 10, 11, 12]);
+  });
+
+  it('matches a word delimited by URL separators', () => {
+    const result = exactWordMatch('burger', 'https://shop.com/burger/menu');
+    expect(result).not.toBeNull();
+  });
+
+  it('does not match a subset of a longer word', () => {
+    expect(exactWordMatch('burger', 'hamburger')).toBeNull();
+    expect(exactWordMatch('burger', 'burgers')).toBeNull();
+    expect(exactWordMatch('bu', 'burger')).toBeNull();
+  });
+
+  it('does not match a split pattern', () => {
+    expect(exactWordMatch('burger', 'bu rger')).toBeNull();
+  });
+
+  it('highlights all whole-word occurrences', () => {
+    const result = exactWordMatch('burger', 'burger and burger');
+    expect(result.indices).toEqual([0, 1, 2, 3, 4, 5, 11, 12, 13, 14, 15, 16]);
+  });
+
+  it('returns null when pattern longer than text', () => {
+    expect(exactWordMatch('burger', 'bun')).toBeNull();
+  });
+});
+
+describe('parseSearchQuery', () => {
+  it('detects exact mode for quoted query', () => {
+    expect(parseSearchQuery('"burger"')).toEqual({ term: 'burger', exact: true });
+  });
+
+  it('treats unquoted query as fuzzy', () => {
+    expect(parseSearchQuery('burger')).toEqual({ term: 'burger', exact: false });
+  });
+
+  it('trims whitespace around and inside quotes', () => {
+    expect(parseSearchQuery('  "  burger  "  ')).toEqual({ term: 'burger', exact: true });
+  });
+
+  it('handles empty quoted query', () => {
+    expect(parseSearchQuery('""')).toEqual({ term: '', exact: true });
+  });
+
+  it('handles non-string input', () => {
+    expect(parseSearchQuery(null)).toEqual({ term: '', exact: false });
+    expect(parseSearchQuery(undefined)).toEqual({ term: '', exact: false });
+  });
+
+  it('does not treat a lone quote as exact mode', () => {
+    expect(parseSearchQuery('"')).toEqual({ term: '"', exact: false });
+  });
+});
+
+describe('searchTab', () => {
+  it('returns null for empty query', () => {
+    expect(searchTab('', { title: 'Hello' })).toBeNull();
+    expect(searchTab('""', { title: 'Hello' })).toBeNull();
+  });
+
+  it('returns null for null tab', () => {
+    expect(searchTab('hello', null)).toBeNull();
+  });
+
+  it('uses fuzzy matching for unquoted query', () => {
+    const tab = { title: 'GitHub Repository', url: 'https://example.com' };
+    const result = searchTab('gthb', tab);
+    expect(result).not.toBeNull();
+    expect(result.matches).toHaveProperty('title');
+  });
+
+  it('uses exact whole-word matching for quoted query', () => {
+    const tab = { title: 'tasty burger spot', url: 'https://example.com' };
+    const result = searchTab('"burger"', tab);
+    expect(result).not.toBeNull();
+    expect(result.matches.title.indices).toEqual([6, 7, 8, 9, 10, 11]);
+  });
+
+  it('exact mode rejects subset matches that fuzzy would accept', () => {
+    const tab = { title: 'hamburger menu', url: 'https://example.com' };
+    expect(searchTab('"burger"', tab)).toBeNull();
+    // but fuzzy still finds it
+    expect(searchTab('burger', tab)).not.toBeNull();
+  });
+
+  it('exact mode matches across url and domain', () => {
+    const tab = { title: 'Food', url: 'https://burger.com/menu' };
+    const result = searchTab('"burger"', tab);
+    expect(result).not.toBeNull();
+    expect(result.matches).toHaveProperty('domain');
   });
 });
 
