@@ -4,14 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**ATO** is a Manifest V3 Chrome Extension that helps manage duplicate tabs through a lightweight popup interface. Built with **vanilla JavaScript** (no frameworks), it prioritizes simplicity, performance, and focused functionality.
+**ATO (Advanced Tab Organizer)** is a Manifest V3 Chrome Extension that helps manage duplicate and excess tabs through a lightweight popup interface. Built with **vanilla JavaScript** (no frameworks), it prioritizes simplicity, performance, and focused functionality.
 
 **Key Principles:**
 - **Duplicates First**: Primary feature is detecting and closing duplicate tabs
 - **Popup Interface**: Quick keyboard access (`Cmd+U` / `Ctrl+U`)
 - **Minimal**: Ship essentials first, enhance progressively
 - **Vanilla JS**: Zero framework complexity, fast load times, small footprint
-- **Real-Time Badge**: Always shows duplicate count
+- **Real-Time Badge**: Always shows duplicate (or total tab) count
+- **Configurable**: A full options page lets users tune detection, badge, appearance, and protection
 
 ## Project Structure
 
@@ -22,13 +23,27 @@ src/
 │   └── service-worker.js      # Tab monitoring, duplicate detection, badge updates
 ├── popup/
 │   ├── popup.html             # Popup UI structure
-│   ├── popup.css              # Styling
-│   └── popup.js               # Popup logic
+│   ├── popup.css              # Popup styling
+│   └── popup.js               # Popup logic (search, domain groups, actions)
+├── options/
+│   ├── options.html           # Settings page UI
+│   ├── options.css            # Settings page styling
+│   └── options.js             # Settings load/save via chrome.storage.sync
 ├── shared/
-│   ├── tab-utils.js           # Shared utility functions
-│   └── tab-utils.test.js      # Tests
+│   ├── tab-utils.js           # Pure tab/search/sort utilities (shared by both contexts)
+│   ├── tab-utils.test.js      # Vitest tests for tab-utils
+│   ├── font-config.js         # Font family map + applyFont()
+│   ├── fonts.css              # @font-face declarations for bundled fonts
+│   └── logger.js              # Debug-gated logger (log/error/initLogger)
 └── assets/
-    └── icons/                 # Extension icons (16, 32, 48, 128)
+    ├── icons/                 # Extension icons (16, 32, 48, 128) + logo source
+    └── fonts/                 # Bundled variable fonts (.woff2)
+
+scripts/
+└── generate-icons.js          # Generates PNG icons from source via sharp
+
+docs/
+└── screenshots/               # README screenshots
 ```
 
 ## Development Workflow
@@ -39,7 +54,7 @@ src/
 # Install dependencies (first time only)
 npm install
 
-# Generate icon files (first time only)
+# Generate icon PNGs from source (runs automatically as part of build)
 npm run icons
 
 # Build extension to dist/
@@ -49,7 +64,11 @@ npm run build
 npm run dev
 
 # Run tests
-npm test
+npm test            # vitest run (once)
+npm run test:watch  # vitest watch mode
+
+# Package a versioned zip of dist/ for the Chrome Web Store
+npm run zip
 ```
 
 **Development cycle:**
@@ -57,6 +76,8 @@ npm test
 2. Rebuild: `npm run build` (or use `npm run dev` for watch mode)
 3. Reload extension in `chrome://extensions` (click reload icon)
 4. Test changes
+
+Note: `npm run build` runs `npm run icons` first, so a fresh build regenerates icons via `sharp`.
 
 ### TypeScript Support
 
@@ -73,78 +94,107 @@ TypeScript is configured but optional:
 Chrome extensions run in separate contexts:
 
 1. **Background Service Worker** (`background/service-worker.js`)
-   - Runs independently in background
-   - Listens to tab events via Chrome APIs
-   - Detects duplicates by comparing tab URLs
-   - Updates badge text with duplicate count
+   - Runs as an ES module (`"type": "module"` in manifest)
+   - Listens to tab events via Chrome APIs (debounced, 300ms)
+   - Detects duplicates by comparing normalized tab URLs
+   - Updates badge text with duplicate count or total tab count
+   - Restores tabs on `undoCloseTabs` messages from the popup
+   - Reacts to settings changes via `chrome.storage.onChanged`
    - No DOM access, no UI rendering
 
 2. **Popup** (`popup/popup.html` + `.js` + `.css`)
-   - Opens when user clicks extension icon or uses `Cmd+U` / `Ctrl+U`
-   - Queries tabs from Chrome API
-   - Displays duplicate tabs in UI
-   - Handles user actions (close duplicates, etc.)
-   - Separate instance each time popup opens
+   - Opens on extension icon click or `Cmd+U` / `Ctrl+U`
+   - Queries tabs, renders duplicates section + domain groups
+   - Fuzzy/exact search with keyboard navigation and match highlighting
+   - Per-domain merge/close, close-all-duplicates, undo
+   - Separate instance each time the popup opens
 
-3. **Shared Utilities** (`shared/tab-utils.js`)
-   - Pure functions used by both contexts
-   - `findDuplicates()`, `extractDomain()`, `sortTabs()`, etc.
-   - Fully tested with Vitest
+3. **Options Page** (`options/options.html` + `.js` + `.css`)
+   - Opened from the extension's options entry (`options_page` in manifest)
+   - Loads/saves all settings to `chrome.storage.sync`
+   - Saves each setting on change (no explicit save button)
+   - Applies theme and font live
 
-**Communication:** Use `chrome.runtime.sendMessage()` and `chrome.runtime.onMessage` to pass data between contexts.
+4. **Shared Utilities** (`shared/`)
+   - `tab-utils.js`: pure functions used by both popup and service worker
+   - `font-config.js`: `FONT_FAMILIES` map + `applyFont()`
+   - `logger.js`: debug-gated logging
+   - Pure functions are covered by `tab-utils.test.js` (Vitest)
+
+**Communication:**
+- Popup → background: `chrome.runtime.sendMessage()` (e.g. `{ action: 'undoCloseTabs', count }`)
+- Settings propagation: the service worker and logger listen to `chrome.storage.onChanged` (sync area). This is the source of truth — settings changes apply automatically when storage updates.
 
 ## Key Implementation Details
 
-### Duplicate Detection Logic
+### Settings (chrome.storage.sync)
 
-**Location:** `shared/tab-utils.js`
+All settings live in `chrome.storage.sync`. Defaults are declared in `options/options.js` (`DEFAULT_SETTINGS`); the service worker reads its subset with matching defaults.
 
-```javascript
-function findDuplicates(tabs) {
-  const urlMap = new Map();
-  const duplicates = [];
+| Key                | Type     | Default        | Used by            | Purpose |
+| ------------------ | -------- | -------------- | ------------------ | ------- |
+| `theme`            | select   | `dark`         | options            | UI theme (`data-theme` attribute) |
+| `fontFamily`       | select   | `titillium`    | options, popup     | Font key from `FONT_FAMILIES` |
+| `matchMode`        | select   | `exact`        | worker, popup      | URL normalization for duplicate detection |
+| `keepTab`          | select   | `oldest`       | popup              | Which tab to keep when closing duplicates |
+| `protectPinned`    | checkbox | `true`         | popup              | Never close pinned tabs |
+| `protectGroups`    | checkbox | `false`        | popup              | Never close grouped tabs |
+| `showBadge`        | checkbox | `true`         | worker             | Show/hide the toolbar badge |
+| `badgeMode`        | select   | `duplicates`   | worker             | `duplicates` (count, hidden at 0) or `allTabs` (always shown) |
+| `badgeColor`       | color    | `#DC2626`      | worker             | Badge background color |
+| `advancedMode`     | checkbox | `false`        | options            | Reveals advanced settings section |
+| `currentWindowOnly`| checkbox | `false`        | worker             | Scope detection to current window |
+| `showMergeButton`  | checkbox | `false`        | popup              | Show per-domain merge action |
+| `debugLogging`     | checkbox | `false`        | logger (all)       | Gate verbose `log()` output |
 
-  tabs.forEach(tab => {
-    if (isInternalUrl(tab.url)) return;
+When adding a setting: add it to `DEFAULT_SETTINGS` and `SETTING_TYPES` in `options/options.js`, add a control with a matching `id` in `options.html`, and (if the worker needs it) add it to `loadSettings()` and the `onChanged` handler in `service-worker.js`.
 
-    if (urlMap.has(tab.url)) {
-      duplicates.push(tab);
-    } else {
-      urlMap.set(tab.url, tab);
-    }
-  });
+### Shared Utilities (`shared/tab-utils.js`)
 
-  return duplicates;
-}
-```
+Exported pure functions (all JSDoc-documented and tested):
 
-**Behavior:**
-- Skips `chrome://` and `edge://` internal pages
+- `normalizeUrl(url, matchMode)` — normalizes per match mode: `exact`, `ignoreQuery`, `ignoreHash`, `ignoreQueryAndHash`
+- `findDuplicates(tabs, matchMode)` — first occurrence is the original; later ones are duplicates. Skips empty/loading URLs
+- `extractDomain(url)` — hostname or `null`
+- `countDuplicatesByUrl(tabs, matchMode)` — `Map<url, count>`
+- `groupTabsByDomain(tabs)` — `DomainGroup[]` sorted by count desc
+- `formatTimeAgo(timestamp)` — `"2m"`, `"3h"`, `"5d"`, `"now"`, or `"—"`
+- `sortTabs(tabs, sortBy, urlCounts, ageSortDirection)` — sort by `title`, `title-desc`, `domain`, `age`, `duplicates`, or `default`
+- `parseSearchQuery(query)` — detects exact mode: a query wrapped in `"double quotes"` → `{ term, exact: true }`
+- `fuzzyMatch(pattern, text)` / `exactWordMatch(pattern, text)` — return `{ score, indices }` or `null`
+- `searchTab(query, tab)` — dispatches fuzzy vs exact via `parseSearchQuery`; searches title, URL, domain
+- `fuzzySearchTab(pattern, tab)` — fuzzy-only variant
+- `highlightMatches(text, indices)` — wraps matched chars in `<span class="fuzzy-match">`; HTML-escapes the rest
+
+### Duplicate Detection
+
+**Location:** `shared/tab-utils.js` (`findDuplicates`), driven by `matchMode`.
+
+- Skips empty URLs (tabs still loading)
+- URLs are normalized per `matchMode` before comparison, so e.g. `ignoreQuery` treats `?a=1` variants as duplicates
 - First occurrence = original, subsequent = duplicates
-- Active tab is never closed
+- The popup applies `keepTab`, `protectPinned`, and `protectGroups` when deciding what to actually close; the active tab is never closed
 
 ### Badge Updates
 
-**Location:** `background/service-worker.js`
+**Location:** `background/service-worker.js` (`updateBadge` / `scanAndUpdateBadge`).
 
-```javascript
-function updateBadge(count) {
-  if (count > 0) {
-    chrome.action.setBadgeText({ text: String(count) });
-    chrome.action.setBadgeBackgroundColor({ color: '#DC2626' });
-  } else {
-    chrome.action.setBadgeText({ text: '' });
-  }
-}
-```
+- Respects `showBadge`, `badgeMode`, `badgeColor`, `currentWindowOnly`
+- `duplicates` mode: shows duplicate count, hidden when 0
+- `allTabs` mode: always shows total tab count
+- Scans are debounced (`SCAN_DEBOUNCE_MS = 300`) to batch rapid tab events
 
 ### Tab Event Listeners
 
-Monitor these events in `service-worker.js`:
+Monitored in `service-worker.js` (each triggers a debounced rescan):
 - `chrome.tabs.onCreated`
-- `chrome.tabs.onUpdated`
+- `chrome.tabs.onUpdated` (only when `changeInfo.url` changes)
 - `chrome.tabs.onRemoved`
 - `chrome.tabs.onReplaced`
+
+### Logging
+
+**Location:** `shared/logger.js`. Use `log(...)` for verbose output (gated by the `debugLogging` setting) and `error(...)` for errors (always logged). Call `initLogger()` once at startup; it loads the setting and subscribes to changes. Prefer these over raw `console.*` in extension code.
 
 ### Keyboard Shortcut
 
@@ -154,10 +204,7 @@ Monitor these events in `service-worker.js`:
 {
   "commands": {
     "_execute_action": {
-      "suggested_key": {
-        "default": "Ctrl+U",
-        "mac": "Command+U"
-      },
+      "suggested_key": { "default": "Ctrl+U", "mac": "Command+U" },
       "description": "Open ATO popup"
     }
   }
@@ -169,69 +216,75 @@ Monitor these events in `service-worker.js`:
 ### Automated Tests
 
 ```bash
-npm test           # Run once
-npm run test:watch # Watch mode
+npm test            # run once
+npm run test:watch  # watch mode
 ```
 
-Tests are in `src/shared/tab-utils.test.js` using Vitest.
+Tests live in `src/shared/tab-utils.test.js` (Vitest). Keep them in sync with `tab-utils.js` — every exported function should have coverage.
 
 ### Manual Testing Checklist
 
 1. **Badge Count Accuracy**
-   - Open several duplicate tabs (same URL)
-   - Verify badge shows correct count
-   - Close duplicates manually, verify count decreases
+   - Open duplicate tabs (same URL); verify badge shows correct count
+   - Toggle `badgeMode` between `duplicates` and `allTabs`; verify behavior
+   - Toggle `showBadge` off; verify the badge clears
 
 2. **Popup Functionality**
-   - Press `Cmd+U` / `Ctrl+U` - popup should open
-   - Popup should list duplicate tabs
-   - "Close All Duplicates" should close them
-   - Badge should update to 0
+   - `Cmd+U` / `Ctrl+U` opens the popup
+   - Duplicates section lists duplicates; "Close duplicates" closes them and badge updates
+   - Search filters tabs (try fuzzy and `"exact"` quoted queries) with keyboard nav
+   - Per-domain merge/close behave per `showMergeButton`, `protectPinned`, `protectGroups`
+   - Undo restores recently closed tabs
 
-3. **Edge Cases**
-   - Test with 0 duplicates (badge should be empty)
-   - Test with many tabs
-   - Test with tabs from different windows
+3. **Settings**
+   - Change settings in the options page; verify they persist and the badge/popup react live
+   - Toggle `advancedMode`; verify advanced section visibility
+
+4. **Edge Cases**
+   - 0 duplicates (badge empty in `duplicates` mode)
+   - Many tabs; tabs across multiple windows; `currentWindowOnly` scoping
 
 ## Common Development Tasks
 
-### Adding a New Action to Popup
+### Adding a New Action to the Popup
+1. Add a control to `popup.html`
+2. Wire an event listener in `popup.js`
+3. Use the Chrome API (e.g. `chrome.tabs.remove(tabId)`) or message the worker
 
-1. Add button to `popup.html`
-2. Add event listener in `popup.js`
-3. Use Chrome API (e.g., `chrome.tabs.remove(tabId)`)
+### Adding a New Setting
+See "Settings" above — touch `options.js` (`DEFAULT_SETTINGS` + `SETTING_TYPES`), `options.html`, and the worker if it consumes the value.
 
-### Changing Duplicate Logic
-
-1. Edit functions in `shared/tab-utils.js`
+### Changing Duplicate / Search / Sort Logic
+1. Edit the relevant function in `shared/tab-utils.js`
 2. Update tests in `shared/tab-utils.test.js`
-3. Run `npm test` to verify
-4. Reload extension
+3. Run `npm test`, then reload the extension
 
-### Styling Changes
-
-1. Edit `popup.css`
-2. Reload extension
-3. Reopen popup to see changes
+### Adding a Font
+1. Drop the `.woff2` in `assets/fonts/<Name>/`
+2. Add an `@font-face` in `shared/fonts.css`
+3. Add the key to `FONT_FAMILIES` in `shared/font-config.js`
+4. Add the `<option>` to the font select in `options.html`
 
 ## Permissions
 
 ```json
 {
-  "permissions": [
-    "tabs",      // Read tab info (title, URL, etc.)
-    "storage",   // Save user preferences
-    "sessions"   // Undo closed tabs
-  ],
-  "host_permissions": [
-    "<all_urls>" // Required to access tab URLs and favicons
-  ]
+  "permissions": ["tabs", "storage", "sessions"],
+  "host_permissions": ["<all_urls>"]
 }
 ```
 
+- `tabs` — read tab info (title, URL, etc.)
+- `storage` — persist user settings (`chrome.storage.sync`)
+- `sessions` — restore (undo) closed tabs
+- `<all_urls>` — access tab URLs and favicons
+
 ## Conventions
 
-- When finishing a task, bump the version in `manifest.json` and commit
+- When finishing a task, bump the version in **both** `manifest.json` and `package.json`, then commit
 - Use conventional commits: `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`
-- Keep functions pure where possible
+- Keep functions pure where possible (especially in `shared/`)
 - Add JSDoc comments to exported functions
+- Use `log()` / `error()` from `logger.js` instead of raw `console.*`
+</content>
+</invoke>
