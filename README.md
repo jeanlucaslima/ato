@@ -10,6 +10,7 @@ Kill duplicate tabs instantly. Stay focused.
 
 - **Badge Counter** - Shows how many duplicate tabs you have
 - **One-Click Cleanup** - Close all duplicates with one button
+- **Playing Media** - Tabs producing sound are grouped in a section on top, and flagged with a speaker icon wherever they're listed
 - **Search** - Filter open tabs by title or URL with keyboard navigation
 - **Domain Groups** - Tabs grouped by site, sortable A-Z / Most / Recent
 - **Merge & Close per Domain** - Consolidate or clear all tabs from a site

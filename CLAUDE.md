@@ -104,7 +104,8 @@ Chrome extensions run in separate contexts:
 
 2. **Popup** (`popup/popup.html` + `.js` + `.css`)
    - Opens on extension icon click or `Cmd+U` / `Ctrl+U`
-   - Queries tabs, renders duplicates section + domain groups
+   - Queries tabs, renders a "Playing Media" section (audible tabs), duplicates section + domain groups
+   - Tabs producing sound (`tab.audible`) get a speaker icon wherever they're listed (media section, all tabs, domain groups, duplicates, search)
    - Fuzzy/exact search with keyboard navigation and match highlighting
    - Per-domain merge/close, close-all-duplicates, undo
    - Separate instance each time the popup opens

@@ -8,6 +8,7 @@ import {
   groupTabsByDomain,
   formatTimeAgo,
   sortTabs,
+  sortAudibleFirst,
   normalizeUrl,
   searchTab,
   highlightMatches
@@ -47,6 +48,11 @@ const globalSearchClearEl = document.getElementById('global-search-clear');
 const searchResultsCountEl = document.getElementById('search-results-count');
 
 // Collapsible section elements
+const mediaContainerEl = document.getElementById('media-container');
+const mediaHeaderEl = document.getElementById('media-header');
+const mediaContentEl = document.getElementById('media-content');
+const mediaSectionCountEl = document.getElementById('media-section-count');
+const mediaListEl = document.getElementById('media-list');
 const duplicatesHeaderEl = document.getElementById('duplicates-header');
 const duplicatesContentEl = document.getElementById('duplicates-content');
 const duplicatesSectionCountEl = document.getElementById('duplicates-section-count');
@@ -88,6 +94,7 @@ let allDomainGroups = []; // Store domain groups for filtering
 let highlightedOptionIndex = -1; // Track highlighted option in dropdown
 let ageSortDirection = 'old'; // 'old' or 'new' - toggles on each click
 let sectionStates = {
+  media: true,      // expanded by default
   duplicates: true, // expanded by default
   allTabs: true     // expanded by default
 };
@@ -312,7 +319,8 @@ async function loadSectionStates() {
   try {
     const result = await chrome.storage.local.get(['sectionStates', 'domainSectionStates']);
     if (result.sectionStates) {
-      sectionStates = result.sectionStates;
+      // Merge so newly added sections (e.g. media) keep their default state
+      sectionStates = { ...sectionStates, ...result.sectionStates };
     }
     if (result.domainSectionStates) {
       domainSectionStates = result.domainSectionStates;
@@ -375,6 +383,10 @@ async function saveSectionStates() {
 
 // Apply current section states to the DOM
 function applySectionStates() {
+  // Playing Media section
+  mediaHeaderEl.setAttribute('aria-expanded', sectionStates.media);
+  mediaContentEl.classList.toggle('collapsed', !sectionStates.media);
+
   // Duplicates section
   duplicatesHeaderEl.setAttribute('aria-expanded', sectionStates.duplicates);
   duplicatesContentEl.classList.toggle('collapsed', !sectionStates.duplicates);
@@ -632,8 +644,8 @@ function createDomainSection(domain, tabs, urlCounts) {
   const tabList = document.createElement('div');
   tabList.className = 'domain-tabs-list';
 
-  // Add tabs
-  tabs.forEach((tab, index) => {
+  // Add tabs, floating any tab playing media to the top of the group
+  sortAudibleFirst(tabs).forEach((tab, index) => {
     const dupCount = urlCounts.get(tab.url) || 0;
     const item = createTabItem(tab, dupCount, index, null);
     tabList.appendChild(item);
@@ -646,6 +658,25 @@ function createDomainSection(domain, tabs, urlCounts) {
   section.appendChild(content);
 
   return section;
+}
+
+/**
+ * Creates a "playing media" indicator icon for an audible tab.
+ *
+ * @returns {HTMLSpanElement} A span containing a speaker SVG icon
+ */
+function createMediaIcon() {
+  const span = document.createElement('span');
+  span.className = 'tab-media-icon';
+  span.title = 'Playing media';
+  span.innerHTML = `
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M11 5 6 9H2v6h4l5 4V5z"/>
+      <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+      <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+    </svg>
+  `;
+  return span;
 }
 
 /**
@@ -725,6 +756,12 @@ function createGroupedDuplicateItem(group, index = 0, matchResult = null) {
 
   item.appendChild(favicon);
   item.appendChild(info);
+
+  // Media indicator if any tab sharing this URL is playing media
+  if (duplicateTabs.some(t => t.audible)) {
+    item.appendChild(createMediaIcon());
+  }
+
   item.appendChild(badge);
   item.appendChild(closeBtn);
 
@@ -898,6 +935,11 @@ function createTabItem(tab, duplicateCount = 0, index = 0, matchResult = null) {
 
   item.appendChild(favicon);
   item.appendChild(info);
+
+  // Media indicator if this tab is playing media
+  if (tab.audible) {
+    item.appendChild(createMediaIcon());
+  }
 
   // Age indicator
   const age = document.createElement('span');
@@ -1365,6 +1407,21 @@ function render(tabs, duplicates) {
   duplicateCountEl.textContent = duplicates.length;
   domainCountEl.textContent = domainGroups.length;
 
+  // Render Playing Media section (tabs currently producing sound)
+  const audibleTabs = tabs.filter(tab => tab.audible);
+  mediaSectionCountEl.textContent = audibleTabs.length;
+  mediaListEl.innerHTML = '';
+  if (audibleTabs.length > 0) {
+    mediaContainerEl.classList.remove('hidden');
+    audibleTabs.forEach((tab, index) => {
+      const count = urlCounts.get(tab.url) || 0;
+      const item = createTabItem(tab, count, index, null);
+      mediaListEl.appendChild(item);
+    });
+  } else {
+    mediaContainerEl.classList.add('hidden');
+  }
+
   // Update section counts - show total tabs involved in duplicate groups (including originals)
   const duplicateNormalizedUrls = new Set(duplicates.map(tab => normalizeUrl(tab.url, settings.matchMode)));
   const totalTabsInDuplicateGroups = tabs.filter(tab => duplicateNormalizedUrls.has(normalizeUrl(tab.url, settings.matchMode))).length;
@@ -1489,8 +1546,8 @@ function render(tabs, duplicates) {
     });
   }
 
-  // Apply sorting
-  visibleTabs = sortTabs(visibleTabs, activeSort, urlCounts, ageSortDirection);
+  // Apply sorting, then float any tab playing media to the top
+  visibleTabs = sortAudibleFirst(sortTabs(visibleTabs, activeSort, urlCounts, ageSortDirection));
 
   // Update all tabs section count
   allTabsSectionCountEl.textContent = visibleTabs.length;
@@ -1674,6 +1731,24 @@ duplicateListEl.addEventListener('click', (e) => {
 });
 
 allTabsListEl.addEventListener('click', (e) => {
+  const closeBtn = e.target.closest('.tab-close');
+  const item = e.target.closest('.tab-item');
+
+  if (closeBtn && item) {
+    e.stopPropagation();
+    const tabId = parseInt(item.dataset.tabId, 10);
+    if (tabId) closeTab(tabId);
+    return;
+  }
+
+  if (item) {
+    const tabId = parseInt(item.dataset.tabId, 10);
+    const windowId = parseInt(item.dataset.windowId, 10);
+    if (tabId) switchToTab(tabId, windowId);
+  }
+});
+
+mediaListEl.addEventListener('click', (e) => {
   const closeBtn = e.target.closest('.tab-close');
   const item = e.target.closest('.tab-item');
 
@@ -1895,6 +1970,7 @@ domainSortButtonsEl.addEventListener('click', (e) => {
 });
 
 // Section toggle event listeners
+mediaHeaderEl.addEventListener('click', () => toggleSection('media'));
 duplicatesHeaderEl.addEventListener('click', () => toggleSection('duplicates'));
 allTabsHeaderEl.addEventListener('click', () => toggleSection('allTabs'));
 

@@ -6,6 +6,7 @@ import {
   groupTabsByDomain,
   formatTimeAgo,
   sortTabs,
+  sortAudibleFirst,
   normalizeUrl,
   fuzzyMatch,
   fuzzySearchTab,
@@ -396,6 +397,45 @@ describe('sortTabs', () => {
   it('handles empty tabs array', () => {
     const result = sortTabs([], 'title', new Map());
     expect(result).toEqual([]);
+  });
+});
+
+describe('sortAudibleFirst', () => {
+  it('floats audible tabs to the top', () => {
+    const tabs = [
+      { id: 1 },
+      { id: 2, audible: true },
+      { id: 3 },
+      { id: 4, audible: true }
+    ];
+    const result = sortAudibleFirst(tabs);
+    expect(result.map(t => t.id)).toEqual([2, 4, 1, 3]);
+  });
+
+  it('preserves relative order within audible and non-audible groups (stable)', () => {
+    const tabs = [
+      { id: 1, audible: false },
+      { id: 2, audible: false },
+      { id: 3, audible: true }
+    ];
+    const result = sortAudibleFirst(tabs);
+    expect(result.map(t => t.id)).toEqual([3, 1, 2]);
+  });
+
+  it('does not mutate the original array', () => {
+    const tabs = [{ id: 1 }, { id: 2, audible: true }];
+    sortAudibleFirst(tabs);
+    expect(tabs.map(t => t.id)).toEqual([1, 2]);
+  });
+
+  it('returns tabs unchanged when none are audible', () => {
+    const tabs = [{ id: 1 }, { id: 2 }, { id: 3 }];
+    const result = sortAudibleFirst(tabs);
+    expect(result.map(t => t.id)).toEqual([1, 2, 3]);
+  });
+
+  it('handles empty tabs array', () => {
+    expect(sortAudibleFirst([])).toEqual([]);
   });
 });
 

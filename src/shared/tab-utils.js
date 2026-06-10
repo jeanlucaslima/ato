@@ -253,6 +253,22 @@ export function sortTabs(tabs, sortBy, urlCounts, ageSortDirection = 'old') {
   }
 }
 
+/**
+ * Reorders tabs so that tabs playing media (`audible === true`) come first.
+ * The sort is stable: the relative order of tabs within the audible group and
+ * within the non-audible group is preserved, so this can be layered on top of
+ * any existing ordering without scrambling it.
+ *
+ * @param {Tab[]} tabs - Array of tabs to reorder
+ * @returns {Tab[]} New array with audible tabs floated to the top
+ * @example
+ * sortAudibleFirst([{ id: 1 }, { id: 2, audible: true }, { id: 3 }]);
+ * // Returns [{ id: 2, audible: true }, { id: 1 }, { id: 3 }]
+ */
+export function sortAudibleFirst(tabs) {
+  return [...tabs].sort((a, b) => (b.audible ? 1 : 0) - (a.audible ? 1 : 0));
+}
+
 // =============================================================================
 // Fuzzy Search Utilities
 // =============================================================================
