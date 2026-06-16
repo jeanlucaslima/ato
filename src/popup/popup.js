@@ -11,7 +11,8 @@ import {
   sortAudibleFirst,
   normalizeUrl,
   searchTab,
-  highlightMatches
+  highlightMatches,
+  isLoadableFavicon
 } from '../shared/tab-utils.js';
 import { applyFont } from '../shared/font-config.js';
 import { initLogger, log, error } from '../shared/logger.js';
@@ -680,6 +681,38 @@ function createMediaIcon() {
 }
 
 /**
+ * Creates a favicon <img> for a tab, shared by every render path.
+ *
+ * Sets the favicon src when the URL is loadable, otherwise renders the
+ * placeholder directly. An `error` handler falls back to the same placeholder
+ * appearance when the image fails to load (e.g. cross-origin/CORP-blocked, 404),
+ * so a broken-image glyph is never shown. The handler clears its own reference
+ * and the broken src so it cannot loop.
+ *
+ * @param {string} [favIconUrl] - The tab's favicon URL
+ * @returns {HTMLImageElement} The favicon element
+ */
+function createFaviconElement(favIconUrl) {
+  const favicon = document.createElement('img');
+  favicon.className = 'tab-favicon';
+  favicon.alt = '';
+
+  if (isLoadableFavicon(favIconUrl)) {
+    favicon.loading = 'lazy';
+    favicon.onerror = () => {
+      favicon.onerror = null;
+      favicon.removeAttribute('src');
+      favicon.className = 'tab-favicon placeholder';
+    };
+    favicon.src = favIconUrl;
+  } else {
+    favicon.className = 'tab-favicon placeholder';
+  }
+
+  return favicon;
+}
+
+/**
  * Creates a DOM element for a grouped duplicate row.
  * Shows one row per URL with count badge and close button to close all duplicates.
  * Supports fuzzy match highlighting when matchResult is provided.
@@ -704,15 +737,7 @@ function createGroupedDuplicateItem(group, index = 0, matchResult = null) {
   item.style.setProperty('--item-index', index);
 
   // Favicon
-  const favicon = document.createElement('img');
-  favicon.className = 'tab-favicon';
-  if (representative.favIconUrl && !representative.favIconUrl.startsWith('chrome://')) {
-    favicon.src = representative.favIconUrl;
-    favicon.loading = 'lazy';
-  } else {
-    favicon.className = 'tab-favicon placeholder';
-    favicon.alt = '';
-  }
+  const favicon = createFaviconElement(representative.favIconUrl);
 
   // Tab info container
   const info = document.createElement('div');
@@ -888,16 +913,7 @@ function createTabItem(tab, duplicateCount = 0, index = 0, matchResult = null) {
   item.style.setProperty('--item-index', index);
 
   // Favicon
-  const favicon = document.createElement('img');
-  favicon.className = 'tab-favicon';
-  if (tab.favIconUrl && !tab.favIconUrl.startsWith('chrome://')) {
-    favicon.src = tab.favIconUrl;
-    // Use CSS fallback for broken images
-    favicon.loading = 'lazy';
-  } else {
-    favicon.className = 'tab-favicon placeholder';
-    favicon.alt = '';
-  }
+  const favicon = createFaviconElement(tab.favIconUrl);
 
   // Tab info container
   const info = document.createElement('div');

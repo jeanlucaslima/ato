@@ -133,4 +133,4 @@ in the store form.
 - [ ] Icon: 128×128 (from `src/assets/icons/`)
 - [ ] At least 1 screenshot, 1280×800 or 640×400 (have `docs/screenshots/popup.png` — verify dimensions/crop)
 - [ ] Small promo tile 440×280 (optional but recommended)
-- [ ] Package: `ato-v1.9.1.zip`
+- [ ] Package: `ato-v1.9.2.zip`

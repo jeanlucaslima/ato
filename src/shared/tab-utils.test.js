@@ -14,7 +14,8 @@ import {
   substringMatch,
   parseSearchQuery,
   searchTab,
-  highlightMatches
+  highlightMatches,
+  isLoadableFavicon
 } from './tab-utils.js';
 
 describe('findDuplicates', () => {
@@ -1086,5 +1087,26 @@ describe('highlightMatches', () => {
   it('handles mixed consecutive and non-consecutive matches', () => {
     const result = highlightMatches('abcdef', [0, 1, 3, 4]);
     expect(result).toBe('<span class="fuzzy-match">ab</span>c<span class="fuzzy-match">de</span>f');
+  });
+});
+
+describe('isLoadableFavicon', () => {
+  it('returns false for missing URL', () => {
+    expect(isLoadableFavicon(undefined)).toBe(false);
+    expect(isLoadableFavicon(null)).toBe(false);
+    expect(isLoadableFavicon('')).toBe(false);
+  });
+
+  it('returns false for chrome:// favicons', () => {
+    expect(isLoadableFavicon('chrome://favicon/https://example.com')).toBe(false);
+  });
+
+  it('returns true for http(s) favicon URLs', () => {
+    expect(isLoadableFavicon('https://example.com/favicon.ico')).toBe(true);
+    expect(isLoadableFavicon('http://example.com/favicon.ico')).toBe(true);
+  });
+
+  it('returns true for data: favicon URLs', () => {
+    expect(isLoadableFavicon('data:image/png;base64,AAAA')).toBe(true);
   });
 });

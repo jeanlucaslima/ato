@@ -712,3 +712,17 @@ export function highlightMatches(text, indices) {
 
   return result;
 }
+
+/**
+ * Decide whether a tab's favIconUrl is worth attempting to load as an <img>.
+ * Returns false for missing URLs and `chrome://` favicons (which a
+ * chrome-extension:// origin cannot load), in which case callers should render
+ * the placeholder directly. A `true` result is not a loadability guarantee —
+ * cross-origin/CORP/404 failures are still handled by the <img> error fallback.
+ *
+ * @param {string} [favIconUrl] - The tab's favicon URL
+ * @returns {boolean} True if the URL should be set as the <img> src
+ */
+export function isLoadableFavicon(favIconUrl) {
+  return Boolean(favIconUrl) && !favIconUrl.startsWith('chrome://');
+}
