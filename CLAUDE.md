@@ -106,7 +106,7 @@ Chrome extensions run in separate contexts:
    - Opens on extension icon click or `Cmd+U` / `Ctrl+U`
    - Queries tabs, renders a "Playing Media" section (audible tabs), duplicates section + domain groups
    - Tabs producing sound (`tab.audible`) get a speaker icon wherever they're listed (media section, all tabs, domain groups, duplicates, search)
-   - Fuzzy/exact search with keyboard navigation and match highlighting
+   - Fuzzy/exact/wildcard search with keyboard navigation and match highlighting
    - Per-domain merge/close, close-all-duplicates, undo
    - Separate instance each time the popup opens
 
@@ -161,9 +161,9 @@ Exported pure functions (all JSDoc-documented and tested):
 - `groupTabsByDomain(tabs)` — `DomainGroup[]` sorted by count desc
 - `formatTimeAgo(timestamp)` — `"2m"`, `"3h"`, `"5d"`, `"now"`, or `"—"`
 - `sortTabs(tabs, sortBy, urlCounts, ageSortDirection)` — sort by `title`, `title-desc`, `domain`, `age`, `duplicates`, or `default`
-- `parseSearchQuery(query)` — detects exact mode: a query wrapped in `"double quotes"` → `{ term, exact: true }`
-- `fuzzyMatch(pattern, text)` / `exactWordMatch(pattern, text)` — return `{ score, indices }` or `null`
-- `searchTab(query, tab)` — dispatches fuzzy vs exact via `parseSearchQuery`; searches title, URL, domain
+- `parseSearchQuery(query)` — detects search mode: `"double quotes"` → exact (`{ term, exact: true }`); an unquoted query containing `*` → wildcard (`{ term, wildcard: true }`, with leading/trailing `*` stripped and internal `*` kept literal); otherwise fuzzy
+- `fuzzyMatch(pattern, text)` / `exactWordMatch(pattern, text)` / `substringMatch(pattern, text)` — return `{ score, indices }` or `null`
+- `searchTab(query, tab)` — dispatches fuzzy vs exact vs wildcard via `parseSearchQuery`; searches title, URL, domain
 - `fuzzySearchTab(pattern, tab)` — fuzzy-only variant
 - `highlightMatches(text, indices)` — wraps matched chars in `<span class="fuzzy-match">`; HTML-escapes the rest
 

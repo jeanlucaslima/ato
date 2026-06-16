@@ -894,7 +894,7 @@ describe('substringMatch', () => {
   it('matches a contiguous substring mid-word (no boundary required)', () => {
     const result = substringMatch('insta', 'businstall');
     expect(result).not.toBeNull();
-    expect(result.indices).toEqual([2, 3, 4, 5, 6]);
+    expect(result.indices).toEqual([3, 4, 5, 6, 7]);
   });
 
   it('matches mid-word for a "suffix-style" query (position-independent)', () => {

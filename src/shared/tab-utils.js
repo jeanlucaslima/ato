@@ -463,52 +463,126 @@ export function exactWordMatch(pattern, text) {
 }
 
 /**
- * Parses a raw search query, detecting exact whole-word mode.
- * A query wrapped in double quotes (e.g. `"burger"`) requests an exact
- * whole-word match; otherwise the query is treated as a fuzzy search.
+ * Performs a literal substring ("contains") match of a pattern against text.
+ * Unlike {@link fuzzyMatch}, the pattern must appear as a contiguous run of
+ * characters; unlike {@link exactWordMatch}, it need not be a whole word and
+ * may appear anywhere (mid-word included). Matching is case-insensitive and
+ * every occurrence is highlighted. This backs wildcard (asterisk) search.
+ *
+ * Scoring (ranks matches within a wildcard search):
+ * - 50 base (sits between fuzzy and exact whole-word matches)
+ * - +15 if the best occurrence starts the string
+ * - +10 else if the best occurrence starts at a word boundary
+ * - +1 per occurrence
+ *
+ * @param {string} pattern - The literal substring to match
+ * @param {string} text - The text to search within
+ * @returns {{score: number, indices: number[]}|null} Match result or null if the substring is absent
+ * @example
+ * substringMatch('insta', 'My Instagram'); // { score: ..., indices: [3,4,5,6,7] }
+ * substringMatch('gram', 'programmer');     // matches mid-word (proGRAMmer)
+ */
+export function substringMatch(pattern, text) {
+  if (!pattern || !text) return null;
+
+  const patternLower = pattern.toLowerCase();
+  const textLower = text.toLowerCase();
+  const patternLen = patternLower.length;
+  const textLen = textLower.length;
+
+  if (patternLen > textLen) return null;
+
+  const indices = [];
+  let occurrences = 0;
+  let positionBonus = 0;
+  let searchFrom = 0;
+
+  while (searchFrom <= textLen - patternLen) {
+    const idx = textLower.indexOf(patternLower, searchFrom);
+    if (idx === -1) break;
+
+    const endIdx = idx + patternLen;
+    for (let i = idx; i < endIdx; i++) {
+      indices.push(i);
+    }
+    occurrences++;
+
+    if (idx === 0) {
+      positionBonus = Math.max(positionBonus, 15);
+    } else if (isWordBoundary(text[idx - 1])) {
+      positionBonus = Math.max(positionBonus, 10);
+    }
+
+    // Advance past this occurrence so matches never overlap.
+    searchFrom = endIdx;
+  }
+
+  if (occurrences === 0) return null;
+
+  const score = 50 + positionBonus + occurrences;
+  return { score, indices };
+}
+
+/**
+ * Parses a raw search query, detecting exact whole-word and wildcard modes.
+ *
+ * - A query wrapped in double quotes (e.g. `"burger"`) requests an exact
+ *   whole-word match (quotes win, so any `*` inside is treated literally).
+ * - Otherwise, a query containing an asterisk requests a wildcard (literal
+ *   substring) match. Leading/trailing asterisks are stripped — their position
+ *   does not matter — while an internal `*` is kept as a literal character.
+ * - Any other query is treated as a fuzzy search.
  *
  * @param {string} query - The raw search query
- * @returns {{term: string, exact: boolean}} The cleaned term and whether exact mode is requested
+ * @returns {{term: string, exact: boolean, wildcard: boolean}} The cleaned term and which mode is requested
  * @example
- * parseSearchQuery('"burger"'); // { term: 'burger', exact: true }
- * parseSearchQuery('burger');   // { term: 'burger', exact: false }
+ * parseSearchQuery('"burger"'); // { term: 'burger', exact: true,  wildcard: false }
+ * parseSearchQuery('insta*');   // { term: 'insta',  exact: false, wildcard: true }
+ * parseSearchQuery('burger');   // { term: 'burger', exact: false, wildcard: false }
  */
 export function parseSearchQuery(query) {
   if (typeof query !== 'string') {
-    return { term: '', exact: false };
+    return { term: '', exact: false, wildcard: false };
   }
 
   const trimmed = query.trim();
 
   if (trimmed.length >= 2 && trimmed.startsWith('"') && trimmed.endsWith('"')) {
-    return { term: trimmed.slice(1, -1).trim(), exact: true };
+    return { term: trimmed.slice(1, -1).trim(), exact: true, wildcard: false };
   }
 
-  return { term: trimmed, exact: false };
+  if (trimmed.includes('*')) {
+    const term = trimmed.replace(/^\*+/, '').replace(/\*+$/, '').trim();
+    return { term, exact: false, wildcard: true };
+  }
+
+  return { term: trimmed, exact: false, wildcard: false };
 }
 
 /**
  * Searches a tab across title, URL, and domain fields.
  * Returns the best match result or null if no match found.
  *
- * Supports two modes, selected by {@link parseSearchQuery}:
+ * Supports three modes, selected by {@link parseSearchQuery}:
  * - Fuzzy (default): characters match in order, scored by proximity.
  * - Exact (query wrapped in double quotes, e.g. `"burger"`): whole-word match only.
+ * - Wildcard (query containing an asterisk, e.g. `insta*`): literal substring match.
  *
- * @param {string} query - The raw search query (may be quoted for exact mode)
+ * @param {string} query - The raw search query (quoted for exact, `*` for wildcard)
  * @param {Tab} tab - The tab object to search
  * @returns {{score: number, matches: {title?: {score: number, indices: number[]}, url?: {score: number, indices: number[]}, domain?: {score: number, indices: number[]}}}|null}
  * @example
  * searchTab('git', { title: 'GitHub' });        // fuzzy match
  * searchTab('"git"', { title: 'GitHub - git' }); // exact whole-word match
+ * searchTab('insta*', { title: 'Instagram' });   // wildcard substring match
  */
 export function searchTab(query, tab) {
   if (!tab) return null;
 
-  const { term, exact } = parseSearchQuery(query);
+  const { term, exact, wildcard } = parseSearchQuery(query);
   if (!term) return null;
 
-  const matcher = exact ? exactWordMatch : fuzzyMatch;
+  const matcher = exact ? exactWordMatch : wildcard ? substringMatch : fuzzyMatch;
   const matches = {};
   let bestScore = 0;
 
