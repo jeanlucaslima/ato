@@ -3,7 +3,7 @@
   "name": "ATO - Advanced Tab Organizer",
   "short_name": "ATO",
   "description": "Kill duplicate tabs instantly. Stay focused.",
-  "version": "1.9.0",
+  "version": "1.9.1",
   "author": "Jean Lucas Lima <github.com/jeanlucaslima>",
 
   "options_page": "options/options.html",
@@ -44,9 +44,5 @@
     "tabs",
     "storage",
     "sessions"
-  ],
-
-  "host_permissions": [
-    "<all_urls>"
   ]
 }
