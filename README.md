@@ -3,7 +3,7 @@
 Kill duplicate tabs instantly. Stay focused.
 
 <p align="center">
-  <img src="docs/screenshots/popup.png" alt="ATO popup showing tab stats, search, duplicates section, and domain-grouped tab list" width="420">
+  <img src="docs/screenshots/popup.png" alt="ATO popup showing a wildcard search for hack* with matched text highlighted across the result list, above stats for tabs, duplicates, and domains" width="420">
 </p>
 
 ## What It Does
@@ -11,7 +11,7 @@ Kill duplicate tabs instantly. Stay focused.
 - **Badge Counter** - Shows how many duplicate tabs you have
 - **One-Click Cleanup** - Close all duplicates with one button
 - **Playing Media** - Tabs producing sound are grouped in a section on top, and flagged with a speaker icon wherever they're listed
-- **Search** - Filter open tabs by title or URL with keyboard navigation
+- **Search** - Filter tabs by title, URL, or domain with keyboard navigation. Three modes: fuzzy (default), exact whole-word (`"word"`), and wildcard substring (`word*`)
 - **Domain Groups** - Tabs grouped by site, sortable A-Z / Most / Recent
 - **Merge & Close per Domain** - Consolidate or clear all tabs from a site
 - **Undo** - Restore tabs you just closed
@@ -21,10 +21,10 @@ Kill duplicate tabs instantly. Stay focused.
 ## Screenshots
 
 <p align="center">
-  <img src="docs/screenshots/popup.png" alt="Popup overview with stats, search, view toggle, duplicates section, and domain groups" width="420">
+  <img src="docs/screenshots/popup.png" alt="Popup showing a wildcard search for hack* with matched text highlighted across the result list" width="420">
 </p>
 
-Stats header (tabs / duplicates / domains), search bar, view toggle, duplicates section with sort options, and domain-grouped tab list with per-domain Merge and Close actions.
+Wildcard search (`hack*`) matching the literal substring across titles and URLs, with matches highlighted. Above it: the stats header (tabs / duplicates / domains), search bar with live result count, view toggle, and Undo. Search also supports fuzzy (default) and exact whole-word (`"word"`) modes.
 
 ## Installation
 
