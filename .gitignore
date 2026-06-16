@@ -2,6 +2,9 @@
 node_modules/
 dist/
 .vite/
+
+# Release packages (built via `npm run zip`, uploaded as release assets)
+ato-v*.zip
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
