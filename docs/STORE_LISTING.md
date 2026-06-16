@@ -108,11 +108,21 @@ All true: ATO makes no network requests and has no analytics/trackers.
 
 ### Privacy policy URL (required — triggered by host permission)
 
+Preferred (own domain):
+
+```
+https://www.aleattorium.com/ato/privacy
+```
+
+Fallback (open-source mirror, live now):
+
 ```
 https://github.com/jeanlucaslima/ato/blob/main/PRIVACY.md
 ```
 
-Source: [`PRIVACY.md`](../PRIVACY.md) in the repo root.
+Canonical source: [`PRIVACY.md`](../PRIVACY.md) in this repo. Publish the same
+markdown content at `/ato/privacy` in the aleattorium.com repo and use that URL
+in the store form.
 
 ## Assets checklist
 
