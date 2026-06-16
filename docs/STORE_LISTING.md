@@ -79,8 +79,14 @@ Cmd+U (Mac) / Ctrl+U (Windows & Linux) to open the popup. You can change this in
 ### Single purpose (required)
 
 ```
-Help users find and close duplicate and excess browser tabs from a popup.
+ATO helps users find and close duplicate and excess browser tabs, and search, group, and manage their open tabs, from a single popup.
 ```
+
+### Remote code use (required)
+
+Select **"No, I am not using remote code."** All JavaScript is bundled in the
+package; nothing is fetched or evaluated at runtime. Favicons loaded from
+`tab.favIconUrl` are images, not code.
 
 ### Permission justifications
 
@@ -99,6 +105,14 @@ Select **"This item does not collect or use user data."** Then certify:
 - Does **not** use or transfer data to determine creditworthiness or for lending.
 
 All true: ATO makes no network requests and has no analytics/trackers.
+
+### Privacy policy URL (required — triggered by host permission)
+
+```
+https://github.com/jeanlucaslima/ato/blob/main/PRIVACY.md
+```
+
+Source: [`PRIVACY.md`](../PRIVACY.md) in the repo root.
 
 ## Assets checklist
 
