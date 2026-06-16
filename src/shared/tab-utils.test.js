@@ -11,6 +11,7 @@ import {
   fuzzyMatch,
   fuzzySearchTab,
   exactWordMatch,
+  substringMatch,
   parseSearchQuery,
   searchTab,
   highlightMatches
@@ -802,28 +803,145 @@ describe('exactWordMatch', () => {
 
 describe('parseSearchQuery', () => {
   it('detects exact mode for quoted query', () => {
-    expect(parseSearchQuery('"burger"')).toEqual({ term: 'burger', exact: true });
+    expect(parseSearchQuery('"burger"')).toEqual({ term: 'burger', exact: true, wildcard: false });
   });
 
   it('treats unquoted query as fuzzy', () => {
-    expect(parseSearchQuery('burger')).toEqual({ term: 'burger', exact: false });
+    expect(parseSearchQuery('burger')).toEqual({ term: 'burger', exact: false, wildcard: false });
   });
 
   it('trims whitespace around and inside quotes', () => {
-    expect(parseSearchQuery('  "  burger  "  ')).toEqual({ term: 'burger', exact: true });
+    expect(parseSearchQuery('  "  burger  "  ')).toEqual({ term: 'burger', exact: true, wildcard: false });
   });
 
   it('handles empty quoted query', () => {
-    expect(parseSearchQuery('""')).toEqual({ term: '', exact: true });
+    expect(parseSearchQuery('""')).toEqual({ term: '', exact: true, wildcard: false });
   });
 
   it('handles non-string input', () => {
-    expect(parseSearchQuery(null)).toEqual({ term: '', exact: false });
-    expect(parseSearchQuery(undefined)).toEqual({ term: '', exact: false });
+    expect(parseSearchQuery(null)).toEqual({ term: '', exact: false, wildcard: false });
+    expect(parseSearchQuery(undefined)).toEqual({ term: '', exact: false, wildcard: false });
   });
 
   it('does not treat a lone quote as exact mode', () => {
-    expect(parseSearchQuery('"')).toEqual({ term: '"', exact: false });
+    expect(parseSearchQuery('"')).toEqual({ term: '"', exact: false, wildcard: false });
+  });
+
+  // --- wildcard mode ---
+
+  it('detects wildcard mode for a trailing asterisk', () => {
+    expect(parseSearchQuery('insta*')).toEqual({ term: 'insta', exact: false, wildcard: true });
+  });
+
+  it('detects wildcard mode for a leading asterisk', () => {
+    expect(parseSearchQuery('*insta')).toEqual({ term: 'insta', exact: false, wildcard: true });
+  });
+
+  it('treats leading and trailing asterisks identically (position-independent)', () => {
+    expect(parseSearchQuery('*insta*')).toEqual({ term: 'insta', exact: false, wildcard: true });
+  });
+
+  it('strips all leading and trailing asterisks', () => {
+    expect(parseSearchQuery('**insta**')).toEqual({ term: 'insta', exact: false, wildcard: true });
+  });
+
+  it('keeps an internal asterisk as a literal character', () => {
+    expect(parseSearchQuery('git*hub')).toEqual({ term: 'git*hub', exact: false, wildcard: true });
+  });
+
+  it('reduces a lone asterisk to an empty core', () => {
+    expect(parseSearchQuery('*')).toEqual({ term: '', exact: false, wildcard: true });
+  });
+
+  it('reduces multiple asterisks to an empty core', () => {
+    expect(parseSearchQuery('**')).toEqual({ term: '', exact: false, wildcard: true });
+  });
+
+  it('trims whitespace around the stripped core', () => {
+    expect(parseSearchQuery('  insta *  ')).toEqual({ term: 'insta', exact: false, wildcard: true });
+  });
+
+  it('lets quotes win over an asterisk (literal star, exact mode)', () => {
+    expect(parseSearchQuery('"insta*"')).toEqual({ term: 'insta*', exact: true, wildcard: false });
+  });
+});
+
+describe('substringMatch', () => {
+  it('returns null for empty pattern or text', () => {
+    expect(substringMatch('', 'hello')).toBeNull();
+    expect(substringMatch('hello', '')).toBeNull();
+  });
+
+  it('returns null for null inputs', () => {
+    expect(substringMatch(null, 'hello')).toBeNull();
+    expect(substringMatch('hello', null)).toBeNull();
+  });
+
+  it('returns null when pattern is longer than text', () => {
+    expect(substringMatch('burger', 'bun')).toBeNull();
+  });
+
+  it('returns null when the substring is not present', () => {
+    expect(substringMatch('xyz', 'hello')).toBeNull();
+  });
+
+  it('matches a contiguous substring at the start', () => {
+    const result = substringMatch('insta', 'instagram');
+    expect(result).not.toBeNull();
+    expect(result.indices).toEqual([0, 1, 2, 3, 4]);
+  });
+
+  it('matches a contiguous substring mid-word (no boundary required)', () => {
+    const result = substringMatch('insta', 'businstall');
+    expect(result).not.toBeNull();
+    expect(result.indices).toEqual([2, 3, 4, 5, 6]);
+  });
+
+  it('matches mid-word for a "suffix-style" query (position-independent)', () => {
+    // 'gram' appears inside 'programmer' (proGRAMmer)
+    const result = substringMatch('gram', 'programmer');
+    expect(result).not.toBeNull();
+    expect(result.indices).toEqual([3, 4, 5, 6]);
+  });
+
+  it('is case-insensitive', () => {
+    const result = substringMatch('INSTA', 'My Instagram');
+    expect(result).not.toBeNull();
+    expect(result.indices).toEqual([3, 4, 5, 6, 7]);
+  });
+
+  it('highlights all occurrences', () => {
+    const result = substringMatch('ab', 'abxab');
+    expect(result).not.toBeNull();
+    expect(result.indices).toEqual([0, 1, 3, 4]);
+  });
+
+  it('does not require a whole-word match (unlike exactWordMatch)', () => {
+    expect(substringMatch('burger', 'hamburger')).not.toBeNull();
+    expect(exactWordMatch('burger', 'hamburger')).toBeNull();
+  });
+
+  it('treats an internal asterisk as a literal character to match', () => {
+    expect(substringMatch('git*hub', 'github')).toBeNull();
+    expect(substringMatch('git*hub', 'see git*hub docs')).not.toBeNull();
+  });
+
+  it('scores a start match higher than a mid-word match', () => {
+    const atStart = substringMatch('insta', 'instagram');
+    const midWord = substringMatch('insta', 'businstall');
+    expect(atStart.score).toBeGreaterThan(midWord.score);
+  });
+
+  it('scores a word-boundary match higher than a mid-word match', () => {
+    const atBoundary = substringMatch('gram', 'tele gram');
+    const midWord = substringMatch('gram', 'programmer');
+    expect(atBoundary.score).toBeGreaterThan(midWord.score);
+  });
+
+  it('scores more occurrences higher than fewer', () => {
+    const twice = substringMatch('ab', 'abab');
+    const once = substringMatch('ab', 'abxx');
+    expect(twice.score).toBeGreaterThan(once.score);
   });
 });
 
@@ -863,6 +981,43 @@ describe('searchTab', () => {
     const result = searchTab('"burger"', tab);
     expect(result).not.toBeNull();
     expect(result.matches).toHaveProperty('domain');
+  });
+
+  it('uses substring matching for a wildcard query', () => {
+    const tab = { title: 'My Instagram Feed', url: 'https://example.com' };
+    const result = searchTab('insta*', tab);
+    expect(result).not.toBeNull();
+    expect(result.matches.title.indices).toEqual([3, 4, 5, 6, 7]);
+  });
+
+  it('wildcard mode matches a substring that exact mode rejects', () => {
+    const tab = { title: 'hamburger menu', url: 'https://example.com' };
+    expect(searchTab('burger*', tab)).not.toBeNull();
+    expect(searchTab('"burger"', tab)).toBeNull();
+  });
+
+  it('wildcard mode rejects scattered matches that fuzzy accepts', () => {
+    const tab = { title: 'GitHub Repository', url: 'https://example.com' };
+    expect(searchTab('gthb', tab)).not.toBeNull();   // fuzzy matches scattered g-t-h-b
+    expect(searchTab('gthb*', tab)).toBeNull();        // wildcard needs contiguous "gthb"
+  });
+
+  it('wildcard mode is position-independent', () => {
+    const tab = { title: 'telegram', url: 'https://example.com' };
+    expect(searchTab('*gram', tab)).not.toBeNull();
+    expect(searchTab('gram*', tab)).not.toBeNull();
+    expect(searchTab('*gram*', tab)).not.toBeNull();
+  });
+
+  it('wildcard mode matches across url and domain', () => {
+    const tab = { title: 'Food', url: 'https://burger.com/menu' };
+    const result = searchTab('burg*', tab);
+    expect(result).not.toBeNull();
+    expect(result.matches).toHaveProperty('domain');
+  });
+
+  it('returns null for a lone asterisk (empty core)', () => {
+    expect(searchTab('*', { title: 'anything' })).toBeNull();
   });
 });
 
