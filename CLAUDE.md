@@ -270,15 +270,18 @@ See "Settings" above — touch `options.js` (`DEFAULT_SETTINGS` + `SETTING_TYPES
 
 ```json
 {
-  "permissions": ["tabs", "storage", "sessions"],
-  "host_permissions": ["<all_urls>"]
+  "permissions": ["tabs", "storage", "sessions"]
 }
 ```
 
-- `tabs` — read tab info (title, URL, etc.)
+- `tabs` — read tab info (title, URL incl. `file://`, favicon) for all tabs
 - `storage` — persist user settings (`chrome.storage.sync`)
 - `sessions` — restore (undo) closed tabs
-- `<all_urls>` — access tab URLs and favicons
+
+No host permissions: the `tabs` permission alone exposes tab URLs (verified to
+include `file://`), and favicons load as `<img>` from `tab.favIconUrl`. This was
+intentionally dropped (was `<all_urls>`) to avoid the Chrome Web Store
+broad-host-permission in-depth review.
 
 ## Conventions
 

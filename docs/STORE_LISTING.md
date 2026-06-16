@@ -92,10 +92,14 @@ package; nothing is fetched or evaluated at runtime. Favicons loaded from
 
 | Permission | Justification |
 | --- | --- |
-| `tabs` | Read tab titles and URLs to detect duplicates, search, and group tabs; close tabs on request. |
+| `tabs` | Read tab titles and URLs (including local `file://` pages) to detect duplicates, search, and group tabs; close tabs on request. |
 | `storage` | Save the user's settings (theme, match mode, badge options, etc.). |
 | `sessions` | Restore recently closed tabs for the Undo feature. |
-| host permissions (`<all_urls>`) | Access tab URLs to detect duplicates and display each tab's favicon. |
+
+No host permissions are requested — the `tabs` permission alone exposes tab URLs
+(verified to include `file://`), and favicons load as plain `<img>` from
+`tab.favIconUrl`. Dropping `<all_urls>` avoids the broad-host-permission in-depth
+review with no loss of functionality.
 
 ### Data usage disclosure
 
@@ -106,7 +110,7 @@ Select **"This item does not collect or use user data."** Then certify:
 
 All true: ATO makes no network requests and has no analytics/trackers.
 
-### Privacy policy URL (required — triggered by host permission)
+### Privacy policy URL
 
 Preferred (own domain):
 
@@ -129,4 +133,4 @@ in the store form.
 - [ ] Icon: 128×128 (from `src/assets/icons/`)
 - [ ] At least 1 screenshot, 1280×800 or 640×400 (have `docs/screenshots/popup.png` — verify dimensions/crop)
 - [ ] Small promo tile 440×280 (optional but recommended)
-- [ ] Package: `ato-v1.9.0.zip`
+- [ ] Package: `ato-v1.9.1.zip`

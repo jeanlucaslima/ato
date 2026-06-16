@@ -38,11 +38,12 @@ use data to determine creditworthiness or for lending purposes.
 
 ## Permissions
 
-- `tabs` — read tab titles/URLs to detect duplicates, search, and group tabs.
+- `tabs` — read tab titles/URLs (including local `file://` pages) to detect
+  duplicates, search, and group tabs.
 - `storage` — save your settings locally / via Chrome Sync.
 - `sessions` — restore recently closed tabs (Undo).
-- Host access (`<all_urls>`) — read tab URLs to detect duplicates and load
-  favicons. URLs are only processed locally.
+
+ATO requests no host (site-access) permissions. Everything is processed locally.
 
 ## Open source
 
