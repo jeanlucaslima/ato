@@ -18,6 +18,12 @@ Kill duplicate tabs instantly. Stay focused.
 - **Keyboard Shortcut** - `Cmd+U` (Mac) or `Ctrl+U` (Windows/Linux)
 - **Real-Time Updates** - Badge updates automatically as you browse
 
+## Demo
+
+<video src="https://github.com/jeanlucaslima/ato/raw/main/docs/never-gonna-give-tabs-up.mp4" controls width="640"></video>
+
+> If the player doesn't load, [watch the demo here](docs/never-gonna-give-tabs-up.mp4).
+
 ## Screenshots
 
 <p align="center">

@@ -5,6 +5,9 @@ dist/
 
 # Release packages (built via `npm run zip`, uploaded as release assets)
 ato-v*.zip
+
+# Source videos (large; export an .mp4 for docs instead of committing these)
+*.mov
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
