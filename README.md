@@ -11,7 +11,7 @@ Kill duplicate tabs instantly. Stay focused.
 - **Badge Counter** - Shows how many duplicate tabs you have
 - **One-Click Cleanup** - Close all duplicates with one button
 - **Playing Media** - Tabs producing sound are grouped in a section on top, and flagged with a speaker icon wherever they're listed
-- **Search** - Filter tabs by title, URL, or domain with keyboard navigation. Three modes: fuzzy (default), exact whole-word (`"word"`), and wildcard substring (`word*`)
+- **Search** - Filter tabs by title, URL, or domain with keyboard navigation. Three modes: fuzzy (default), exact whole-word (`"word"`), and wildcard substring (`word*`). Scope a search to a single field with `inurl:` or `intitle:` (shown as a chip, or pick from the field menu)
 - **Domain Groups** - Tabs grouped by site, sortable A-Z / Most / Recent
 - **Merge & Close per Domain** - Consolidate or clear all tabs from a site
 - **Undo** - Restore tabs you just closed
@@ -30,7 +30,7 @@ Kill duplicate tabs instantly. Stay focused.
   <img src="docs/screenshots/popup.png" alt="Popup showing a wildcard search for hack* with matched text highlighted across the result list" width="420">
 </p>
 
-Wildcard search (`hack*`) matching the literal substring across titles and URLs, with matches highlighted. Above it: the stats header (tabs / duplicates / domains), search bar with live result count, view toggle, and Undo. Search also supports fuzzy (default) and exact whole-word (`"word"`) modes.
+Wildcard search (`hack*`) matching the literal substring across titles and URLs, with matches highlighted. Above it: the stats header (tabs / duplicates / domains), search bar with live result count, view toggle, and Undo. Search also supports fuzzy (default) and exact whole-word (`"word"`) modes, plus field scopes (`inurl:` / `intitle:`) to search a single field.
 
 ## Installation
 

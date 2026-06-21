@@ -47,6 +47,11 @@ const scopeLabel = document.getElementById('scope-label');
 const globalSearchInputEl = document.getElementById('global-search-input');
 const globalSearchClearEl = document.getElementById('global-search-clear');
 const searchResultsCountEl = document.getElementById('search-results-count');
+const searchModeChipEl = document.getElementById('search-mode-chip');
+const searchModeChipLabelEl = document.getElementById('search-mode-chip-label');
+const searchModeChipRemoveEl = document.getElementById('search-mode-chip-remove');
+const searchModeBtnEl = document.getElementById('search-mode-btn');
+const searchModeMenuEl = document.getElementById('search-mode-menu');
 
 // Collapsible section elements
 const mediaContainerEl = document.getElementById('media-container');
@@ -103,9 +108,16 @@ let domainSectionStates = {}; // Track collapse state per domain
 
 // Search state
 let searchQuery = '';
+let searchField = null; // null = all fields, 'url' = inurl mode, 'title' = intitle mode
 let searchResults = null; // Map<tabId, matchResult> when searching, null otherwise
 let searchDebounceTimer = null;
 const SEARCH_DEBOUNCE_MS = 150;
+
+// Field-mode metadata. The prefix is what tab-utils' parseSearchQuery understands;
+// the chip mirrors that operator while the placeholder gives a human hint.
+const SEARCH_FIELD_PREFIX = { url: 'inurl', title: 'intitle' };
+const SEARCH_FIELD_PLACEHOLDER = { url: 'Search URLs...', title: 'Search titles...' };
+const DEFAULT_SEARCH_PLACEHOLDER = 'Search tabs... ("word" exact, word* wildcard)';
 let highlightedResultIndex = -1; // Currently highlighted search result
 let searchResultTabIds = []; // Array of tab IDs in display order for navigation
 
@@ -214,13 +226,39 @@ function performSearch(query, tabs) {
 }
 
 /**
- * Handles search input changes with debouncing.
+ * Builds the query string handed to the search engine, prefixing the active
+ * field mode (e.g. `inurl:`) so tab-utils' parseSearchQuery scopes the search.
+ * Exact (`"…"`) and wildcard (`…*`) syntax still compose inside the mode.
+ *
+ * @returns {string} The effective query
+ */
+function effectiveSearchQuery() {
+  if (searchField && searchQuery.trim()) {
+    return `${SEARCH_FIELD_PREFIX[searchField]}:${searchQuery}`;
+  }
+  return searchQuery;
+}
+
+/**
+ * Handles search input changes with debouncing. Also detects a field-mode
+ * prefix (`inurl:` / `intitle:`) typed at the start of the input and converts
+ * it into a mode chip so only the bare term remains in the box.
  */
 function handleSearchInput(e) {
-  const query = e.target.value;
+  let query = e.target.value;
 
-  // Show/hide clear button
-  globalSearchClearEl.classList.toggle('hidden', !query);
+  // Convert a typed prefix into a mode chip (only when not already in a mode).
+  if (!searchField) {
+    const prefixMatch = /^(inurl|intitle):/i.exec(query);
+    if (prefixMatch) {
+      enterSearchMode(prefixMatch[1].toLowerCase() === 'inurl' ? 'url' : 'title');
+      query = query.slice(prefixMatch[0].length);
+      e.target.value = query;
+    }
+  }
+
+  // Show/hide clear button (also visible when a mode is active with no term)
+  globalSearchClearEl.classList.toggle('hidden', !query && !searchField);
 
   // Debounce the search
   clearTimeout(searchDebounceTimer);
@@ -231,7 +269,52 @@ function handleSearchInput(e) {
 }
 
 /**
- * Clears the search and resets results.
+ * Enters a field-scoped search mode, showing the chip and updating the hint.
+ *
+ * @param {'url'|'title'} field - The field to scope the search to
+ */
+function enterSearchMode(field) {
+  searchField = field;
+  searchModeChipLabelEl.textContent = SEARCH_FIELD_PREFIX[field];
+  searchModeChipEl.classList.remove('hidden');
+  searchModeBtnEl.classList.add('active');
+  globalSearchInputEl.placeholder = SEARCH_FIELD_PLACEHOLDER[field];
+  updateSearchModeMenu();
+}
+
+/**
+ * Exits field-scoped search mode, restoring the default all-fields search.
+ */
+function exitSearchMode() {
+  searchField = null;
+  searchModeChipEl.classList.add('hidden');
+  searchModeBtnEl.classList.remove('active');
+  globalSearchInputEl.placeholder = DEFAULT_SEARCH_PLACEHOLDER;
+  updateSearchModeMenu();
+}
+
+/**
+ * Re-runs the search after a mode change driven by the menu/chip (not typing),
+ * keeping any already-typed term and syncing the clear button.
+ */
+function applySearchModeChange() {
+  searchQuery = globalSearchInputEl.value;
+  globalSearchClearEl.classList.toggle('hidden', !searchQuery && !searchField);
+  loadAndRender();
+}
+
+/**
+ * Marks the active option in the field-mode menu.
+ */
+function updateSearchModeMenu() {
+  const current = searchField || 'all';
+  searchModeMenuEl.querySelectorAll('.search-mode-option').forEach(opt => {
+    opt.classList.toggle('active', opt.dataset.field === current);
+  });
+}
+
+/**
+ * Clears the search and resets results (including any active field mode).
  */
 function clearSearch() {
   searchQuery = '';
@@ -239,6 +322,7 @@ function clearSearch() {
   searchResultTabIds = [];
   highlightedResultIndex = -1;
   globalSearchInputEl.value = '';
+  exitSearchMode();
   globalSearchClearEl.classList.add('hidden');
   searchResultsCountEl.classList.add('hidden');
   document.body.classList.remove('search-active');
@@ -1345,7 +1429,7 @@ function render(tabs, duplicates) {
 
   // Perform search if query exists
   if (searchQuery) {
-    searchResults = performSearch(searchQuery, tabs);
+    searchResults = performSearch(effectiveSearchQuery(), tabs);
     document.body.classList.add('search-active');
     document.body.classList.add('searching');
   } else {
@@ -1685,6 +1769,60 @@ closeSearchResultsBtn.addEventListener('click', closeAllSearchResults);
 globalSearchInputEl.addEventListener('input', handleSearchInput);
 globalSearchClearEl.addEventListener('click', clearSearch);
 
+// Exit field mode by removing the chip
+searchModeChipRemoveEl.addEventListener('click', (e) => {
+  e.stopPropagation();
+  exitSearchMode();
+  applySearchModeChange();
+  globalSearchInputEl.focus();
+});
+
+// Backspace at the very start of an empty caret exits the field mode
+globalSearchInputEl.addEventListener('keydown', (e) => {
+  if (
+    e.key === 'Backspace' &&
+    searchField &&
+    globalSearchInputEl.selectionStart === 0 &&
+    globalSearchInputEl.selectionEnd === 0
+  ) {
+    e.preventDefault();
+    exitSearchMode();
+    applySearchModeChange();
+  }
+});
+
+// Field-mode menu (the ⌄ button)
+searchModeBtnEl.addEventListener('click', (e) => {
+  e.stopPropagation();
+  searchModeMenuEl.classList.toggle('hidden');
+  updateSearchModeMenu();
+});
+
+searchModeMenuEl.addEventListener('click', (e) => {
+  const option = e.target.closest('.search-mode-option');
+  if (!option) return;
+  searchModeMenuEl.classList.add('hidden');
+  const field = option.dataset.field;
+  if (field === 'all') {
+    exitSearchMode();
+  } else {
+    enterSearchMode(field);
+  }
+  applySearchModeChange();
+  globalSearchInputEl.focus();
+});
+
+// Close the field-mode menu when clicking elsewhere
+document.addEventListener('click', (e) => {
+  if (
+    !searchModeMenuEl.classList.contains('hidden') &&
+    !searchModeMenuEl.contains(e.target) &&
+    !searchModeBtnEl.contains(e.target)
+  ) {
+    searchModeMenuEl.classList.add('hidden');
+  }
+});
+
 // Keyboard shortcuts for search
 document.addEventListener('keydown', (e) => {
   // Focus search with '/' key (when not in an input)
@@ -1703,7 +1841,7 @@ document.addEventListener('keydown', (e) => {
 
   // Clear search with Escape (when search is focused)
   if (e.key === 'Escape' && document.activeElement === globalSearchInputEl) {
-    if (searchQuery) {
+    if (searchQuery || searchField) {
       e.preventDefault();
       clearSearch();
     }

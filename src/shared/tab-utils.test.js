@@ -804,66 +804,104 @@ describe('exactWordMatch', () => {
 
 describe('parseSearchQuery', () => {
   it('detects exact mode for quoted query', () => {
-    expect(parseSearchQuery('"burger"')).toEqual({ term: 'burger', exact: true, wildcard: false });
+    expect(parseSearchQuery('"burger"')).toEqual({ term: 'burger', exact: true, wildcard: false, field: null });
   });
 
   it('treats unquoted query as fuzzy', () => {
-    expect(parseSearchQuery('burger')).toEqual({ term: 'burger', exact: false, wildcard: false });
+    expect(parseSearchQuery('burger')).toEqual({ term: 'burger', exact: false, wildcard: false, field: null });
   });
 
   it('trims whitespace around and inside quotes', () => {
-    expect(parseSearchQuery('  "  burger  "  ')).toEqual({ term: 'burger', exact: true, wildcard: false });
+    expect(parseSearchQuery('  "  burger  "  ')).toEqual({ term: 'burger', exact: true, wildcard: false, field: null });
   });
 
   it('handles empty quoted query', () => {
-    expect(parseSearchQuery('""')).toEqual({ term: '', exact: true, wildcard: false });
+    expect(parseSearchQuery('""')).toEqual({ term: '', exact: true, wildcard: false, field: null });
   });
 
   it('handles non-string input', () => {
-    expect(parseSearchQuery(null)).toEqual({ term: '', exact: false, wildcard: false });
-    expect(parseSearchQuery(undefined)).toEqual({ term: '', exact: false, wildcard: false });
+    expect(parseSearchQuery(null)).toEqual({ term: '', exact: false, wildcard: false, field: null });
+    expect(parseSearchQuery(undefined)).toEqual({ term: '', exact: false, wildcard: false, field: null });
   });
 
   it('does not treat a lone quote as exact mode', () => {
-    expect(parseSearchQuery('"')).toEqual({ term: '"', exact: false, wildcard: false });
+    expect(parseSearchQuery('"')).toEqual({ term: '"', exact: false, wildcard: false, field: null });
   });
 
   // --- wildcard mode ---
 
   it('detects wildcard mode for a trailing asterisk', () => {
-    expect(parseSearchQuery('insta*')).toEqual({ term: 'insta', exact: false, wildcard: true });
+    expect(parseSearchQuery('insta*')).toEqual({ term: 'insta', exact: false, wildcard: true, field: null });
   });
 
   it('detects wildcard mode for a leading asterisk', () => {
-    expect(parseSearchQuery('*insta')).toEqual({ term: 'insta', exact: false, wildcard: true });
+    expect(parseSearchQuery('*insta')).toEqual({ term: 'insta', exact: false, wildcard: true, field: null });
   });
 
   it('treats leading and trailing asterisks identically (position-independent)', () => {
-    expect(parseSearchQuery('*insta*')).toEqual({ term: 'insta', exact: false, wildcard: true });
+    expect(parseSearchQuery('*insta*')).toEqual({ term: 'insta', exact: false, wildcard: true, field: null });
   });
 
   it('strips all leading and trailing asterisks', () => {
-    expect(parseSearchQuery('**insta**')).toEqual({ term: 'insta', exact: false, wildcard: true });
+    expect(parseSearchQuery('**insta**')).toEqual({ term: 'insta', exact: false, wildcard: true, field: null });
   });
 
   it('keeps an internal asterisk as a literal character', () => {
-    expect(parseSearchQuery('git*hub')).toEqual({ term: 'git*hub', exact: false, wildcard: true });
+    expect(parseSearchQuery('git*hub')).toEqual({ term: 'git*hub', exact: false, wildcard: true, field: null });
   });
 
   it('reduces a lone asterisk to an empty core', () => {
-    expect(parseSearchQuery('*')).toEqual({ term: '', exact: false, wildcard: true });
+    expect(parseSearchQuery('*')).toEqual({ term: '', exact: false, wildcard: true, field: null });
   });
 
   it('reduces multiple asterisks to an empty core', () => {
-    expect(parseSearchQuery('**')).toEqual({ term: '', exact: false, wildcard: true });
+    expect(parseSearchQuery('**')).toEqual({ term: '', exact: false, wildcard: true, field: null });
   });
 
   it('trims whitespace around the stripped core', () => {
-    expect(parseSearchQuery('  insta *  ')).toEqual({ term: 'insta', exact: false, wildcard: true });
+    expect(parseSearchQuery('  insta *  ')).toEqual({ term: 'insta', exact: false, wildcard: true, field: null });
   });
 
   it('lets quotes win over an asterisk (literal star, exact mode)', () => {
-    expect(parseSearchQuery('"insta*"')).toEqual({ term: 'insta*', exact: true, wildcard: false });
+    expect(parseSearchQuery('"insta*"')).toEqual({ term: 'insta*', exact: true, wildcard: false, field: null });
+  });
+
+  // --- field-scope mode (inurl: / intitle:) ---
+
+  it('detects URL field scope for an inurl: prefix', () => {
+    expect(parseSearchQuery('inurl:github')).toEqual({ term: 'github', exact: false, wildcard: false, field: 'url' });
+  });
+
+  it('detects title field scope for an intitle: prefix', () => {
+    expect(parseSearchQuery('intitle:docs')).toEqual({ term: 'docs', exact: false, wildcard: false, field: 'title' });
+  });
+
+  it('matches the field prefix case-insensitively', () => {
+    expect(parseSearchQuery('INURL:github')).toEqual({ term: 'github', exact: false, wildcard: false, field: 'url' });
+  });
+
+  it('trims whitespace after the field prefix', () => {
+    expect(parseSearchQuery('inurl:  github  ')).toEqual({ term: 'github', exact: false, wildcard: false, field: 'url' });
+  });
+
+  it('composes a field scope with exact mode', () => {
+    expect(parseSearchQuery('inurl:"github"')).toEqual({ term: 'github', exact: true, wildcard: false, field: 'url' });
+  });
+
+  it('composes a field scope with wildcard mode', () => {
+    expect(parseSearchQuery('inurl:git*')).toEqual({ term: 'git', exact: false, wildcard: true, field: 'url' });
+  });
+
+  it('yields an empty term for a bare field prefix', () => {
+    expect(parseSearchQuery('inurl:')).toEqual({ term: '', exact: false, wildcard: false, field: 'url' });
+  });
+
+  it('only strips a field prefix at the start of the query', () => {
+    expect(parseSearchQuery('foo inurl:bar')).toEqual({ term: 'foo inurl:bar', exact: false, wildcard: false, field: null });
+  });
+
+  it('does not treat an unknown prefix as a field scope', () => {
+    expect(parseSearchQuery('inbody:x')).toEqual({ term: 'inbody:x', exact: false, wildcard: false, field: null });
   });
 });
 
@@ -1019,6 +1057,47 @@ describe('searchTab', () => {
 
   it('returns null for a lone asterisk (empty core)', () => {
     expect(searchTab('*', { title: 'anything' })).toBeNull();
+  });
+
+  // --- field scope (inurl: / intitle:) ---
+
+  it('inurl: searches the URL and domain but not the title', () => {
+    const tab = { title: 'github', url: 'https://example.com/repo' };
+    const result = searchTab('inurl:example', tab);
+    expect(result).not.toBeNull();
+    expect(result.matches).toHaveProperty('url');
+    expect(result.matches).toHaveProperty('domain');
+    expect(result.matches).not.toHaveProperty('title');
+  });
+
+  it('inurl: does not match a term that only appears in the title', () => {
+    const tab = { title: 'GitHub Repository', url: 'https://example.com' };
+    expect(searchTab('inurl:github', tab)).toBeNull();
+  });
+
+  it('intitle: searches the title but not the URL or domain', () => {
+    const tab = { title: 'GitHub Repository', url: 'https://github.com/user' };
+    const result = searchTab('intitle:github', tab);
+    expect(result).not.toBeNull();
+    expect(result.matches).toHaveProperty('title');
+    expect(result.matches).not.toHaveProperty('url');
+    expect(result.matches).not.toHaveProperty('domain');
+  });
+
+  it('intitle: does not match a term that only appears in the URL', () => {
+    const tab = { title: 'Example', url: 'https://github.com/user' };
+    expect(searchTab('intitle:github', tab)).toBeNull();
+  });
+
+  it('field scope composes with exact mode', () => {
+    const tab = { title: 'Food', url: 'https://burger.com/menu' };
+    const result = searchTab('inurl:"burger"', tab);
+    expect(result).not.toBeNull();
+    expect(result.matches).toHaveProperty('domain');
+  });
+
+  it('returns null for a bare field prefix with no term', () => {
+    expect(searchTab('inurl:', { title: 'x', url: 'https://x.com' })).toBeNull();
   });
 });
 

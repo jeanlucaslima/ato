@@ -34,6 +34,7 @@ WHAT IT DOES
    – Fuzzy (default): forgiving, typo-tolerant matching
    – Exact whole-word: wrap a query in quotes, e.g. "burger"
    – Wildcard substring: add an asterisk, e.g. hack* — matches the literal text anywhere
+   Plus field scopes — narrow any search to just the URL (inurl:) or just the title (intitle:), shown as a chip you can also pick from a menu.
 
 • Playing media — Tabs making sound float to a section at the top and get a speaker icon wherever they appear, so you can find that noisy tab instantly.
 
@@ -133,4 +134,4 @@ in the store form.
 - [ ] Icon: 128×128 (from `src/assets/icons/`)
 - [ ] At least 1 screenshot, 1280×800 or 640×400 (have `docs/screenshots/popup.png` — verify dimensions/crop)
 - [ ] Small promo tile 440×280 (optional but recommended)
-- [ ] Package: `ato-v1.9.2.zip`
+- [ ] Package: `ato-v1.10.0.zip`

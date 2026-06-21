@@ -524,8 +524,19 @@ export function substringMatch(pattern, text) {
 }
 
 /**
- * Parses a raw search query, detecting exact whole-word and wildcard modes.
+ * Maps a field-scope prefix to the field it restricts the search to.
+ * @type {Record<string, 'url'|'title'>}
+ */
+const FIELD_PREFIXES = { inurl: 'url', intitle: 'title' };
+
+/**
+ * Parses a raw search query, detecting a field scope plus exact whole-word and
+ * wildcard modes.
  *
+ * - A leading field-scope prefix (`inurl:` or `intitle:`, case-insensitive)
+ *   restricts the search to a single field. It is stripped first, so it
+ *   composes with the modes below: `inurl:"foo"` is an exact match against the
+ *   URL, `inurl:foo*` a wildcard match against the URL.
  * - A query wrapped in double quotes (e.g. `"burger"`) requests an exact
  *   whole-word match (quotes win, so any `*` inside is treated literally).
  * - Otherwise, a query containing an asterisk requests a wildcard (literal
@@ -534,29 +545,37 @@ export function substringMatch(pattern, text) {
  * - Any other query is treated as a fuzzy search.
  *
  * @param {string} query - The raw search query
- * @returns {{term: string, exact: boolean, wildcard: boolean}} The cleaned term and which mode is requested
+ * @returns {{term: string, exact: boolean, wildcard: boolean, field: 'url'|'title'|null}} The cleaned term, which mode is requested, and which field it is scoped to (`null` = all fields)
  * @example
- * parseSearchQuery('"burger"'); // { term: 'burger', exact: true,  wildcard: false }
- * parseSearchQuery('insta*');   // { term: 'insta',  exact: false, wildcard: true }
- * parseSearchQuery('burger');   // { term: 'burger', exact: false, wildcard: false }
+ * parseSearchQuery('"burger"');     // { term: 'burger', exact: true,  wildcard: false, field: null }
+ * parseSearchQuery('insta*');       // { term: 'insta',  exact: false, wildcard: true,  field: null }
+ * parseSearchQuery('burger');       // { term: 'burger', exact: false, wildcard: false, field: null }
+ * parseSearchQuery('inurl:github'); // { term: 'github', exact: false, wildcard: false, field: 'url' }
  */
 export function parseSearchQuery(query) {
   if (typeof query !== 'string') {
-    return { term: '', exact: false, wildcard: false };
+    return { term: '', exact: false, wildcard: false, field: null };
   }
 
-  const trimmed = query.trim();
+  let trimmed = query.trim();
+  let field = null;
+
+  const prefixMatch = /^(inurl|intitle):/i.exec(trimmed);
+  if (prefixMatch) {
+    field = FIELD_PREFIXES[prefixMatch[1].toLowerCase()];
+    trimmed = trimmed.slice(prefixMatch[0].length).trim();
+  }
 
   if (trimmed.length >= 2 && trimmed.startsWith('"') && trimmed.endsWith('"')) {
-    return { term: trimmed.slice(1, -1).trim(), exact: true, wildcard: false };
+    return { term: trimmed.slice(1, -1).trim(), exact: true, wildcard: false, field };
   }
 
   if (trimmed.includes('*')) {
     const term = trimmed.replace(/^\*+/, '').replace(/\*+$/, '').trim();
-    return { term, exact: false, wildcard: true };
+    return { term, exact: false, wildcard: true, field };
   }
 
-  return { term: trimmed, exact: false, wildcard: false };
+  return { term: trimmed, exact: false, wildcard: false, field };
 }
 
 /**
@@ -568,26 +587,31 @@ export function parseSearchQuery(query) {
  * - Exact (query wrapped in double quotes, e.g. `"burger"`): whole-word match only.
  * - Wildcard (query containing an asterisk, e.g. `insta*`): literal substring match.
  *
- * @param {string} query - The raw search query (quoted for exact, `*` for wildcard)
+ * A field-scope prefix (`inurl:` / `intitle:`) restricts which fields are
+ * searched. `inurl:` covers the URL and its domain (the hostname is part of the
+ * URL); `intitle:` covers only the title.
+ *
+ * @param {string} query - The raw search query (quoted for exact, `*` for wildcard, `inurl:`/`intitle:` to scope)
  * @param {Tab} tab - The tab object to search
  * @returns {{score: number, matches: {title?: {score: number, indices: number[]}, url?: {score: number, indices: number[]}, domain?: {score: number, indices: number[]}}}|null}
  * @example
  * searchTab('git', { title: 'GitHub' });        // fuzzy match
  * searchTab('"git"', { title: 'GitHub - git' }); // exact whole-word match
  * searchTab('insta*', { title: 'Instagram' });   // wildcard substring match
+ * searchTab('inurl:github', { url: '...' });     // URL-only match
  */
 export function searchTab(query, tab) {
   if (!tab) return null;
 
-  const { term, exact, wildcard } = parseSearchQuery(query);
+  const { term, exact, wildcard, field } = parseSearchQuery(query);
   if (!term) return null;
 
   const matcher = exact ? exactWordMatch : wildcard ? substringMatch : fuzzyMatch;
   const matches = {};
   let bestScore = 0;
 
-  // Search title
-  if (tab.title) {
+  // Search title (skipped when scoped to the URL)
+  if (field !== 'url' && tab.title) {
     const titleMatch = matcher(term, tab.title);
     if (titleMatch) {
       matches.title = titleMatch;
@@ -595,22 +619,23 @@ export function searchTab(query, tab) {
     }
   }
 
-  // Search URL
-  if (tab.url) {
-    const urlMatch = matcher(term, tab.url);
-    if (urlMatch) {
-      matches.url = urlMatch;
-      bestScore = Math.max(bestScore, urlMatch.score);
+  // Search URL and domain (skipped when scoped to the title)
+  if (field !== 'title') {
+    if (tab.url) {
+      const urlMatch = matcher(term, tab.url);
+      if (urlMatch) {
+        matches.url = urlMatch;
+        bestScore = Math.max(bestScore, urlMatch.score);
+      }
     }
-  }
 
-  // Search domain
-  const domain = extractDomain(tab.url);
-  if (domain) {
-    const domainMatch = matcher(term, domain);
-    if (domainMatch) {
-      matches.domain = domainMatch;
-      bestScore = Math.max(bestScore, domainMatch.score);
+    const domain = extractDomain(tab.url);
+    if (domain) {
+      const domainMatch = matcher(term, domain);
+      if (domainMatch) {
+        matches.domain = domainMatch;
+        bestScore = Math.max(bestScore, domainMatch.score);
+      }
     }
   }
 

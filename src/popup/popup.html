@@ -40,9 +40,43 @@
           <circle cx="11" cy="11" r="8"/>
           <path d="M21 21l-4.35-4.35"/>
         </svg>
+        <span id="search-mode-chip" class="search-mode-chip hidden">
+          <span id="search-mode-chip-label"></span>
+          <button type="button" id="search-mode-chip-remove" class="search-mode-chip-remove" aria-label="Exit search mode" title="Exit mode">×</button>
+        </span>
         <input type="text" id="global-search-input" class="global-search-input"
                placeholder='Search tabs... ("word" exact, word* wildcard)' autocomplete="off" autofocus>
+        <button type="button" id="search-mode-btn" class="search-mode-btn" aria-label="Search in field" title="Search in a specific field" aria-haspopup="true">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M6 9l6 6 6-6"/>
+          </svg>
+        </button>
         <button type="button" id="global-search-clear" class="global-search-clear hidden">×</button>
+        <div id="search-mode-menu" class="search-mode-menu hidden" role="menu">
+          <button type="button" class="search-mode-option" data-field="all" role="menuitem">
+            <svg class="search-mode-option-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+              <polyline points="2 17 12 22 22 17"/>
+              <polyline points="2 12 12 17 22 12"/>
+            </svg>
+            <span>All fields</span>
+          </button>
+          <button type="button" class="search-mode-option" data-field="url" role="menuitem">
+            <svg class="search-mode-option-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+            </svg>
+            <span>In URL</span>
+          </button>
+          <button type="button" class="search-mode-option" data-field="title" role="menuitem">
+            <svg class="search-mode-option-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="4 7 4 4 20 4 20 7"/>
+              <line x1="9" y1="20" x2="15" y2="20"/>
+              <line x1="12" y1="4" x2="12" y2="20"/>
+            </svg>
+            <span>In title</span>
+          </button>
+        </div>
       </div>
       <div id="search-results-count" class="search-results-count hidden"></div>
     </div>
