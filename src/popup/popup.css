@@ -814,6 +814,13 @@ body {
   opacity: 1;
 }
 
+/* Skip the stagger animation on re-renders (e.g. after closing a tab).
+   Only the initial popup open plays the slide-in; subsequent renders are instant. */
+body.no-stagger .tab-item {
+  animation: none;
+  opacity: 1;
+}
+
 .tab-item:hover {
   background: var(--bg-tertiary);
   border-color: var(--border-hover);

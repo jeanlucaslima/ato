@@ -127,6 +127,7 @@ let undoContext = null;         // 'duplicates', 'domain', or specific domain na
 let pinnedDuplicatesSkipped = 0; // Track count of pinned duplicates skipped
 let groupedDuplicatesSkipped = 0; // Track count of grouped duplicates skipped
 let browserTabsSkipped = 0;     // Track count of browser tabs (chrome://, edge://) skipped
+let hasRenderedOnce = false;    // Stagger slide-in only plays on the first render
 
 // Render cache for single-pass computation
 let renderCache = {
@@ -1420,6 +1421,12 @@ function hideDomainDropdown() {
  * @param {Object[]} duplicates - Duplicate tabs only
  */
 function render(tabs, duplicates) {
+  // Play the staggered slide-in only on the first render (initial popup open).
+  // Re-renders (closing a tab, sorting, etc.) skip it so the list doesn't
+  // re-animate every item — which is disruptive when a small group collapses.
+  document.body.classList.toggle('no-stagger', hasRenderedOnce);
+  hasRenderedOnce = true;
+
   // Save scroll positions before re-rendering
   const scrollPositions = {
     duplicates: duplicatesContentEl.scrollTop,
