@@ -527,16 +527,16 @@ export function substringMatch(pattern, text) {
  * Maps a field-scope prefix to the field it restricts the search to.
  * @type {Record<string, 'url'|'title'>}
  */
-const FIELD_PREFIXES = { inurl: 'url', intitle: 'title' };
+const FIELD_PREFIXES = { url: 'url', title: 'title', inurl: 'url', intitle: 'title' };
 
 /**
  * Parses a raw search query, detecting a field scope plus exact whole-word and
  * wildcard modes.
  *
- * - A leading field-scope prefix (`inurl:` or `intitle:`, case-insensitive)
+ * - A leading field-scope prefix (`url:`, `title:`, `inurl:`, or `intitle:`, case-insensitive)
  *   restricts the search to a single field. It is stripped first, so it
- *   composes with the modes below: `inurl:"foo"` is an exact match against the
- *   URL, `inurl:foo*` a wildcard match against the URL.
+ *   composes with the modes below: `url:"foo"` is an exact match against the
+ *   URL, `url:foo*` a wildcard match against the URL.
  * - A query wrapped in double quotes (e.g. `"burger"`) requests an exact
  *   whole-word match (quotes win, so any `*` inside is treated literally).
  * - Otherwise, a query containing an asterisk requests a wildcard (literal
@@ -550,9 +550,9 @@ const FIELD_PREFIXES = { inurl: 'url', intitle: 'title' };
  * parseSearchQuery('"burger"');     // { term: 'burger', exact: true,  wildcard: false, field: null }
  * parseSearchQuery('insta*');       // { term: 'insta',  exact: false, wildcard: true,  field: null }
  * parseSearchQuery('burger');       // { term: 'burger', exact: false, wildcard: false, field: null }
- * parseSearchQuery('inurl:github'); // { term: 'github', exact: false, wildcard: false, field: 'url' }
+ * parseSearchQuery('url:github');   // { term: 'github', exact: false, wildcard: false, field: 'url' }
  */
-export function parseSearchQuery(query) {
+export function parseSearchQuery(query, forcedMode = null) {
   if (typeof query !== 'string') {
     return { term: '', exact: false, wildcard: false, field: null };
   }
@@ -560,10 +560,18 @@ export function parseSearchQuery(query) {
   let trimmed = query.trim();
   let field = null;
 
-  const prefixMatch = /^(inurl|intitle):/i.exec(trimmed);
+  const prefixMatch = /^(url|title|inurl|intitle):/i.exec(trimmed);
   if (prefixMatch) {
     field = FIELD_PREFIXES[prefixMatch[1].toLowerCase()];
     trimmed = trimmed.slice(prefixMatch[0].length).trim();
+  }
+
+  if (forcedMode === 'exact') {
+    return { term: trimmed.replace(/^"+|"+$/g, '').trim(), exact: true, wildcard: false, field };
+  }
+
+  if (forcedMode === 'contains') {
+    return { term: trimmed.replace(/^\*+/, '').replace(/\*+$/, '').trim(), exact: false, wildcard: true, field };
   }
 
   if (trimmed.length >= 2 && trimmed.startsWith('"') && trimmed.endsWith('"')) {
@@ -587,23 +595,23 @@ export function parseSearchQuery(query) {
  * - Exact (query wrapped in double quotes, e.g. `"burger"`): whole-word match only.
  * - Wildcard (query containing an asterisk, e.g. `insta*`): literal substring match.
  *
- * A field-scope prefix (`inurl:` / `intitle:`) restricts which fields are
- * searched. `inurl:` covers the URL and its domain (the hostname is part of the
- * URL); `intitle:` covers only the title.
+ * A field-scope prefix (`url:` / `title:`; legacy `inurl:` / `intitle:` aliases)
+ * restricts which fields are searched. URL scope covers the URL and its domain
+ * (the hostname is part of the URL); title scope covers only the title.
  *
- * @param {string} query - The raw search query (quoted for exact, `*` for wildcard, `inurl:`/`intitle:` to scope)
+ * @param {string} query - The raw search query (quoted for exact, `*` for wildcard, `url:`/`title:` to scope)
  * @param {Tab} tab - The tab object to search
  * @returns {{score: number, matches: {title?: {score: number, indices: number[]}, url?: {score: number, indices: number[]}, domain?: {score: number, indices: number[]}}}|null}
  * @example
  * searchTab('git', { title: 'GitHub' });        // fuzzy match
  * searchTab('"git"', { title: 'GitHub - git' }); // exact whole-word match
  * searchTab('insta*', { title: 'Instagram' });   // wildcard substring match
- * searchTab('inurl:github', { url: '...' });     // URL-only match
+ * searchTab('url:github', { url: '...' });       // URL-only match
  */
-export function searchTab(query, tab) {
+export function searchTab(query, tab, forcedMode = null) {
   if (!tab) return null;
 
-  const { term, exact, wildcard, field } = parseSearchQuery(query);
+  const { term, exact, wildcard, field } = parseSearchQuery(query, forcedMode);
   if (!term) return null;
 
   const matcher = exact ? exactWordMatch : wildcard ? substringMatch : fuzzyMatch;

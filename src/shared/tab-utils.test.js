@@ -872,8 +872,16 @@ describe('parseSearchQuery', () => {
     expect(parseSearchQuery('inurl:github')).toEqual({ term: 'github', exact: false, wildcard: false, field: 'url' });
   });
 
+  it('detects URL field scope for the preferred url: prefix', () => {
+    expect(parseSearchQuery('url:github')).toEqual({ term: 'github', exact: false, wildcard: false, field: 'url' });
+  });
+
   it('detects title field scope for an intitle: prefix', () => {
     expect(parseSearchQuery('intitle:docs')).toEqual({ term: 'docs', exact: false, wildcard: false, field: 'title' });
+  });
+
+  it('detects title field scope for the preferred title: prefix', () => {
+    expect(parseSearchQuery('title:docs')).toEqual({ term: 'docs', exact: false, wildcard: false, field: 'title' });
   });
 
   it('matches the field prefix case-insensitively', () => {
@@ -890,6 +898,14 @@ describe('parseSearchQuery', () => {
 
   it('composes a field scope with wildcard mode', () => {
     expect(parseSearchQuery('inurl:git*')).toEqual({ term: 'git', exact: false, wildcard: true, field: 'url' });
+  });
+
+  it('can force contains mode for selector-driven search', () => {
+    expect(parseSearchQuery('github', 'contains')).toEqual({ term: 'github', exact: false, wildcard: true, field: null });
+  });
+
+  it('can force exact mode for selector-driven search', () => {
+    expect(parseSearchQuery('github', 'exact')).toEqual({ term: 'github', exact: true, wildcard: false, field: null });
   });
 
   it('yields an empty term for a bare field prefix', () => {
@@ -1070,6 +1086,14 @@ describe('searchTab', () => {
     expect(result.matches).not.toHaveProperty('title');
   });
 
+  it('url: searches the URL and domain but not the title', () => {
+    const tab = { title: 'GitHub notes', url: 'https://example.com/docs' };
+    const result = searchTab('url:example', tab);
+    expect(result).not.toBeNull();
+    expect(result.matches.url || result.matches.domain).toBeTruthy();
+    expect(searchTab('url:github', tab)).toBeNull();
+  });
+
   it('inurl: does not match a term that only appears in the title', () => {
     const tab = { title: 'GitHub Repository', url: 'https://example.com' };
     expect(searchTab('inurl:github', tab)).toBeNull();
@@ -1082,6 +1106,26 @@ describe('searchTab', () => {
     expect(result.matches).toHaveProperty('title');
     expect(result.matches).not.toHaveProperty('url');
     expect(result.matches).not.toHaveProperty('domain');
+  });
+
+  it('title: searches the title but not the URL or domain', () => {
+    const tab = { title: 'GitHub notes', url: 'https://example.com/docs' };
+    const result = searchTab('title:github', tab);
+    expect(result).not.toBeNull();
+    expect(result.matches.title).toBeTruthy();
+    expect(searchTab('title:example', tab)).toBeNull();
+  });
+
+  it('supports selector-driven contains mode', () => {
+    const tab = { title: 'GitHub', url: 'https://github.com' };
+    expect(searchTab('gthb', tab)).not.toBeNull();
+    expect(searchTab('gthb', tab, 'contains')).toBeNull();
+  });
+
+  it('supports selector-driven exact mode', () => {
+    const tab = { title: 'hamburger recipes', url: 'https://food.test' };
+    expect(searchTab('burger', tab)).not.toBeNull();
+    expect(searchTab('burger', tab, 'exact')).toBeNull();
   });
 
   it('intitle: does not match a term that only appears in the URL', () => {
