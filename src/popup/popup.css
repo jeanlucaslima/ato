@@ -734,6 +734,12 @@ body {
   border-color: var(--accent-color);
 }
 
+.browse-tab.selected {
+  border-color: var(--accent-color);
+  box-shadow: inset 0 -3px 0 var(--accent-color);
+  color: var(--accent-color);
+}
+
 .btn-action.btn-accent {
   background: var(--accent-light);
   color: var(--accent-color);

@@ -393,11 +393,14 @@ function switchToHighlightedResult() {
 }
 
 function getVisibleActionItems() {
-  return Array.from(document.querySelectorAll('.section-header, .tab-item'))
+  return Array.from(document.querySelectorAll('.browse-tab, .section-header, .tab-item'))
     .filter(item => item.offsetParent !== null);
 }
 
 function itemKey(item) {
+  if (item.classList.contains('browse-tab')) {
+    return `browse-tab:${item.dataset.view}`;
+  }
   if (item.classList.contains('section-header')) {
     return item.dataset.domain ? `domain-header:${item.dataset.domain}` : `section-header:${item.id}`;
   }
@@ -406,7 +409,7 @@ function itemKey(item) {
 
 function updateSelectedItem(newIndex) {
   const items = getVisibleActionItems();
-  document.querySelectorAll('.tab-item.selected, .section-header.selected').forEach(item => item.classList.remove('selected'));
+  document.querySelectorAll('.browse-tab.selected, .tab-item.selected, .section-header.selected').forEach(item => item.classList.remove('selected'));
 
   if (items.length === 0) {
     selectedItemIndex = -1;
@@ -431,7 +434,7 @@ function updateSelectedItem(newIndex) {
 
 function restoreSelectedItem() {
   const items = getVisibleActionItems();
-  document.querySelectorAll('.tab-item.selected, .section-header.selected').forEach(item => item.classList.remove('selected'));
+  document.querySelectorAll('.browse-tab.selected, .tab-item.selected, .section-header.selected').forEach(item => item.classList.remove('selected'));
 
   if (items.length === 0) {
     selectedItemIndex = -1;
@@ -457,6 +460,11 @@ function activateSelectedItem() {
   const item = items[selectedItemIndex];
   if (!item) return;
 
+  if (item.classList.contains('browse-tab')) {
+    item.click();
+    return;
+  }
+
   if (item.classList.contains('section-header')) {
     item.click();
     return;
@@ -471,7 +479,7 @@ function closeSelectedItem() {
   const items = getVisibleActionItems();
   const item = items[selectedItemIndex];
   if (!item) return;
-  if (item.classList.contains('section-header')) return;
+  if (item.classList.contains('browse-tab') || item.classList.contains('section-header')) return;
 
   if (item.dataset.url && duplicateListEl.contains(item)) {
     closeDuplicatesOfUrl(item.dataset.url);
@@ -480,6 +488,28 @@ function closeSelectedItem() {
 
   const tabId = parseInt(item.dataset.tabId, 10);
   if (tabId) closeTab(tabId);
+}
+
+function setSelectedHeaderExpanded(expand) {
+  const items = getVisibleActionItems();
+  const item = items[selectedItemIndex];
+  if (!item) return false;
+
+  if (item.classList.contains('browse-tab')) {
+    const targetView = expand ? 'domains' : 'tabs';
+    if (browseView !== targetView) {
+      browseTabsEl.querySelector(`[data-view="${targetView}"]`)?.click();
+    }
+    return true;
+  }
+
+  if (!item.classList.contains('section-header')) return false;
+
+  const isExpanded = item.getAttribute('aria-expanded') === 'true';
+  if (expand !== isExpanded) {
+    item.click();
+  }
+  return true;
 }
 
 /**
@@ -2094,6 +2124,20 @@ document.addEventListener('keydown', (e) => {
       e.preventDefault();
       updateSelectedItem(selectedItemIndex - 1);
       return;
+    }
+
+    if (e.key === 'ArrowLeft') {
+      if (setSelectedHeaderExpanded(false)) {
+        e.preventDefault();
+        return;
+      }
+    }
+
+    if (e.key === 'ArrowRight') {
+      if (setSelectedHeaderExpanded(true)) {
+        e.preventDefault();
+        return;
+      }
     }
 
     if (e.key === 'Enter') {
