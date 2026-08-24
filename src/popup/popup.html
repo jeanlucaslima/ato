@@ -13,8 +13,14 @@
       <img class="header-icon" src="../assets/icons/ato-logo.svg" alt="ATO Logo">
       <div class="header-text">
         <h1 class="title">ATO</h1>
-        <p class="subtitle">Advanced Tab Organizer</p>
+        <p class="subtitle" id="stats-summary">0 tabs · 0 duplicates · 0 domains</p>
       </div>
+      <button class="btn-action btn-options" id="options-btn" title="Open settings" aria-label="Open settings">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
     </header>
 
     <!-- Stats Bar -->
@@ -33,6 +39,14 @@
       </div>
     </div>
 
+    <!-- Contextual Undo -->
+    <div class="undo-row hidden" id="undo-row">
+      <span id="undo-message">Last action</span>
+      <button class="btn-action btn-undo" id="undo-duplicates-btn" title="Undo last close action">
+        <span>Undo</span>
+      </button>
+    </div>
+
     <!-- Global Search -->
     <div class="search-container">
       <div class="search-input-wrapper">
@@ -45,7 +59,7 @@
           <button type="button" id="search-mode-chip-remove" class="search-mode-chip-remove" aria-label="Exit search mode" title="Exit mode">×</button>
         </span>
         <input type="text" id="global-search-input" class="global-search-input"
-               placeholder='Search tabs... ("word" exact, word* wildcard)' autocomplete="off" autofocus>
+               placeholder="Search tabs" autocomplete="off" autofocus>
         <button type="button" id="search-mode-btn" class="search-mode-btn" aria-label="Search in field" title="Search in a specific field" aria-haspopup="true">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <path d="M6 9l6 6 6-6"/>
@@ -79,37 +93,19 @@
         </div>
       </div>
       <div id="search-results-count" class="search-results-count hidden"></div>
-    </div>
-
-    <!-- Action Bar -->
-    <div class="action-bar">
-      <!-- Action Buttons -->
-      <div class="action-row">
-        <button class="btn-action btn-undo" id="undo-duplicates-btn" title="Undo - restore closed tabs" disabled>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-            <path d="M3 3v5h5"/>
-          </svg>
-          <span>Undo</span>
-        </button>
-        <button class="btn-action btn-scope hidden" id="scope-btn" title="Toggle detection scope">
-          <svg id="scope-icon-all" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="7" height="9" rx="1"/>
-            <rect x="14" y="3" width="7" height="9" rx="1"/>
-            <rect x="3" y="14" width="7" height="7" rx="1"/>
-            <rect x="14" y="14" width="7" height="7" rx="1"/>
-          </svg>
-          <svg id="scope-icon-current" class="hidden" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="18" height="18" rx="2"/>
-            <line x1="3" y1="9" x2="21" y2="9"/>
-          </svg>
-          <span id="scope-label">All</span>
-        </button>
-        <button class="btn-action btn-options" id="options-btn" title="Open settings">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-          </svg>
+      <div class="search-control-row">
+        <select id="search-field-select" class="control-select" aria-label="Search field">
+          <option value="all">All fields</option>
+          <option value="title">Title</option>
+          <option value="url">URL</option>
+        </select>
+        <select id="search-precision-select" class="control-select" aria-label="Search mode">
+          <option value="fuzzy">Fuzzy</option>
+          <option value="contains">Contains</option>
+          <option value="exact">Exact</option>
+        </select>
+        <button class="btn-action btn-scope" id="scope-btn" title="Toggle search and browse scope">
+          <span id="scope-label">All windows</span>
         </button>
       </div>
     </div>
@@ -124,6 +120,9 @@
             <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
           </svg>
           <span>Close results</span>
+        </button>
+        <button class="btn-action btn-accent" id="move-search-results-btn" title="Move all search results to a new window">
+          <span>Move to window</span>
         </button>
       </div>
       <div id="search-results-list" class="search-results-list">
@@ -158,18 +157,25 @@
         <svg class="fold-arrow" width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
           <path d="M4 2l4 4-4 4V2z"/>
         </svg>
-        <h2 class="section-title">Duplicated Tabs</h2>
+        <h2 class="section-title">Duplicates</h2>
         <span class="section-count" id="duplicates-section-count">0</span>
       </button>
       <div class="section-content" id="duplicates-content">
         <div class="section-content-inner">
           <!-- Duplicates Action Bar -->
           <div class="duplicates-action-bar">
-            <button class="btn-action btn-danger" id="close-all-btn" title="Close all duplicate tabs">
+            <div class="duplicates-summary">
+              <strong id="duplicates-summary-primary">0 duplicate tabs</strong>
+              <span id="duplicates-summary-secondary">Can be closed across 0 groups</span>
+            </div>
+            <button class="btn-action btn-danger" id="close-all-btn" title="Clean up duplicate tabs">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
               </svg>
-              <span>Close duplicates</span>
+              <span>Clean up</span>
+            </button>
+            <button class="btn-action btn-accent" id="review-duplicates-btn" title="Review duplicate groups">
+              <span>Review</span>
             </button>
             <div class="btn-group" id="duplicates-sort-buttons">
               <button class="btn-toggle active" data-sort="default" title="Default order">Default</button>
@@ -199,6 +205,11 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <div class="browse-tabs" role="tablist" aria-label="Browse view">
+      <button class="browse-tab active" data-view="tabs" type="button">Tabs</button>
+      <button class="browse-tab" data-view="domains" type="button">Domains</button>
     </div>
 
     <!-- All Tabs List -->
@@ -258,7 +269,7 @@
 
     <!-- Footer -->
     <footer class="popup-footer">
-      <span id="footer-version">v1.5.0</span>
+      <span id="footer-version">v1.20.0</span>
       <span class="footer-separator">·</span>
       <a href="https://github.com/jeanlucaslima/ato" target="_blank" rel="noopener">GitHub</a>
       <span class="footer-separator">·</span>

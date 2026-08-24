@@ -23,24 +23,26 @@ log('🎨 ATO popup loaded');
 const totalTabsEl = document.getElementById('total-tabs');
 const duplicateCountEl = document.getElementById('duplicate-count');
 const domainCountEl = document.getElementById('domain-count');
+const statsSummaryEl = document.getElementById('stats-summary');
 const duplicateListEl = document.getElementById('duplicate-list');
 const allTabsListEl = document.getElementById('all-tabs-list');
 const emptyStateEl = document.getElementById('empty-state');
 const closeAllBtn = document.getElementById('close-all-btn');
+const reviewDuplicatesBtn = document.getElementById('review-duplicates-btn');
 const domainFilterInputEl = document.getElementById('domain-filter-input');
 const domainFilterClearEl = document.getElementById('domain-filter-clear');
 const domainFilterDropdownEl = document.getElementById('domain-filter-dropdown');
 const sortButtonsEl = document.getElementById('sort-buttons');
 const duplicatesSortButtonsEl = document.getElementById('duplicates-sort-buttons');
 const undoDuplicatesBtn = document.getElementById('undo-duplicates-btn');
+const undoRowEl = document.getElementById('undo-row');
+const undoMessageEl = document.getElementById('undo-message');
 const pinnedWarningEl = document.getElementById('pinned-warning');
 const pinnedSkipCountEl = document.getElementById('pinned-skip-count');
 const browserWarningEl = document.getElementById('browser-warning');
 const browserSkipCountEl = document.getElementById('browser-skip-count');
 const optionsBtn = document.getElementById('options-btn');
 const scopeBtn = document.getElementById('scope-btn');
-const scopeIconAll = document.getElementById('scope-icon-all');
-const scopeIconCurrent = document.getElementById('scope-icon-current');
 const scopeLabel = document.getElementById('scope-label');
 
 // Global search elements
@@ -52,6 +54,8 @@ const searchModeChipLabelEl = document.getElementById('search-mode-chip-label');
 const searchModeChipRemoveEl = document.getElementById('search-mode-chip-remove');
 const searchModeBtnEl = document.getElementById('search-mode-btn');
 const searchModeMenuEl = document.getElementById('search-mode-menu');
+const searchFieldSelectEl = document.getElementById('search-field-select');
+const searchPrecisionSelectEl = document.getElementById('search-precision-select');
 
 // Collapsible section elements
 const mediaContainerEl = document.getElementById('media-container');
@@ -75,18 +79,23 @@ const searchResultsListEl = document.getElementById('search-results-list');
 const searchResultsSectionCountEl = document.getElementById('search-results-section-count');
 const searchEmptyStateEl = document.getElementById('search-empty-state');
 const closeSearchResultsBtn = document.getElementById('close-search-results-btn');
+const moveSearchResultsBtn = document.getElementById('move-search-results-btn');
+const browseTabsEl = document.querySelector('.browse-tabs');
+const browseTabButtons = document.querySelectorAll('.browse-tab');
+const duplicatesSummaryPrimaryEl = document.getElementById('duplicates-summary-primary');
+const duplicatesSummarySecondaryEl = document.getElementById('duplicates-summary-secondary');
 
 // Settings (loaded from chrome.storage.sync)
 let settings = {
-  theme: 'dark',
+  theme: 'graphite',
   fontFamily: 'titillium',
   protectPinned: true,
   protectGroups: false,
-  advancedMode: false,
-  showMergeButton: false,
   keepTab: 'oldest',
   matchMode: 'exact',
-  currentWindowOnly: false
+  currentWindowOnly: false,
+  defaultBrowseView: 'tabs',
+  defaultSearchMode: 'fuzzy'
 };
 
 // State
@@ -101,29 +110,35 @@ let highlightedOptionIndex = -1; // Track highlighted option in dropdown
 let ageSortDirection = 'old'; // 'old' or 'new' - toggles on each click
 let sectionStates = {
   media: true,      // expanded by default
-  duplicates: true, // expanded by default
+  duplicates: true, // expanded by default so the quick cleanup summary is visible
   allTabs: true     // expanded by default
 };
 let domainSectionStates = {}; // Track collapse state per domain
+let browseView = 'tabs';
+let duplicateReviewOpen = false;
 
 // Search state
 let searchQuery = '';
-let searchField = null; // null = all fields, 'url' = inurl mode, 'title' = intitle mode
+let searchField = null; // null = all fields, 'url' = URL mode, 'title' = title mode
+let searchPrecision = 'fuzzy';
 let searchResults = null; // Map<tabId, matchResult> when searching, null otherwise
 let searchDebounceTimer = null;
 const SEARCH_DEBOUNCE_MS = 150;
 
 // Field-mode metadata. The prefix is what tab-utils' parseSearchQuery understands;
 // the chip mirrors that operator while the placeholder gives a human hint.
-const SEARCH_FIELD_PREFIX = { url: 'inurl', title: 'intitle' };
-const SEARCH_FIELD_PLACEHOLDER = { url: 'Search URLs...', title: 'Search titles...' };
-const DEFAULT_SEARCH_PLACEHOLDER = 'Search tabs... ("word" exact, word* wildcard)';
+const SEARCH_FIELD_PREFIX = { url: 'url', title: 'title' };
+const SEARCH_FIELD_PLACEHOLDER = { url: 'Search URLs', title: 'Search titles' };
+const DEFAULT_SEARCH_PLACEHOLDER = 'Search tabs';
 let highlightedResultIndex = -1; // Currently highlighted search result
 let searchResultTabIds = []; // Array of tab IDs in display order for navigation
+let selectedItemIndex = -1;
+let selectedItemKey = null;
 
 // Undo state
 let lastClosedCount = 0;        // Number of tabs closed (for undo)
 let undoContext = null;         // 'duplicates', 'domain', or specific domain name
+let undoMessage = '';
 let pinnedDuplicatesSkipped = 0; // Track count of pinned duplicates skipped
 let groupedDuplicatesSkipped = 0; // Track count of grouped duplicates skipped
 let browserTabsSkipped = 0;     // Track count of browser tabs (chrome://, edge://) skipped
@@ -215,9 +230,10 @@ function performSearch(query, tabs) {
   }
 
   const results = new Map();
+  const forcedMode = searchPrecision === 'fuzzy' ? null : searchPrecision;
 
   for (const tab of tabs) {
-    const match = searchTab(query, tab);
+    const match = searchTab(query, tab, forcedMode);
     if (match) {
       results.set(tab.id, match);
     }
@@ -228,7 +244,7 @@ function performSearch(query, tabs) {
 
 /**
  * Builds the query string handed to the search engine, prefixing the active
- * field mode (e.g. `inurl:`) so tab-utils' parseSearchQuery scopes the search.
+ * field mode (e.g. `url:`) so tab-utils' parseSearchQuery scopes the search.
  * Exact (`"…"`) and wildcard (`…*`) syntax still compose inside the mode.
  *
  * @returns {string} The effective query
@@ -242,7 +258,7 @@ function effectiveSearchQuery() {
 
 /**
  * Handles search input changes with debouncing. Also detects a field-mode
- * prefix (`inurl:` / `intitle:`) typed at the start of the input and converts
+ * prefix (`url:`, `title:`, or a legacy alias) typed at the start of the input and converts
  * it into a mode chip so only the bare term remains in the box.
  */
 function handleSearchInput(e) {
@@ -250,9 +266,10 @@ function handleSearchInput(e) {
 
   // Convert a typed prefix into a mode chip (only when not already in a mode).
   if (!searchField) {
-    const prefixMatch = /^(inurl|intitle):/i.exec(query);
+    const prefixMatch = /^(url|title|inurl|intitle):/i.exec(query);
     if (prefixMatch) {
-      enterSearchMode(prefixMatch[1].toLowerCase() === 'inurl' ? 'url' : 'title');
+      const prefix = prefixMatch[1].toLowerCase();
+      enterSearchMode(prefix === 'url' || prefix === 'inurl' ? 'url' : 'title');
       query = query.slice(prefixMatch[0].length);
       e.target.value = query;
     }
@@ -277,6 +294,7 @@ function handleSearchInput(e) {
 function enterSearchMode(field) {
   searchField = field;
   searchModeChipLabelEl.textContent = SEARCH_FIELD_PREFIX[field];
+  searchFieldSelectEl.value = field;
   searchModeChipEl.classList.remove('hidden');
   searchModeBtnEl.classList.add('active');
   globalSearchInputEl.placeholder = SEARCH_FIELD_PLACEHOLDER[field];
@@ -288,6 +306,7 @@ function enterSearchMode(field) {
  */
 function exitSearchMode() {
   searchField = null;
+  searchFieldSelectEl.value = 'all';
   searchModeChipEl.classList.add('hidden');
   searchModeBtnEl.classList.remove('active');
   globalSearchInputEl.placeholder = DEFAULT_SEARCH_PLACEHOLDER;
@@ -327,6 +346,8 @@ function clearSearch() {
   globalSearchClearEl.classList.add('hidden');
   searchResultsCountEl.classList.add('hidden');
   document.body.classList.remove('search-active');
+  searchPrecision = settings.defaultSearchMode || 'fuzzy';
+  searchPrecisionSelectEl.value = searchPrecision;
   loadAndRender();
 }
 
@@ -371,6 +392,96 @@ function switchToHighlightedResult() {
   }
 }
 
+function getVisibleActionItems() {
+  return Array.from(document.querySelectorAll('.section-header, .tab-item'))
+    .filter(item => item.offsetParent !== null);
+}
+
+function itemKey(item) {
+  if (item.classList.contains('section-header')) {
+    return item.dataset.domain ? `domain-header:${item.dataset.domain}` : `section-header:${item.id}`;
+  }
+  return item.dataset.url ? `url:${item.dataset.url}` : `tab:${item.dataset.tabId}`;
+}
+
+function updateSelectedItem(newIndex) {
+  const items = getVisibleActionItems();
+  document.querySelectorAll('.tab-item.selected, .section-header.selected').forEach(item => item.classList.remove('selected'));
+
+  if (items.length === 0) {
+    selectedItemIndex = -1;
+    selectedItemKey = null;
+    highlightedResultIndex = -1;
+    return;
+  }
+
+  if (newIndex < 0) newIndex = items.length - 1;
+  if (newIndex >= items.length) newIndex = 0;
+
+  selectedItemIndex = newIndex;
+  const item = items[selectedItemIndex];
+  selectedItemKey = itemKey(item);
+  item.classList.add('selected');
+  item.scrollIntoView({ block: 'nearest' });
+
+  if (searchResultTabIds.length > 0) {
+    highlightedResultIndex = searchResultTabIds.indexOf(Number(item.dataset.tabId));
+  }
+}
+
+function restoreSelectedItem() {
+  const items = getVisibleActionItems();
+  document.querySelectorAll('.tab-item.selected, .section-header.selected').forEach(item => item.classList.remove('selected'));
+
+  if (items.length === 0) {
+    selectedItemIndex = -1;
+    selectedItemKey = null;
+    return;
+  }
+
+  let index = selectedItemKey
+    ? items.findIndex(item => itemKey(item) === selectedItemKey)
+    : selectedItemIndex;
+
+  if (index < 0) {
+    index = Math.min(Math.max(selectedItemIndex, 0), items.length - 1);
+  }
+
+  selectedItemIndex = index;
+  selectedItemKey = itemKey(items[index]);
+  items[index].classList.add('selected');
+}
+
+function activateSelectedItem() {
+  const items = getVisibleActionItems();
+  const item = items[selectedItemIndex];
+  if (!item) return;
+
+  if (item.classList.contains('section-header')) {
+    item.click();
+    return;
+  }
+
+  const tabId = parseInt(item.dataset.tabId, 10);
+  const windowId = parseInt(item.dataset.windowId, 10);
+  if (tabId) switchToTab(tabId, windowId);
+}
+
+function closeSelectedItem() {
+  const items = getVisibleActionItems();
+  const item = items[selectedItemIndex];
+  if (!item) return;
+  if (item.classList.contains('section-header')) return;
+
+  if (item.dataset.url && duplicateListEl.contains(item)) {
+    closeDuplicatesOfUrl(item.dataset.url);
+    return;
+  }
+
+  const tabId = parseInt(item.dataset.tabId, 10);
+  if (tabId) closeTab(tabId);
+}
+
 /**
  * Updates the search results count display.
  *
@@ -405,7 +516,7 @@ async function loadSectionStates() {
   try {
     const result = await chrome.storage.local.get(['sectionStates', 'domainSectionStates']);
     if (result.sectionStates) {
-      // Merge so newly added sections (e.g. media) keep their default state
+      // Preserve saved states while letting newly added sections keep defaults.
       sectionStates = { ...sectionStates, ...result.sectionStates };
     }
     if (result.domainSectionStates) {
@@ -433,17 +544,20 @@ function applyTheme(theme) {
 async function loadSettings() {
   try {
     const result = await chrome.storage.sync.get({
-      theme: 'dark',
+      theme: 'graphite',
       fontFamily: 'titillium',
       protectPinned: true,
       protectGroups: false,
-      advancedMode: false,
-      showMergeButton: false,
       keepTab: 'oldest',
       matchMode: 'exact',
-      currentWindowOnly: false
+      currentWindowOnly: false,
+      defaultBrowseView: 'tabs',
+      defaultSearchMode: 'fuzzy'
     });
     settings = result;
+    browseView = settings.defaultBrowseView || 'tabs';
+    searchPrecision = settings.defaultSearchMode || 'fuzzy';
+    searchPrecisionSelectEl.value = searchPrecision;
 
     // Apply theme and font
     applyTheme(settings.theme);
@@ -507,14 +621,26 @@ function toggleDomainSection(domain) {
 }
 
 // Enable undo button based on context
-function showUndoButton(context) {
-  // Enable the undo button
+function showUndoButton(context, message = '') {
   undoDuplicatesBtn.disabled = false;
+  undoRowEl.classList.remove('hidden');
+  undoMessage = message || undoMessageForContext(context, lastClosedCount);
+  undoMessageEl.textContent = undoMessage;
 }
 
 // Disable undo button
 function hideAllUndoButtons() {
   undoDuplicatesBtn.disabled = true;
+  undoRowEl.classList.add('hidden');
+  undoMessage = '';
+}
+
+function undoMessageForContext(context, count) {
+  if (context === 'duplicates') return `Closed ${count} duplicate tab${count === 1 ? '' : 's'}`;
+  if (context === 'search') return `Closed ${count} search result${count === 1 ? '' : 's'}`;
+  if (context === 'tab') return `Closed ${count} tab${count === 1 ? '' : 's'}`;
+  if (context === 'domain') return `Closed ${count} domain tab${count === 1 ? '' : 's'}`;
+  return `Closed ${count} tab${count === 1 ? '' : 's'}`;
 }
 
 // Undo the last close action
@@ -593,13 +719,12 @@ async function closeTabsFromDomain(domain) {
 
 /**
  * Moves all tabs from a specific domain to a new window.
- * Used by domain section "Merge" buttons (advanced mode only).
  *
  * @async
- * @param {string} domain - The domain to merge tabs from
+ * @param {string} domain - The domain to move tabs from
  * @returns {Promise<void>}
  */
-async function mergeTabsFromDomain(domain) {
+async function moveTabsFromDomainToWindow(domain) {
   try {
     const tabs = await chrome.tabs.query({});
     const domainTabs = tabs.filter(tab => {
@@ -623,12 +748,39 @@ async function mergeTabsFromDomain(domain) {
       });
     }
 
-    log(`✅ Merged ${domainTabs.length} tabs from ${domain} to new window`);
+    log(`✅ Moved ${domainTabs.length} tabs from ${domain} to new window`);
 
     // Refresh the list
     await loadAndRender();
   } catch (err) {
-    error('❌ Error merging domain tabs:', err);
+    error('❌ Error moving domain tabs:', err);
+  }
+}
+
+async function moveSearchResultsToWindow() {
+  try {
+    if (!searchResultTabIds || searchResultTabIds.length === 0) return;
+
+    const idSet = new Set(searchResultTabIds);
+    const allTabs = await chrome.tabs.query({});
+    const tabsToMove = allTabs.filter(tab => idSet.has(tab.id));
+    if (tabsToMove.length === 0) return;
+
+    const newWindow = await chrome.windows.create({ tabId: tabsToMove[0].id });
+    if (tabsToMove.length > 1) {
+      await chrome.tabs.move(tabsToMove.slice(1).map(tab => tab.id), {
+        windowId: newWindow.id,
+        index: -1
+      });
+    }
+
+    lastClosedCount = 0;
+    undoContext = null;
+    hideAllUndoButtons();
+    log(`✅ Moved ${tabsToMove.length} search-result tabs to new window`);
+    await loadAndRender();
+  } catch (err) {
+    error('❌ Error moving search results:', err);
   }
 }
 
@@ -691,24 +843,21 @@ function createDomainSection(domain, tabs, urlCounts) {
   const actionBar = document.createElement('div');
   actionBar.className = 'domain-action-bar';
 
-  // Merge button (only shown when advanced mode + showMergeButton are enabled)
-  if (settings.advancedMode && settings.showMergeButton) {
-    const mergeBtn = document.createElement('button');
-    mergeBtn.className = 'btn-action btn-accent btn-small';
-    mergeBtn.title = `Move all tabs from ${domain} to new window`;
-    mergeBtn.innerHTML = `
+  const moveBtn = document.createElement('button');
+  moveBtn.className = 'btn-action btn-accent btn-small';
+  moveBtn.title = `Move all tabs from ${domain} to a new window`;
+  moveBtn.innerHTML = `
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
         <line x1="9" y1="3" x2="9" y2="21"/>
       </svg>
-      <span>Merge</span>
+      <span>Move to window</span>
     `;
-    mergeBtn.onclick = (e) => {
-      e.stopPropagation();
-      mergeTabsFromDomain(domain);
-    };
-    actionBar.appendChild(mergeBtn);
-  }
+  moveBtn.onclick = (e) => {
+    e.stopPropagation();
+    moveTabsFromDomainToWindow(domain);
+  };
+  actionBar.appendChild(moveBtn);
 
   const closeBtn = document.createElement('button');
   closeBtn.className = 'btn-action btn-danger btn-small';
@@ -717,7 +866,7 @@ function createDomainSection(domain, tabs, urlCounts) {
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
     </svg>
-    <span>Close all from ${domain}</span>
+    <span>Close all</span>
   `;
   closeBtn.onclick = (e) => {
     e.stopPropagation();
@@ -732,7 +881,7 @@ function createDomainSection(domain, tabs, urlCounts) {
 
   // Add tabs, floating any tab playing media to the top of the group
   sortAudibleFirst(tabs).forEach((tab, index) => {
-    const dupCount = urlCounts.get(tab.url) || 0;
+    const dupCount = urlCounts.get(normalizeUrl(tab.url, settings.matchMode)) || 0;
     const item = createTabItem(tab, dupCount, index, null);
     tabList.appendChild(item);
   });
@@ -816,6 +965,9 @@ function createGroupedDuplicateItem(group, index = 0, matchResult = null) {
 
   const item = document.createElement('div');
   item.className = 'tab-item';
+  if (duplicateTabs.some(t => t.audible)) {
+    item.classList.add('is-audible');
+  }
   item.dataset.url = url;
   item.dataset.tabId = representative.id;
   item.dataset.windowId = representative.windowId;
@@ -954,11 +1106,14 @@ async function closeDuplicatesOfUrl(url) {
       const rowEl = document.querySelector(`[data-url="${CSS.escape(url)}"]`);
       if (rowEl) {
         rowEl.classList.add('closing');
-        await new Promise(resolve => setTimeout(resolve, 400));
+        await new Promise(resolve => setTimeout(resolve, 140));
       }
 
       await chrome.tabs.remove(tabIdsToClose);
       log(`✅ Closed ${tabIdsToClose.length} duplicates of ${url}`);
+      lastClosedCount = tabIdsToClose.length;
+      undoContext = 'duplicates';
+      showUndoButton('duplicates', `Closed ${tabIdsToClose.length} duplicate tab${tabIdsToClose.length === 1 ? '' : 's'}`);
     }
 
     // Show browser warning if tabs were skipped
@@ -993,6 +1148,9 @@ async function closeDuplicatesOfUrl(url) {
 function createTabItem(tab, duplicateCount = 0, index = 0, matchResult = null) {
   const item = document.createElement('div');
   item.className = 'tab-item';
+  if (tab.audible) {
+    item.classList.add('is-audible');
+  }
   item.dataset.tabId = tab.id;
   item.dataset.windowId = tab.windowId;
   item.style.setProperty('--item-index', index);
@@ -1110,13 +1268,15 @@ async function closeTab(tabId) {
       // Add closing class to trigger animation
       tabItem.classList.add('closing');
 
-      // Wait for animation to complete (400ms)
-      await new Promise(resolve => setTimeout(resolve, 400));
+      await new Promise(resolve => setTimeout(resolve, 140));
     }
 
     // Now remove the tab from Chrome
     await chrome.tabs.remove(tabId);
     log(`✅ Closed tab ${tabId}`);
+    lastClosedCount = 1;
+    undoContext = 'tab';
+    showUndoButton('tab');
 
     // Refresh the list
     await loadAndRender();
@@ -1458,6 +1618,7 @@ function render(tabs, duplicates) {
     searchResultsListEl.innerHTML = '';
     searchResultsSectionCountEl.textContent = searchResults.size;
     closeSearchResultsBtn.classList.remove('hidden');
+    moveSearchResultsBtn.classList.remove('hidden');
 
     // Use cached single-pass computation
     const { urlCounts } = computeRenderData(tabs);
@@ -1476,7 +1637,7 @@ function render(tabs, duplicates) {
 
     // Render search results
     sortedResults.forEach(({ tab, match }, index) => {
-      const count = urlCounts.get(tab.url) || 0;
+      const count = urlCounts.get(normalizeUrl(tab.url, settings.matchMode)) || 0;
       const item = createTabItem(tab, count, index, match);
       // Apply highlight if this is the highlighted result
       if (index === highlightedResultIndex) {
@@ -1493,12 +1654,14 @@ function render(tabs, duplicates) {
     searchResultTabIds = [];
     highlightedResultIndex = -1;
     closeSearchResultsBtn.classList.add('hidden');
+    moveSearchResultsBtn.classList.add('hidden');
   } else {
     // Hide search results section when not searching
     searchResultsContainerEl.classList.add('hidden');
     searchResultTabIds = [];
     highlightedResultIndex = -1;
     closeSearchResultsBtn.classList.add('hidden');
+    moveSearchResultsBtn.classList.add('hidden');
   }
 
   // Use cached single-pass computation
@@ -1513,6 +1676,7 @@ function render(tabs, duplicates) {
   totalTabsEl.textContent = tabs.length;
   duplicateCountEl.textContent = duplicates.length;
   domainCountEl.textContent = domainGroups.length;
+  statsSummaryEl.textContent = `${tabs.length} tabs · ${duplicates.length} duplicates · ${domainGroups.length} domains`;
 
   // Render Playing Media section (tabs currently producing sound)
   const audibleTabs = tabs.filter(tab => tab.audible);
@@ -1521,7 +1685,7 @@ function render(tabs, duplicates) {
   if (audibleTabs.length > 0) {
     mediaContainerEl.classList.remove('hidden');
     audibleTabs.forEach((tab, index) => {
-      const count = urlCounts.get(tab.url) || 0;
+      const count = urlCounts.get(normalizeUrl(tab.url, settings.matchMode)) || 0;
       const item = createTabItem(tab, count, index, null);
       mediaListEl.appendChild(item);
     });
@@ -1529,10 +1693,8 @@ function render(tabs, duplicates) {
     mediaContainerEl.classList.add('hidden');
   }
 
-  // Update section counts - show total tabs involved in duplicate groups (including originals)
-  const duplicateNormalizedUrls = new Set(duplicates.map(tab => normalizeUrl(tab.url, settings.matchMode)));
-  const totalTabsInDuplicateGroups = tabs.filter(tab => duplicateNormalizedUrls.has(normalizeUrl(tab.url, settings.matchMode))).length;
-  duplicatesSectionCountEl.textContent = totalTabsInDuplicateGroups;
+  // Update section counts using the primary duplicate metric: redundant tabs that can be closed.
+  duplicatesSectionCountEl.textContent = duplicates.length;
 
   // Render domain filter
   renderDomainFilter(tabs);
@@ -1549,6 +1711,7 @@ function render(tabs, duplicates) {
   duplicatesSortButtonsEl.querySelectorAll('.btn-toggle').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.sort === duplicateSortOrder);
   });
+  duplicatesSortButtonsEl.classList.toggle('hidden', !duplicateReviewOpen);
 
   // Clear lists
   duplicateListEl.innerHTML = '';
@@ -1556,8 +1719,12 @@ function render(tabs, duplicates) {
 
   // Render duplicates section
   if (duplicates.length === 0) {
+    duplicateReviewOpen = false;
+    duplicatesSummaryPrimaryEl.textContent = '0 duplicate tabs';
+    duplicatesSummarySecondaryEl.textContent = 'Can be closed across 0 groups';
     // Show empty state
     duplicateListEl.style.display = 'none';
+    reviewDuplicatesBtn.classList.add('hidden');
     emptyStateEl.style.display = 'block';
     pinnedWarningEl.classList.add('hidden');
     browserWarningEl.classList.add('hidden');
@@ -1566,7 +1733,8 @@ function render(tabs, duplicates) {
     browserTabsSkipped = 0;
   } else {
     // Show duplicates
-    duplicateListEl.style.display = 'flex';
+    duplicateListEl.style.display = duplicateReviewOpen ? 'flex' : 'none';
+    reviewDuplicatesBtn.classList.toggle('hidden', duplicateReviewOpen);
     emptyStateEl.style.display = 'none';
 
     // Show warning if there are protected tabs (pinned or grouped) in duplicate groups
@@ -1618,6 +1786,8 @@ function render(tabs, duplicates) {
       representative: dupes[0],
       totalCount: urlCounts.get(normalizedUrl) || dupes.length + 1
     }));
+    duplicatesSummaryPrimaryEl.textContent = `${duplicates.length} duplicate tab${duplicates.length === 1 ? '' : 's'}`;
+    duplicatesSummarySecondaryEl.textContent = `Can be closed across ${groupedDuplicates.length} group${groupedDuplicates.length === 1 ? '' : 's'}`;
 
     // Sort groups based on duplicateSortOrder
     if (duplicateSortOrder === 'title') {
@@ -1661,7 +1831,7 @@ function render(tabs, duplicates) {
 
   // Render all tabs as flat list (sortable)
   visibleTabs.forEach((tab, index) => {
-    const count = urlCounts.get(tab.url) || 0;
+    const count = urlCounts.get(normalizeUrl(tab.url, settings.matchMode)) || 0;
     const item = createTabItem(tab, count, index, null);
     allTabsListEl.appendChild(item);
   });
@@ -1736,11 +1906,16 @@ function render(tabs, duplicates) {
     domainSectionsContainer.appendChild(section);
   });
 
+  document.body.classList.toggle('browse-domains', browseView === 'domains');
+  document.body.classList.toggle('browse-tabs-view', browseView === 'tabs');
+  browseTabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.view === browseView));
+
   // Restore scroll positions after DOM updates
   requestAnimationFrame(() => {
     duplicatesContentEl.scrollTop = scrollPositions.duplicates;
     allTabsContentEl.scrollTop = scrollPositions.allTabs;
     domainSectionsContainer.scrollTop = scrollPositions.domainSections;
+    restoreSelectedItem();
   });
 }
 
@@ -1770,11 +1945,33 @@ async function loadAndRender() {
 
 // Event Listeners
 closeAllBtn.addEventListener('click', closeAllDuplicates);
+reviewDuplicatesBtn.addEventListener('click', () => {
+  sectionStates.duplicates = true;
+  duplicateReviewOpen = true;
+  applySectionStates();
+  saveSectionStates();
+  loadAndRender();
+});
 closeSearchResultsBtn.addEventListener('click', closeAllSearchResults);
+moveSearchResultsBtn.addEventListener('click', moveSearchResultsToWindow);
 
 // Global search event listeners
 globalSearchInputEl.addEventListener('input', handleSearchInput);
 globalSearchClearEl.addEventListener('click', clearSearch);
+searchFieldSelectEl.addEventListener('change', (e) => {
+  if (e.target.value === 'all') {
+    exitSearchMode();
+  } else {
+    enterSearchMode(e.target.value);
+  }
+  applySearchModeChange();
+  globalSearchInputEl.focus();
+});
+searchPrecisionSelectEl.addEventListener('change', (e) => {
+  searchPrecision = e.target.value;
+  loadAndRender();
+  globalSearchInputEl.focus();
+});
 
 // Exit field mode by removing the chip
 searchModeChipRemoveEl.addEventListener('click', (e) => {
@@ -1832,8 +2029,11 @@ document.addEventListener('click', (e) => {
 
 // Keyboard shortcuts for search
 document.addEventListener('keydown', (e) => {
+  const activeTag = document.activeElement?.tagName;
+  const isTextInput = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT';
+
   // Focus search with '/' key (when not in an input)
-  if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
+  if (e.key === '/' && !isTextInput) {
     e.preventDefault();
     globalSearchInputEl.focus();
     globalSearchInputEl.select();
@@ -1846,6 +2046,21 @@ document.addEventListener('keydown', (e) => {
     globalSearchInputEl.select();
   }
 
+  if (document.activeElement === globalSearchInputEl && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+    const items = getVisibleActionItems();
+    if (items.length > 0) {
+      e.preventDefault();
+      globalSearchInputEl.blur();
+
+      const nextIndex = selectedItemIndex >= 0
+        ? selectedItemIndex + (e.key === 'ArrowDown' ? 1 : -1)
+        : (e.key === 'ArrowDown' ? 0 : items.length - 1);
+
+      updateSelectedItem(nextIndex);
+    }
+    return;
+  }
+
   // Clear search with Escape (when search is focused)
   if (e.key === 'Escape' && document.activeElement === globalSearchInputEl) {
     if (searchQuery || searchField) {
@@ -1853,19 +2068,49 @@ document.addEventListener('keydown', (e) => {
       clearSearch();
     }
     globalSearchInputEl.blur();
+    return;
   }
 
-  // Arrow navigation for search results (when search input is focused and has results)
-  if (document.activeElement === globalSearchInputEl && searchResultTabIds.length > 0) {
-    if (e.key === 'ArrowDown') {
+  if (document.activeElement === globalSearchInputEl && e.key === 'Enter' && highlightedResultIndex >= 0) {
+    e.preventDefault();
+    switchToHighlightedResult();
+    return;
+  }
+
+  if (!isTextInput) {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
       e.preventDefault();
-      updateHighlightedSearchResult(highlightedResultIndex + 1);
-    } else if (e.key === 'ArrowUp') {
+      undoClose();
+      return;
+    }
+
+    if (e.key === 'j' || e.key === 'ArrowDown') {
       e.preventDefault();
-      updateHighlightedSearchResult(highlightedResultIndex - 1);
-    } else if (e.key === 'Enter' && highlightedResultIndex >= 0) {
+      updateSelectedItem(selectedItemIndex + 1);
+      return;
+    }
+
+    if (e.key === 'k' || e.key === 'ArrowUp') {
       e.preventDefault();
-      switchToHighlightedResult();
+      updateSelectedItem(selectedItemIndex - 1);
+      return;
+    }
+
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      activateSelectedItem();
+      return;
+    }
+
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      e.preventDefault();
+      closeSelectedItem();
+      return;
+    }
+
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      globalSearchInputEl.focus();
     }
   }
 });
@@ -2059,29 +2304,25 @@ scopeBtn.addEventListener('click', async () => {
  * Updates the scope button visibility and appearance based on settings.
  */
 function updateScopeButton() {
-  // Only show if advanced mode is enabled
-  if (settings.advancedMode) {
-    scopeBtn.classList.remove('hidden');
-  } else {
-    scopeBtn.classList.add('hidden');
-    return;
-  }
-
-  // Update icon and label based on current scope
   if (settings.currentWindowOnly) {
-    scopeIconAll.classList.add('hidden');
-    scopeIconCurrent.classList.remove('hidden');
-    scopeLabel.textContent = 'Window';
+    scopeLabel.textContent = 'This window';
     scopeBtn.title = 'Current window only - click to switch to all windows';
     scopeBtn.classList.add('active');
   } else {
-    scopeIconAll.classList.remove('hidden');
-    scopeIconCurrent.classList.add('hidden');
-    scopeLabel.textContent = 'All';
+    scopeLabel.textContent = 'All windows';
     scopeBtn.title = 'All windows - click to switch to current window only';
     scopeBtn.classList.remove('active');
   }
 }
+
+browseTabsEl.addEventListener('click', (e) => {
+  const button = e.target.closest('.browse-tab');
+  if (!button) return;
+  browseView = button.dataset.view;
+  selectedItemIndex = -1;
+  selectedItemKey = null;
+  loadAndRender();
+});
 
 // Sort button group event listener (All Tabs section)
 sortButtonsEl.addEventListener('click', (e) => {

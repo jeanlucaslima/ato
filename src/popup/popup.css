@@ -4,6 +4,7 @@
 /* Theme Variables */
 
 /* Light Theme */
+:root[data-theme="paper"],
 :root[data-theme="light"] {
   --bg-primary: #ffffff;
   --bg-secondary: #f9fafb;
@@ -29,8 +30,9 @@
   --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-/* Dark Theme (Deep Blue) - Default */
+/* Dark Theme (Graphite) - Default */
 :root,
+:root[data-theme="graphite"],
 :root[data-theme="dark"] {
   --bg-primary: #1f2937;
   --bg-secondary: #374151;
@@ -56,7 +58,34 @@
   --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-/* Darker Theme (Pure Black) */
+/* Ivory Theme */
+:root[data-theme="ivory"] {
+  --bg-primary: #fffaf0;
+  --bg-secondary: #f7efe2;
+  --bg-tertiary: #eee2d2;
+  --text-primary: #26211b;
+  --text-secondary: #6f6252;
+  --text-muted: #9a8c7a;
+  --border-color: #e4d6c2;
+  --border-hover: #d3bea3;
+  --accent-color: #5b6ee1;
+  --accent-light: rgba(91, 110, 225, 0.12);
+  --danger-color: #c83232;
+  --danger-hover: #a82929;
+  --danger-light: #f5ded8;
+  --media-color: #188a55;
+  --scrollbar-thumb: #d3bea3;
+  --scrollbar-hover: #bfa98d;
+  --border-subtle: rgba(38, 33, 27, 0.08);
+  --header-bg: #27231f;
+  --warning-bg: #fff0bf;
+  --warning-border: #ecd48f;
+  --warning-text: #72500b;
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Obsidian Theme */
+:root[data-theme="obsidian"],
 :root[data-theme="darker"] {
   --bg-primary: #000000;
   --bg-secondary: #0a0a0a;
@@ -114,14 +143,14 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 16px;
+  padding: 10px 12px;
   background: var(--header-bg);
   color: white;
 }
 
 .header-icon {
-  width: 36px;
-  height: 36px;
+  width: 30px;
+  height: 30px;
   flex-shrink: 0;
 }
 
@@ -129,6 +158,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0;
+  flex: 1;
+  min-width: 0;
 }
 
 .title {
@@ -144,9 +175,19 @@ body {
   font-weight: 400;
 }
 
+.header .btn-options {
+  color: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.header .btn-options:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.15);
+}
+
 /* Global Search */
 .search-container {
-  padding: 12px 16px;
+  padding: 10px 12px;
   background: var(--bg-secondary);
 }
 
@@ -195,7 +236,7 @@ body {
   outline: none;
 }
 
-/* Search field-mode chip (inurl: / intitle:) */
+/* Search field-mode chip (url: / title:) */
 .search-mode-chip {
   display: inline-flex;
   align-items: center;
@@ -346,6 +387,23 @@ body {
   color: var(--text-secondary);
 }
 
+.search-control-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.control-select {
+  min-width: 0;
+  padding: 6px 22px 6px 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 12px;
+}
+
 .search-results-count.hidden {
   display: none;
 }
@@ -402,9 +460,11 @@ body {
 }
 
 /* Highlighted search result (keyboard navigation) */
-.search-results-list .tab-item.highlighted {
+.search-results-list .tab-item.highlighted,
+.tab-item.selected {
   background: var(--accent-light);
   border-color: var(--accent-color);
+  box-shadow: inset 3px 0 0 var(--accent-color);
   outline: none;
 }
 
@@ -412,17 +472,48 @@ body {
 .searching .media-container,
 .searching .duplicates-container,
 .searching .all-tabs-container,
-.searching .domain-sections-container {
+.searching .domain-sections-container,
+.searching .domain-sections-sort-bar,
+.searching .browse-tabs {
   display: none;
 }
 
 /* Stats Bar */
 .stats {
-  display: flex;
+  display: none;
   justify-content: space-around;
   padding: 12px 20px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
+}
+
+.undo-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.undo-row::before {
+  content: "↶";
+  color: var(--accent-color);
+  font-weight: 700;
+}
+
+.undo-row.hidden {
+  display: none;
+}
+
+.undo-row #undo-message {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .stat {
@@ -481,6 +572,8 @@ body {
 .btn-action.btn-scope {
   background: var(--bg-tertiary);
   color: var(--text-secondary);
+  justify-content: center;
+  white-space: nowrap;
 }
 
 .btn-action.btn-scope:hover {
@@ -489,8 +582,8 @@ body {
 }
 
 .btn-action.btn-scope.active {
-  background: var(--accent-color);
-  color: white;
+  background: var(--accent-light);
+  color: var(--accent-color);
 }
 
 .action-label {
@@ -531,6 +624,10 @@ body {
   background: var(--bg-tertiary);
   border-radius: 6px;
   padding: 2px;
+}
+
+.btn-group.hidden {
+  display: none;
 }
 
 .btn-toggle {
@@ -605,6 +702,38 @@ body {
   cursor: not-allowed;
 }
 
+.browse-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  padding: 8px 12px 0;
+  background: var(--bg-primary);
+}
+
+.browse-tab {
+  padding: 6px 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.browse-tab:first-child {
+  border-radius: 6px 0 0 6px;
+}
+
+.browse-tab:last-child {
+  border-radius: 0 6px 6px 0;
+}
+
+.browse-tab.active {
+  background: var(--accent-light);
+  color: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
 .btn-action.btn-accent {
   background: var(--accent-light);
   color: var(--accent-color);
@@ -643,6 +772,17 @@ body {
 
 .section-header:hover .section-title {
   color: var(--text-primary);
+}
+
+.section-header.selected {
+  background: var(--accent-light);
+  box-shadow: inset 3px 0 0 var(--accent-color);
+  border-radius: 5px;
+}
+
+.section-header.selected .section-title,
+.section-header.selected .fold-arrow {
+  color: var(--accent-color);
 }
 
 .section-header:focus {
@@ -753,11 +893,29 @@ body {
 
 /* Duplicates Action Bar */
 .duplicates-action-bar {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   margin-bottom: 10px;
+}
+
+.duplicates-action-bar .btn-group {
+  grid-column: 1 / -1;
+  justify-self: end;
+}
+
+.duplicates-summary {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.duplicates-summary strong {
+  color: var(--text-primary);
 }
 
 .section-title {
@@ -827,6 +985,18 @@ body.no-stagger .tab-item {
   transform: translateX(2px);
 }
 
+.tab-item.is-audible {
+  background: color-mix(in srgb, var(--media-color) 10%, var(--bg-secondary));
+  border-color: color-mix(in srgb, var(--media-color) 35%, var(--border-color));
+  box-shadow: inset 3px 0 0 var(--media-color);
+}
+
+.tab-item.is-audible.selected {
+  background: color-mix(in srgb, var(--accent-color) 12%, var(--bg-secondary));
+  border-color: var(--accent-color);
+  box-shadow: inset 3px 0 0 var(--accent-color), inset 6px 0 0 var(--media-color);
+}
+
 /* Tab Close Animation - Two phases: slide left, then collapse up */
 @keyframes tabClose {
   0% {
@@ -861,7 +1031,7 @@ body.no-stagger .tab-item {
 }
 
 .tab-item.closing {
-  animation: tabClose 0.4s ease-out forwards;
+  animation: tabClose 0.14s ease-out forwards;
   pointer-events: none;
   overflow: hidden;
 }
@@ -973,6 +1143,20 @@ body.no-stagger .tab-item {
   overflow-y: auto;
   padding: 12px 16px 0;
   border-top: 1px solid var(--border-subtle);
+}
+
+.browse-domains .all-tabs-container {
+  display: none;
+}
+
+.browse-tabs-view .domain-sections-sort-bar,
+.browse-tabs-view .domain-sections-container {
+  display: none;
+}
+
+.browse-domains .domain-sections-sort-bar,
+.browse-domains .domain-sections-container {
+  display: block;
 }
 
 .all-tabs-container .section-content {
@@ -1115,6 +1299,10 @@ body.no-stagger .tab-item {
 /* Domain Sections Sort Bar */
 .domain-sections-sort-bar {
   padding: 8px 16px 0;
+}
+
+.domain-sections-sort-bar.hidden {
+  display: none !important;
 }
 
 /* Domain Sections Container */
