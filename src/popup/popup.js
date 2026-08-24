@@ -2116,6 +2116,16 @@ document.addEventListener('keydown', (e) => {
 
     if (e.key === 'j' || e.key === 'ArrowDown') {
       e.preventDefault();
+      if (e.key === 'ArrowDown') {
+        const items = getVisibleActionItems();
+        if (items.length > 0 && selectedItemIndex >= items.length - 1) {
+          document.querySelectorAll('.browse-tab.selected, .tab-item.selected, .section-header.selected').forEach(item => item.classList.remove('selected'));
+          selectedItemIndex = -1;
+          selectedItemKey = null;
+          globalSearchInputEl.focus();
+          return;
+        }
+      }
       updateSelectedItem(selectedItemIndex + 1);
       return;
     }
