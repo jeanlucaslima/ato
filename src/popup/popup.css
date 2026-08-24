@@ -992,15 +992,14 @@ body.no-stagger .tab-item {
 }
 
 .tab-item.is-audible {
-  background: color-mix(in srgb, var(--media-color) 10%, var(--bg-secondary));
-  border-color: color-mix(in srgb, var(--media-color) 35%, var(--border-color));
-  box-shadow: inset 3px 0 0 var(--media-color);
+  background: color-mix(in srgb, var(--media-color) 6%, var(--bg-secondary));
+  border-color: color-mix(in srgb, var(--media-color) 22%, var(--border-color));
 }
 
 .tab-item.is-audible.selected {
-  background: color-mix(in srgb, var(--accent-color) 12%, var(--bg-secondary));
+  background: color-mix(in srgb, var(--accent-color) 10%, var(--bg-secondary));
   border-color: var(--accent-color);
-  box-shadow: inset 3px 0 0 var(--accent-color), inset 6px 0 0 var(--media-color);
+  box-shadow: inset 3px 0 0 var(--accent-color);
 }
 
 /* Tab Close Animation - Two phases: slide left, then collapse up */
