@@ -513,6 +513,23 @@ function setSelectedHeaderExpanded(expand) {
   return true;
 }
 
+function selectParentSectionHeader() {
+  const items = getVisibleActionItems();
+  const item = items[selectedItemIndex];
+  if (!item || !item.classList.contains('tab-item')) return false;
+
+  const sectionContent = item.closest('.section-content');
+  const header = sectionContent?.previousElementSibling;
+  if (!header || !header.classList.contains('section-header') || header.offsetParent === null) {
+    return false;
+  }
+
+  selectedItemKey = itemKey(header);
+  restoreSelectedItem();
+  header.scrollIntoView({ block: 'nearest' });
+  return true;
+}
+
 /**
  * Updates the search results count display.
  *
@@ -2120,6 +2137,10 @@ document.addEventListener('keydown', (e) => {
     }
 
     if (e.key === 'ArrowLeft') {
+      if (selectParentSectionHeader()) {
+        e.preventDefault();
+        return;
+      }
       if (setSelectedHeaderExpanded(false)) {
         e.preventDefault();
         return;
