@@ -730,13 +730,16 @@ body {
 
 .section-header.selected {
   background: var(--accent-light);
-  box-shadow: inset 3px 0 0 var(--accent-color);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-color) 55%, transparent);
   border-radius: 5px;
 }
 
-.section-header.selected .section-title,
-.section-header.selected .fold-arrow {
+.section-header.selected .section-title {
   color: var(--accent-color);
+}
+
+.section-header.selected .fold-arrow {
+  color: color-mix(in srgb, var(--accent-color) 70%, var(--text-secondary));
 }
 
 .section-header:focus {
