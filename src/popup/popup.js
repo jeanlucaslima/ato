@@ -394,7 +394,7 @@ function switchToHighlightedResult() {
 
 function getVisibleActionItems() {
   return Array.from(document.querySelectorAll('.browse-tab, .section-header, .tab-item'))
-    .filter(item => item.offsetParent !== null);
+    .filter(item => item.offsetParent !== null && !item.closest('.section-content.collapsed'));
 }
 
 function itemKey(item) {
