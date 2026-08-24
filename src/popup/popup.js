@@ -2363,8 +2363,7 @@ browseTabsEl.addEventListener('click', (e) => {
   const button = e.target.closest('.browse-tab');
   if (!button) return;
   browseView = button.dataset.view;
-  selectedItemIndex = -1;
-  selectedItemKey = null;
+  selectedItemKey = itemKey(button);
   loadAndRender();
 });
 
