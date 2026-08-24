@@ -2122,6 +2122,13 @@ document.addEventListener('keydown', (e) => {
 
     if (e.key === 'k' || e.key === 'ArrowUp') {
       e.preventDefault();
+      if (e.key === 'ArrowUp' && selectedItemIndex <= 0) {
+        document.querySelectorAll('.browse-tab.selected, .tab-item.selected, .section-header.selected').forEach(item => item.classList.remove('selected'));
+        selectedItemIndex = -1;
+        selectedItemKey = null;
+        globalSearchInputEl.focus();
+        return;
+      }
       updateSelectedItem(selectedItemIndex - 1);
       return;
     }
