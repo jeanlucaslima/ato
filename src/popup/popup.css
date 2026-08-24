@@ -119,13 +119,14 @@
 
 html {
   width: 400px;
-  overflow-y: scroll;
+  height: 600px;
+  overflow-y: hidden;
 }
 
 body {
   width: 100%;
-  min-height: 300px;
-  max-height: 600px;
+  height: 600px;
+  overflow-y: auto;
   font-family: var(--font-family);
   font-size: 14px;
   color: var(--text-primary);
