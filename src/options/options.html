@@ -29,9 +29,10 @@
             <p class="setting-description">Choose your preferred color scheme</p>
           </div>
           <select id="theme" class="setting-select">
-            <option value="dark">Dark</option>
-            <option value="darker">Darker</option>
-            <option value="light">Light</option>
+            <option value="paper">Paper</option>
+            <option value="ivory">Ivory</option>
+            <option value="graphite">Graphite</option>
+            <option value="obsidian">Obsidian</option>
           </select>
         </div>
 
@@ -53,14 +54,14 @@
         </div>
       </section>
 
-      <!-- Duplicate Detection Section -->
+      <!-- Cleanup Section -->
       <section class="settings-section">
-        <h2 class="section-title">Duplicate Detection</h2>
+        <h2 class="section-title">Cleanup</h2>
 
         <div class="setting-item">
           <div class="setting-info">
             <label class="setting-label" for="matchMode">URL Matching Mode</label>
-            <p class="setting-description">How to compare URLs when detecting duplicates</p>
+            <p class="setting-description">Exact URL treats example.com/a?x=1 and example.com/a?x=2 as different tabs.</p>
           </div>
           <select id="matchMode" class="setting-select">
             <option value="exact">Exact URL</option>
@@ -80,12 +81,6 @@
             <option value="newest">Newest tab</option>
           </select>
         </div>
-      </section>
-
-      <!-- Tab Protection Section -->
-      <section class="settings-section">
-        <h2 class="section-title">Tab Protection</h2>
-
         <div class="setting-item">
           <div class="setting-info">
             <label class="setting-label" for="protectPinned">Protect pinned tabs</label>
@@ -109,19 +104,42 @@
         </div>
       </section>
 
-      <!-- Badge Section -->
+      <!-- Behavior Section -->
       <section class="settings-section">
-        <h2 class="section-title">Badge</h2>
+        <h2 class="section-title">Behavior</h2>
 
         <div class="setting-item">
           <div class="setting-info">
-            <label class="setting-label" for="showBadge">Show badge count</label>
-            <p class="setting-description">Display count on extension icon</p>
+            <label class="setting-label" for="currentWindowOnly">Default scope</label>
+            <p class="setting-description">Sets the initial popup scope. You can still switch it in the popup.</p>
           </div>
-          <label class="toggle">
-            <input type="checkbox" id="showBadge" checked>
-            <span class="toggle-slider"></span>
-          </label>
+          <select id="currentWindowOnly" class="setting-select">
+            <option value="false">All windows</option>
+            <option value="true">Current window</option>
+          </select>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label" for="defaultBrowseView">Default browse view</label>
+            <p class="setting-description">Choose whether Tabs or Domains is shown first.</p>
+          </div>
+          <select id="defaultBrowseView" class="setting-select">
+            <option value="tabs">Tabs</option>
+            <option value="domains">Domains</option>
+          </select>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label class="setting-label" for="defaultSearchMode">Default search mode</label>
+            <p class="setting-description">Fuzzy is forgiving; Contains is literal; Exact matches whole words.</p>
+          </div>
+          <select id="defaultSearchMode" class="setting-select">
+            <option value="fuzzy">Fuzzy</option>
+            <option value="contains">Contains</option>
+            <option value="exact">Exact</option>
+          </select>
         </div>
 
         <div class="setting-item">
@@ -130,17 +148,10 @@
             <p class="setting-description">What count to display on the badge</p>
           </div>
           <select id="badgeMode" class="setting-select">
+            <option value="off">Off</option>
             <option value="duplicates">Duplicate tabs</option>
             <option value="allTabs">All tabs</option>
           </select>
-        </div>
-
-        <div class="setting-item">
-          <div class="setting-info">
-            <label class="setting-label" for="badgeColor">Badge color</label>
-            <p class="setting-description">Background color for the badge</p>
-          </div>
-          <input type="color" id="badgeColor" class="setting-color" value="#DC2626">
         </div>
       </section>
 
@@ -150,48 +161,27 @@
 
         <div class="setting-item">
           <div class="setting-info">
-            <label class="setting-label" for="advancedMode">Show advanced options</label>
-            <p class="setting-description">Show additional controls in popup and settings</p>
+            <label class="setting-label" for="debugLogging">Debug logging</label>
+            <p class="setting-description">Log debug info to browser console</p>
           </div>
           <label class="toggle">
-            <input type="checkbox" id="advancedMode">
+            <input type="checkbox" id="debugLogging">
             <span class="toggle-slider"></span>
           </label>
         </div>
+      </section>
 
-        <div class="advanced-settings hidden" id="advancedSettings">
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label" for="currentWindowOnly">Current window only</label>
-              <p class="setting-description">Only detect duplicates in the current window</p>
-            </div>
-            <label class="toggle">
-              <input type="checkbox" id="currentWindowOnly">
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label" for="showMergeButton">Show merge button</label>
-              <p class="setting-description">Add button to move domain tabs to a new window</p>
-            </div>
-            <label class="toggle">
-              <input type="checkbox" id="showMergeButton">
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-
-          <div class="setting-item">
-            <div class="setting-info">
-              <label class="setting-label" for="debugLogging">Debug logging</label>
-              <p class="setting-description">Log debug info to browser console</p>
-            </div>
-            <label class="toggle">
-              <input type="checkbox" id="debugLogging">
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
+      <section class="settings-section community-section">
+        <h2 class="section-title">Community</h2>
+        <div class="community-card">
+          <strong>ATO is open source.</strong>
+          <p>View the source, report bugs, or suggest features.</p>
+          <a class="community-link primary" href="https://github.com/jeanlucaslima/ato" target="_blank" rel="noopener">GitHub ↗</a>
+        </div>
+        <div class="community-card">
+          <strong>Enjoying ATO?</strong>
+          <p>A Chrome Web Store review helps more people discover it.</p>
+          <a class="community-link" href="https://chromewebstore.google.com/" target="_blank" rel="noopener">★ Rate ATO</a>
         </div>
       </section>
 

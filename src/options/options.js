@@ -8,7 +8,7 @@ import { applyFont } from '../shared/font-config.js';
 // Default settings
 const DEFAULT_SETTINGS = {
   // Appearance
-  theme: 'dark',
+  theme: 'graphite',
   fontFamily: 'titillium',
 
   // Duplicate Detection
@@ -24,10 +24,12 @@ const DEFAULT_SETTINGS = {
   badgeMode: 'duplicates',
   badgeColor: '#DC2626',
 
-  // Advanced
-  advancedMode: false,
+  // Behavior
   currentWindowOnly: false,
-  showMergeButton: false,
+  defaultBrowseView: 'tabs',
+  defaultSearchMode: 'fuzzy',
+
+  // Advanced
   debugLogging: false
 };
 
@@ -39,12 +41,10 @@ const SETTING_TYPES = {
   keepTab: 'select',
   protectPinned: 'checkbox',
   protectGroups: 'checkbox',
-  showBadge: 'checkbox',
   badgeMode: 'select',
-  badgeColor: 'color',
-  advancedMode: 'checkbox',
-  currentWindowOnly: 'checkbox',
-  showMergeButton: 'checkbox',
+  currentWindowOnly: 'boolean-select',
+  defaultBrowseView: 'select',
+  defaultSearchMode: 'select',
   debugLogging: 'checkbox'
 };
 
@@ -67,6 +67,10 @@ async function loadSettings() {
 
     if (type === 'checkbox') {
       element.checked = settings[key];
+    } else if (type === 'boolean-select') {
+      element.value = String(settings[key]);
+    } else if (key === 'badgeMode') {
+      element.value = settings.showBadge ? settings.badgeMode : 'off';
     } else {
       element.value = settings[key];
     }
@@ -80,14 +84,29 @@ async function loadSettings() {
   const manifest = chrome.runtime.getManifest();
   document.getElementById('version').textContent = manifest.version;
 
-  // Set initial visibility of advanced settings
-  updateAdvancedVisibility(settings.advancedMode);
 }
 
 /**
  * Save a single setting to chrome.storage
  */
 async function saveSetting(key, value) {
+  if (key === 'currentWindowOnly') {
+    value = value === true || value === 'true';
+  }
+
+  if (key === 'badgeMode') {
+    if (value === 'off') {
+      await chrome.storage.sync.set({ showBadge: false, badgeMode: 'duplicates' });
+      chrome.runtime.sendMessage({ type: 'SETTINGS_CHANGED', key: 'showBadge', value: false });
+      showSaveStatus();
+      return;
+    }
+    await chrome.storage.sync.set({ showBadge: true, badgeMode: value });
+    chrome.runtime.sendMessage({ type: 'SETTINGS_CHANGED', key: 'badgeMode', value });
+    showSaveStatus();
+    return;
+  }
+
   await chrome.storage.sync.set({ [key]: value });
 
   // Notify background script of settings change
@@ -114,18 +133,6 @@ function showSaveStatus() {
 }
 
 /**
- * Update visibility of advanced settings section
- */
-function updateAdvancedVisibility(show) {
-  const advancedSettings = document.getElementById('advancedSettings');
-  if (show) {
-    advancedSettings.classList.remove('hidden');
-  } else {
-    advancedSettings.classList.add('hidden');
-  }
-}
-
-/**
  * Initialize event listeners for all settings
  */
 function initEventListeners() {
@@ -138,11 +145,6 @@ function initEventListeners() {
     element.addEventListener(eventType, (e) => {
       const value = type === 'checkbox' ? e.target.checked : e.target.value;
       saveSetting(key, value);
-
-      // Special handling for advancedMode toggle
-      if (key === 'advancedMode') {
-        updateAdvancedVisibility(value);
-      }
 
       // Special handling for theme change
       if (key === 'theme') {
