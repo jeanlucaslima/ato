@@ -276,85 +276,6 @@ body {
   color: var(--bg-primary);
 }
 
-/* Search field-mode menu trigger (the ⌄ button) */
-.search-mode-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-  padding: 0;
-  background: transparent;
-  border: none;
-  border-radius: 4px;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.search-mode-btn:hover {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-}
-
-.search-mode-btn.active {
-  color: var(--accent-color);
-}
-
-.search-mode-menu {
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 8px;
-  z-index: 20;
-  min-width: 130px;
-  padding: 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-.search-mode-menu.hidden {
-  display: none;
-}
-
-.search-mode-option {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  text-align: left;
-  padding: 6px 8px;
-  background: transparent;
-  border: none;
-  border-radius: 4px;
-  font-size: 12px;
-  color: var(--text-primary);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.search-mode-option-icon {
-  flex-shrink: 0;
-  color: var(--text-muted);
-}
-
-.search-mode-option:hover {
-  background: var(--bg-tertiary);
-}
-
-.search-mode-option.active {
-  color: var(--accent-color);
-  font-weight: 600;
-}
-
-.search-mode-option.active .search-mode-option-icon {
-  color: var(--accent-color);
-}
-
 .global-search-clear {
   flex-shrink: 0;
   width: 18px;
@@ -394,14 +315,41 @@ body {
   margin-top: 8px;
 }
 
-.control-select {
+.segmented-control {
+  display: flex;
   min-width: 0;
-  padding: 6px 22px 6px 8px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
+  gap: 2px;
+  padding: 2px;
+  background: var(--bg-tertiary);
   border-radius: 6px;
+}
+
+.segmented-button {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 6px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.segmented-button:hover {
   color: var(--text-primary);
-  font-size: 12px;
+  background: var(--bg-secondary);
+}
+
+.segmented-button.active {
+  background: var(--bg-primary);
+  color: var(--accent-color);
+}
+
+.segmented-button:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 1px;
 }
 
 .search-results-count.hidden {

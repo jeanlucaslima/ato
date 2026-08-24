@@ -52,10 +52,8 @@ const searchResultsCountEl = document.getElementById('search-results-count');
 const searchModeChipEl = document.getElementById('search-mode-chip');
 const searchModeChipLabelEl = document.getElementById('search-mode-chip-label');
 const searchModeChipRemoveEl = document.getElementById('search-mode-chip-remove');
-const searchModeBtnEl = document.getElementById('search-mode-btn');
-const searchModeMenuEl = document.getElementById('search-mode-menu');
-const searchFieldSelectEl = document.getElementById('search-field-select');
-const searchPrecisionSelectEl = document.getElementById('search-precision-select');
+const searchFieldControlsEl = document.getElementById('search-field-controls');
+const searchPrecisionControlsEl = document.getElementById('search-precision-controls');
 
 // Collapsible section elements
 const mediaContainerEl = document.getElementById('media-container');
@@ -294,11 +292,9 @@ function handleSearchInput(e) {
 function enterSearchMode(field) {
   searchField = field;
   searchModeChipLabelEl.textContent = SEARCH_FIELD_PREFIX[field];
-  searchFieldSelectEl.value = field;
+  updateSearchFieldControls();
   searchModeChipEl.classList.remove('hidden');
-  searchModeBtnEl.classList.add('active');
   globalSearchInputEl.placeholder = SEARCH_FIELD_PLACEHOLDER[field];
-  updateSearchModeMenu();
 }
 
 /**
@@ -306,11 +302,26 @@ function enterSearchMode(field) {
  */
 function exitSearchMode() {
   searchField = null;
-  searchFieldSelectEl.value = 'all';
+  updateSearchFieldControls();
   searchModeChipEl.classList.add('hidden');
-  searchModeBtnEl.classList.remove('active');
   globalSearchInputEl.placeholder = DEFAULT_SEARCH_PLACEHOLDER;
-  updateSearchModeMenu();
+}
+
+function updateSearchFieldControls() {
+  const current = searchField || 'all';
+  searchFieldControlsEl.querySelectorAll('.segmented-button').forEach(button => {
+    const isActive = button.dataset.field === current;
+    button.classList.toggle('active', isActive);
+    button.setAttribute('aria-pressed', String(isActive));
+  });
+}
+
+function updateSearchPrecisionControls() {
+  searchPrecisionControlsEl.querySelectorAll('.segmented-button').forEach(button => {
+    const isActive = button.dataset.mode === searchPrecision;
+    button.classList.toggle('active', isActive);
+    button.setAttribute('aria-pressed', String(isActive));
+  });
 }
 
 /**
@@ -321,16 +332,6 @@ function applySearchModeChange() {
   searchQuery = globalSearchInputEl.value;
   globalSearchClearEl.classList.toggle('hidden', !searchQuery && !searchField);
   loadAndRender();
-}
-
-/**
- * Marks the active option in the field-mode menu.
- */
-function updateSearchModeMenu() {
-  const current = searchField || 'all';
-  searchModeMenuEl.querySelectorAll('.search-mode-option').forEach(opt => {
-    opt.classList.toggle('active', opt.dataset.field === current);
-  });
 }
 
 /**
@@ -347,7 +348,7 @@ function clearSearch() {
   searchResultsCountEl.classList.add('hidden');
   document.body.classList.remove('search-active');
   searchPrecision = settings.defaultSearchMode || 'fuzzy';
-  searchPrecisionSelectEl.value = searchPrecision;
+  updateSearchPrecisionControls();
   loadAndRender();
 }
 
@@ -587,7 +588,7 @@ async function loadSettings() {
     settings = result;
     browseView = settings.defaultBrowseView || 'tabs';
     searchPrecision = settings.defaultSearchMode || 'fuzzy';
-    searchPrecisionSelectEl.value = searchPrecision;
+    updateSearchPrecisionControls();
 
     // Apply theme and font
     applyTheme(settings.theme);
@@ -1988,17 +1989,24 @@ moveSearchResultsBtn.addEventListener('click', moveSearchResultsToWindow);
 // Global search event listeners
 globalSearchInputEl.addEventListener('input', handleSearchInput);
 globalSearchClearEl.addEventListener('click', clearSearch);
-searchFieldSelectEl.addEventListener('change', (e) => {
-  if (e.target.value === 'all') {
+searchFieldControlsEl.addEventListener('click', (e) => {
+  const button = e.target.closest('.segmented-button');
+  if (!button) return;
+
+  if (button.dataset.field === 'all') {
     exitSearchMode();
   } else {
-    enterSearchMode(e.target.value);
+    enterSearchMode(button.dataset.field);
   }
   applySearchModeChange();
   globalSearchInputEl.focus();
 });
-searchPrecisionSelectEl.addEventListener('change', (e) => {
-  searchPrecision = e.target.value;
+searchPrecisionControlsEl.addEventListener('click', (e) => {
+  const button = e.target.closest('.segmented-button');
+  if (!button) return;
+
+  searchPrecision = button.dataset.mode;
+  updateSearchPrecisionControls();
   loadAndRender();
   globalSearchInputEl.focus();
 });
@@ -2022,38 +2030,6 @@ globalSearchInputEl.addEventListener('keydown', (e) => {
     e.preventDefault();
     exitSearchMode();
     applySearchModeChange();
-  }
-});
-
-// Field-mode menu (the ⌄ button)
-searchModeBtnEl.addEventListener('click', (e) => {
-  e.stopPropagation();
-  searchModeMenuEl.classList.toggle('hidden');
-  updateSearchModeMenu();
-});
-
-searchModeMenuEl.addEventListener('click', (e) => {
-  const option = e.target.closest('.search-mode-option');
-  if (!option) return;
-  searchModeMenuEl.classList.add('hidden');
-  const field = option.dataset.field;
-  if (field === 'all') {
-    exitSearchMode();
-  } else {
-    enterSearchMode(field);
-  }
-  applySearchModeChange();
-  globalSearchInputEl.focus();
-});
-
-// Close the field-mode menu when clicking elsewhere
-document.addEventListener('click', (e) => {
-  if (
-    !searchModeMenuEl.classList.contains('hidden') &&
-    !searchModeMenuEl.contains(e.target) &&
-    !searchModeBtnEl.contains(e.target)
-  ) {
-    searchModeMenuEl.classList.add('hidden');
   }
 });
 
