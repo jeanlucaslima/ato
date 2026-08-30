@@ -471,6 +471,8 @@ function activateSelectedItem() {
     return;
   }
 
+  if (duplicateListEl.contains(item)) return;
+
   const tabId = parseInt(item.dataset.tabId, 10);
   const windowId = parseInt(item.dataset.windowId, 10);
   if (tabId) switchToTab(tabId, windowId);
@@ -548,7 +550,7 @@ function updateSearchResultsCount(count, total) {
     searchResultsCountEl.textContent = 'No results found';
     searchResultsCountEl.classList.add('no-results');
   } else {
-    searchResultsCountEl.textContent = `${count} of ${total} tabs`;
+    searchResultsCountEl.textContent = `${count} matches / ${total} tabs`;
     searchResultsCountEl.classList.remove('no-results');
   }
 }
@@ -1012,9 +1014,18 @@ function createGroupedDuplicateItem(group, index = 0, matchResult = null) {
   const { url, tabs: duplicateTabs, representative, totalCount } = group;
 
   const item = document.createElement('div');
-  item.className = 'tab-item';
+  item.className = 'tab-item duplicate-group-item';
   if (duplicateTabs.some(t => t.audible)) {
     item.classList.add('is-audible');
+  }
+  if (representative.active) {
+    item.classList.add('is-current');
+  }
+  if (representative.pinned) {
+    item.classList.add('is-pinned');
+  }
+  if (representative.discarded) {
+    item.classList.add('is-discarded');
   }
   item.dataset.url = url;
   item.dataset.tabId = representative.id;
@@ -1198,6 +1209,15 @@ function createTabItem(tab, duplicateCount = 0, index = 0, matchResult = null) {
   item.className = 'tab-item';
   if (tab.audible) {
     item.classList.add('is-audible');
+  }
+  if (tab.active) {
+    item.classList.add('is-current');
+  }
+  if (tab.pinned) {
+    item.classList.add('is-pinned');
+  }
+  if (tab.discarded) {
+    item.classList.add('is-discarded');
   }
   item.dataset.tabId = tab.id;
   item.dataset.windowId = tab.windowId;
@@ -1647,10 +1667,12 @@ function render(tabs, duplicates) {
     searchResults = performSearch(effectiveSearchQuery(), tabs);
     document.body.classList.add('search-active');
     document.body.classList.add('searching');
+    document.body.dataset.searchQuery = searchQuery;
   } else {
     searchResults = null;
     document.body.classList.remove('search-active');
     document.body.classList.remove('searching');
+    delete document.body.dataset.searchQuery;
   }
 
   // Update search results count
@@ -1725,6 +1747,7 @@ function render(tabs, duplicates) {
   duplicateCountEl.textContent = duplicates.length;
   domainCountEl.textContent = domainGroups.length;
   statsSummaryEl.textContent = `${tabs.length} tabs · ${duplicates.length} duplicates · ${domainGroups.length} domains`;
+  document.body.classList.toggle('has-duplicates', duplicates.length > 0);
 
   // Render Playing Media section (tabs currently producing sound)
   const audibleTabs = tabs.filter(tab => tab.audible);
@@ -1740,6 +1763,7 @@ function render(tabs, duplicates) {
   } else {
     mediaContainerEl.classList.add('hidden');
   }
+  document.body.classList.toggle('has-media', audibleTabs.length > 0);
 
   // Update section counts using the primary duplicate metric: redundant tabs that can be closed.
   duplicatesSectionCountEl.textContent = duplicates.length;
@@ -1768,8 +1792,9 @@ function render(tabs, duplicates) {
   // Render duplicates section
   if (duplicates.length === 0) {
     duplicateReviewOpen = false;
-    duplicatesSummaryPrimaryEl.textContent = '0 duplicate tabs';
-    duplicatesSummarySecondaryEl.textContent = 'Can be closed across 0 groups';
+    document.body.classList.remove('duplicate-review-open');
+    duplicatesSummaryPrimaryEl.textContent = '00';
+    duplicatesSummarySecondaryEl.textContent = 'duplicate tabs across 0 groups';
     // Show empty state
     duplicateListEl.style.display = 'none';
     reviewDuplicatesBtn.classList.add('hidden');
@@ -1782,6 +1807,7 @@ function render(tabs, duplicates) {
   } else {
     // Show duplicates
     duplicateListEl.style.display = duplicateReviewOpen ? 'flex' : 'none';
+    document.body.classList.toggle('duplicate-review-open', duplicateReviewOpen);
     reviewDuplicatesBtn.classList.toggle('hidden', duplicateReviewOpen);
     emptyStateEl.style.display = 'none';
 
@@ -1834,8 +1860,8 @@ function render(tabs, duplicates) {
       representative: dupes[0],
       totalCount: urlCounts.get(normalizedUrl) || dupes.length + 1
     }));
-    duplicatesSummaryPrimaryEl.textContent = `${duplicates.length} duplicate tab${duplicates.length === 1 ? '' : 's'}`;
-    duplicatesSummarySecondaryEl.textContent = `Can be closed across ${groupedDuplicates.length} group${groupedDuplicates.length === 1 ? '' : 's'}`;
+    duplicatesSummaryPrimaryEl.textContent = String(duplicates.length).padStart(2, '0');
+    duplicatesSummarySecondaryEl.textContent = `duplicate tab${duplicates.length === 1 ? '' : 's'} across ${groupedDuplicates.length} group${groupedDuplicates.length === 1 ? '' : 's'}`;
 
     // Sort groups based on duplicateSortOrder
     if (duplicateSortOrder === 'title') {
@@ -1864,6 +1890,7 @@ function render(tabs, duplicates) {
   );
 
   // Apply domain filter if active
+  document.body.classList.toggle('has-domain-filter', Boolean(activeDomain));
   if (activeDomain) {
     visibleTabs = visibleTabs.filter(tab => {
       const domain = extractDomain(tab.url);
@@ -2188,9 +2215,7 @@ duplicateListEl.addEventListener('click', (e) => {
   }
 
   if (item) {
-    const tabId = parseInt(item.dataset.tabId, 10);
-    const windowId = parseInt(item.dataset.windowId, 10);
-    if (tabId) switchToTab(tabId, windowId);
+    e.preventDefault();
   }
 });
 
