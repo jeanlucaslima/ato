@@ -1204,7 +1204,7 @@ async function closeAllSearchResults() {
 }
 
 // Render domain filter
-function renderDomainFilter(tabs) {
+function renderDomainFilter() {
   const domainGroups = getDomainGroups(appState);
   const activeDomain = appState.filters.domain;
 
@@ -1337,12 +1337,10 @@ function hideDomainDropdown() {
  * Renders the complete popup UI.
  * Updates stats, domain filter, duplicate list, all tabs list, and domain sections.
  *
- * @param {Object[]} tabs - All tabs from Chrome API
- * @param {Object[]} duplicates - Duplicate tabs only
  */
-function render(tabs, duplicates) {
-  tabs = getScopedTabs(appState);
-  duplicates = getDuplicateTabs(appState);
+function render() {
+  const tabs = getScopedTabs(appState);
+  const duplicates = getDuplicateTabs(appState);
   // Play the staggered slide-in only on the first render (initial popup open).
   // Re-renders (closing a tab, sorting, etc.) skip it so the list doesn't
   // re-animate every item — which is disruptive when a small group collapses.
@@ -1436,7 +1434,7 @@ function render(tabs, duplicates) {
   duplicatesSectionCountEl.textContent = duplicates.length;
 
   // Render domain filter
-  renderDomainFilter(tabs);
+  renderDomainFilter();
 
   // Enable/disable close all duplicates button
   closeAllBtn.disabled = duplicates.length === 0;
@@ -1591,7 +1589,7 @@ async function loadAndRender() {
 
     log(`📊 Rendered ${tabs.length} tabs (${appState.scope.type === 'window' ? `window ${appState.scope.windowId}` : 'all windows'}), ${duplicates.length} duplicates`);
 
-    render(tabs, duplicates);
+    render();
   } catch (err) {
     error('❌ Error loading tabs:', err);
   }
