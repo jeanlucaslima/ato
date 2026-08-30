@@ -2,20 +2,42 @@
 // Displays duplicate tabs and handles user actions
 
 import {
-  findDuplicates,
   extractDomain,
-  countDuplicatesByUrl,
   groupTabsByDomain,
   formatTimeAgo,
-  sortTabs,
   sortAudibleFirst,
   normalizeUrl,
-  searchTab,
   highlightMatches,
   isLoadableFavicon
 } from '../shared/tab-utils.js';
 import { applyFont } from '../shared/font-config.js';
 import { initLogger, log, error } from '../shared/logger.js';
+import {
+  createInitialPopupState,
+  effectiveSearchQuery as effectiveStateSearchQuery,
+  filterCloseableTabs,
+  getCursorItem,
+  getDuplicateGroups,
+  getDuplicateTabs,
+  getDomainGroups,
+  getLargeDomainGroups,
+  getPlayingTabs,
+  getScopedTabs,
+  getSearchResults,
+  getSearchResultTabIds,
+  getTab,
+  getTabsForDomain,
+  getTabsToCloseForAllDuplicates,
+  getTabsToCloseForDuplicateUrl,
+  getUrlCounts,
+  getVisibleNavigationItems as getStateNavigationItems,
+  getVisibleTabs,
+  isDomainExpanded,
+  makeItemId,
+  reducePopupState,
+  selectTabIds,
+  serializeExpansion
+} from './popup-state.js';
 
 log('🎨 ATO popup loaded');
 
@@ -98,6 +120,7 @@ let settings = {
 };
 
 // State
+let appState = createInitialPopupState();
 let activeDomain = null;
 let activeSort = 'default';
 let duplicateSortOrder = 'default'; // Sort order for duplicates section
@@ -132,7 +155,6 @@ const DEFAULT_SEARCH_PLACEHOLDER = 'Search tabs';
 let highlightedResultIndex = -1; // Currently highlighted search result
 let searchResultTabIds = []; // Array of tab IDs in display order for navigation
 let selectedItemIndex = -1;
-let selectedItemKey = null;
 
 // Undo state
 let lastClosedCount = 0;        // Number of tabs closed (for undo)
@@ -211,35 +233,52 @@ function clearRenderCache() {
   };
 }
 
+function dispatch(action) {
+  appState = reducePopupState(appState, action);
+  syncLegacyStateFromStore();
+  clearRenderCache();
+}
+
+function syncLegacyStateFromStore() {
+  activeDomain = appState.filters.domain;
+  activeSort = appState.sort.tabs;
+  duplicateSortOrder = appState.sort.duplicate;
+  domainSectionSort = appState.sort.domainSection;
+  domainNameDirection = appState.sort.domainNameDirection;
+  domainCountDirection = appState.sort.domainCountDirection;
+  ageSortDirection = appState.sort.ageDirection;
+  sectionStates = appState.expansion.sections;
+  domainSectionStates = Object.fromEntries(
+    getLargeDomainGroups(appState).map(group => [group.domain, isDomainExpanded(appState, group.domain)])
+  );
+  browseView = appState.view.type;
+  duplicateReviewOpen = appState.duplicateReviewOpen;
+  searchQuery = appState.search.query;
+  searchField = appState.search.field === 'all' ? null : appState.search.field;
+  searchPrecision = appState.search.mode;
+  searchResults = new Map(getSearchResults(appState).map(({ tab, match }) => [tab.id, match]));
+  searchResultTabIds = getSearchResultTabIds(appState);
+  selectedItemIndex = appState.navigation.cursorIndex;
+  highlightedResultIndex = searchResultTabIds.indexOf(Number((getCursorItem(appState)?.tabId)));
+}
+
+function updateStoreSettings() {
+  dispatch({
+    type: 'SET_SETTINGS',
+    settings: {
+      matchMode: settings.matchMode,
+      keepTab: settings.keepTab,
+      protectPinned: settings.protectPinned,
+      protectGroups: settings.protectGroups,
+      defaultBrowseView: settings.defaultBrowseView,
+      defaultSearchMode: settings.defaultSearchMode
+    }
+  });
+}
+
 // =============================================================================
 // Search Functions
 // =============================================================================
-
-/**
- * Performs fuzzy search across all tabs.
- * Updates searchResults map with matching tabs.
- *
- * @param {string} query - Search query
- * @param {Object[]} tabs - All tabs
- * @returns {Map<number, Object>|null} Map of tabId -> matchResult, or null if no query
- */
-function performSearch(query, tabs) {
-  if (!query || query.trim().length === 0) {
-    return null;
-  }
-
-  const results = new Map();
-  const forcedMode = searchPrecision === 'fuzzy' ? null : searchPrecision;
-
-  for (const tab of tabs) {
-    const match = searchTab(query, tab, forcedMode);
-    if (match) {
-      results.set(tab.id, match);
-    }
-  }
-
-  return results;
-}
 
 /**
  * Builds the query string handed to the search engine, prefixing the active
@@ -249,10 +288,7 @@ function performSearch(query, tabs) {
  * @returns {string} The effective query
  */
 function effectiveSearchQuery() {
-  if (searchField && searchQuery.trim()) {
-    return `${SEARCH_FIELD_PREFIX[searchField]}:${searchQuery}`;
-  }
-  return searchQuery;
+  return effectiveStateSearchQuery(appState);
 }
 
 /**
@@ -280,7 +316,7 @@ function handleSearchInput(e) {
   // Debounce the search
   clearTimeout(searchDebounceTimer);
   searchDebounceTimer = setTimeout(() => {
-    searchQuery = query;
+    dispatch({ type: 'SET_SEARCH_QUERY', query });
     loadAndRender();
   }, SEARCH_DEBOUNCE_MS);
 }
@@ -291,7 +327,7 @@ function handleSearchInput(e) {
  * @param {'url'|'title'} field - The field to scope the search to
  */
 function enterSearchMode(field) {
-  searchField = field;
+  dispatch({ type: 'SET_SEARCH_FIELD', field });
   searchModeChipLabelEl.textContent = SEARCH_FIELD_PREFIX[field];
   updateSearchFieldControls();
   searchModeChipEl.classList.remove('hidden');
@@ -302,7 +338,7 @@ function enterSearchMode(field) {
  * Exits field-scoped search mode, restoring the default all-fields search.
  */
 function exitSearchMode() {
-  searchField = null;
+  dispatch({ type: 'SET_SEARCH_FIELD', field: 'all' });
   updateSearchFieldControls();
   searchModeChipEl.classList.add('hidden');
   globalSearchInputEl.placeholder = DEFAULT_SEARCH_PLACEHOLDER;
@@ -322,7 +358,7 @@ function updateSearchPrecisionControls() {
  * keeping any already-typed term and syncing the clear button.
  */
 function applySearchModeChange() {
-  searchQuery = globalSearchInputEl.value;
+  dispatch({ type: 'SET_SEARCH_QUERY', query: globalSearchInputEl.value });
   globalSearchClearEl.classList.toggle('hidden', !searchQuery && !searchField);
   loadAndRender();
 }
@@ -331,77 +367,28 @@ function applySearchModeChange() {
  * Clears the search and resets results (including any active field mode).
  */
 function clearSearch() {
-  searchQuery = '';
-  searchResults = null;
-  searchResultTabIds = [];
-  highlightedResultIndex = -1;
   globalSearchInputEl.value = '';
-  exitSearchMode();
   globalSearchClearEl.classList.add('hidden');
   searchResultsCountEl.classList.add('hidden');
   document.body.classList.remove('search-active');
-  searchPrecision = settings.defaultSearchMode || 'contains';
+  dispatch({ type: 'CLEAR_SEARCH', defaultMode: settings.defaultSearchMode || 'contains' });
+  exitSearchMode();
   updateSearchPrecisionControls();
   loadAndRender();
-}
-
-/**
- * Updates the highlighted search result.
- * @param {number} newIndex - The new index to highlight
- */
-function updateHighlightedSearchResult(newIndex) {
-  if (searchResultTabIds.length === 0) return;
-
-  // Remove previous highlight
-  const prevHighlighted = searchResultsListEl.querySelector('.tab-item.highlighted');
-  if (prevHighlighted) {
-    prevHighlighted.classList.remove('highlighted');
-  }
-
-  // Clamp index to valid range (wrap around)
-  if (newIndex < 0) newIndex = searchResultTabIds.length - 1;
-  if (newIndex >= searchResultTabIds.length) newIndex = 0;
-
-  highlightedResultIndex = newIndex;
-
-  // Add highlight to new item
-  const items = searchResultsListEl.querySelectorAll('.tab-item');
-  if (items[highlightedResultIndex]) {
-    items[highlightedResultIndex].classList.add('highlighted');
-    items[highlightedResultIndex].scrollIntoView({ block: 'nearest' });
-  }
 }
 
 /**
  * Switches to the currently highlighted search result tab.
  */
 function switchToHighlightedResult() {
-  if (highlightedResultIndex >= 0 && highlightedResultIndex < searchResultTabIds.length) {
-    const tabId = searchResultTabIds[highlightedResultIndex];
-    const item = searchResultsListEl.querySelector(`[data-tab-id="${tabId}"]`);
-    if (item) {
-      const windowId = parseInt(item.dataset.windowId, 10);
-      switchToTab(tabId, windowId);
-    }
+  const cursor = getCursorItem(appState);
+  if (cursor?.type === 'tab') {
+    switchToTab(cursor.tabId, cursor.windowId);
   }
 }
 
 function getVisibleActionItems() {
-  return Array.from(document.querySelectorAll('.browse-tab, .section-header, .tab-item, .domain-action-bar .btn-action'))
-    .filter(item => item.offsetParent !== null && !item.closest('.section-content.collapsed'));
-}
-
-function itemKey(item) {
-  if (item.classList.contains('btn-action')) {
-    return `action:${item.dataset.action}:${item.dataset.domain || ''}`;
-  }
-  if (item.classList.contains('browse-tab')) {
-    return `browse-tab:${item.dataset.view}`;
-  }
-  if (item.classList.contains('section-header')) {
-    return item.dataset.domain ? `domain-header:${item.dataset.domain}` : `section-header:${item.id}`;
-  }
-  return item.dataset.url ? `url:${item.dataset.url}` : `tab:${item.dataset.tabId}`;
+  return getStateNavigationItems(appState);
 }
 
 function updateSelectedItem(newIndex) {
@@ -409,143 +396,152 @@ function updateSelectedItem(newIndex) {
   document.querySelectorAll('.browse-tab.selected, .tab-item.selected, .section-header.selected, .btn-action.selected').forEach(item => item.classList.remove('selected'));
 
   if (items.length === 0) {
-    selectedItemIndex = -1;
-    selectedItemKey = null;
-    highlightedResultIndex = -1;
+    dispatch({ type: 'SET_CURSOR', cursorId: null, focusZone: 'content' });
     return;
   }
 
-  if (newIndex < 0) newIndex = items.length - 1;
-  if (newIndex >= items.length) newIndex = 0;
+  if (newIndex < 0) newIndex = 0;
+  if (newIndex >= items.length) newIndex = items.length - 1;
 
-  selectedItemIndex = newIndex;
-  const item = items[selectedItemIndex];
-  selectedItemKey = itemKey(item);
-  item.classList.add('selected');
-  item.scrollIntoView({ block: 'nearest' });
-
-  if (searchResultTabIds.length > 0) {
-    highlightedResultIndex = searchResultTabIds.indexOf(Number(item.dataset.tabId));
-  }
+  dispatch({ type: 'SET_CURSOR', cursorId: items[newIndex].id, focusZone: 'content' });
+  applyCursorToDom();
 }
 
 function restoreSelectedItem() {
-  const items = getVisibleActionItems();
-  document.querySelectorAll('.browse-tab.selected, .tab-item.selected, .section-header.selected, .btn-action.selected').forEach(item => item.classList.remove('selected'));
+  syncLegacyStateFromStore();
+  applyCursorToDom();
+}
 
-  if (items.length === 0) {
-    selectedItemIndex = -1;
-    selectedItemKey = null;
-    return;
+function domElementForItemId(cursorId) {
+  if (!cursorId) return null;
+  if (cursorId.startsWith('view:')) {
+    return browseTabsEl.querySelector(`[data-view="${CSS.escape(cursorId.slice('view:'.length))}"]`);
   }
-
-  let index = selectedItemKey
-    ? items.findIndex(item => itemKey(item) === selectedItemKey)
-    : selectedItemIndex;
-
-  if (index < 0) {
-    index = Math.min(Math.max(selectedItemIndex, 0), items.length - 1);
+  if (cursorId.startsWith('section:')) {
+    const section = cursorId.slice('section:'.length);
+    return document.getElementById(`${section === 'allTabs' ? 'all-tabs' : section}-header`);
   }
+  if (cursorId.startsWith('domain:')) {
+    return domainSectionsContainer.querySelector(`.section-header[data-domain="${CSS.escape(cursorId.slice('domain:'.length))}"]`);
+  }
+  if (cursorId.startsWith('action:')) {
+    const [, action, ...domainParts] = cursorId.split(':');
+    const domain = domainParts.join(':');
+    return domainSectionsContainer.querySelector(`.btn-action[data-action="${CSS.escape(action)}"][data-domain="${CSS.escape(domain)}"]`);
+  }
+  if (cursorId.startsWith('duplicate:')) {
+    return duplicateListEl.querySelector(`[data-url="${CSS.escape(cursorId.slice('duplicate:'.length))}"]`);
+  }
+  if (cursorId.startsWith('tab:')) {
+    return document.querySelector(`[data-tab-id="${CSS.escape(cursorId.slice('tab:'.length))}"]`);
+  }
+  return null;
+}
 
-  selectedItemIndex = index;
-  selectedItemKey = itemKey(items[index]);
-  items[index].classList.add('selected');
+function applyCursorToDom() {
+  document.querySelectorAll('.browse-tab.selected, .tab-item.selected, .section-header.selected, .btn-action.selected, .tab-item.highlighted')
+    .forEach(item => item.classList.remove('selected', 'highlighted'));
+
+  const element = domElementForItemId(appState.navigation.cursorId);
+  if (!element) return;
+  element.classList.add('selected');
+  if (element.classList.contains('tab-item') && appState.search.query) {
+    element.classList.add('highlighted');
+  }
+  element.scrollIntoView({ block: 'nearest' });
 }
 
 function activateSelectedItem() {
-  const items = getVisibleActionItems();
-  const item = items[selectedItemIndex];
+  const item = getCursorItem(appState);
   if (!item) return;
 
-  if (item.classList.contains('browse-tab')) {
-    item.click();
+  if (item.type === 'view') {
+    dispatch({ type: 'SET_VIEW', view: item.view });
+    loadAndRender();
     return;
   }
 
-  if (item.classList.contains('section-header')) {
-    item.click();
+  if (item.type === 'section') {
+    toggleSection(item.section);
     return;
   }
 
-  if (item.classList.contains('btn-action')) {
-    item.click();
+  if (item.type === 'domain') {
+    toggleDomainSection(item.domain);
     return;
   }
 
-  if (duplicateListEl.contains(item)) return;
+  if (item.type === 'action') {
+    if (item.action === 'move-domain') moveTabsFromDomainToWindow(item.domain);
+    if (item.action === 'close-domain') closeTabsFromDomain(item.domain);
+    return;
+  }
 
-  const tabId = parseInt(item.dataset.tabId, 10);
-  const windowId = parseInt(item.dataset.windowId, 10);
-  if (tabId) switchToTab(tabId, windowId);
+  if (item.type === 'duplicate') return;
+
+  if (item.type === 'tab') switchToTab(item.tabId, item.windowId);
 }
 
 function closeSelectedItem() {
-  const items = getVisibleActionItems();
-  const item = items[selectedItemIndex];
+  const item = getCursorItem(appState);
   if (!item) return;
-  if (item.classList.contains('browse-tab') || item.classList.contains('section-header') || item.classList.contains('btn-action')) return;
+  if (item.type === 'view' || item.type === 'section' || item.type === 'domain' || item.type === 'action') return;
 
-  if (item.dataset.url && duplicateListEl.contains(item)) {
-    closeDuplicatesOfUrl(item.dataset.url);
+  if (item.type === 'duplicate') {
+    closeDuplicatesOfUrl(item.url);
     return;
   }
 
-  const tabId = parseInt(item.dataset.tabId, 10);
-  if (tabId) closeTab(tabId);
+  if (item.type === 'tab') closeTab(item.tabId);
 }
 
 function setSelectedHeaderExpanded(expand) {
-  const items = getVisibleActionItems();
-  const item = items[selectedItemIndex];
+  const item = getCursorItem(appState);
   if (!item) return false;
 
-  if (item.classList.contains('browse-tab')) {
+  if (item.type === 'view') {
     const targetView = expand ? 'domains' : 'tabs';
-    if (browseView !== targetView) {
-      browseTabsEl.querySelector(`[data-view="${targetView}"]`)?.click();
+    if (appState.view.type !== targetView) {
+      dispatch({ type: 'SET_VIEW', view: targetView });
+      loadAndRender();
     }
     return true;
   }
 
-  if (!item.classList.contains('section-header')) return false;
-
-  const isExpanded = item.getAttribute('aria-expanded') === 'true';
-  if (expand !== isExpanded) {
-    item.click();
+  if (item.type === 'domain') {
+    dispatch({ type: expand ? 'EXPAND_DOMAIN' : 'COLLAPSE_DOMAIN', domain: item.domain });
+    saveSectionStates();
+    loadAndRender();
+    return true;
   }
-  return true;
+
+  if (item.type === 'section') {
+    if (appState.expansion.sections[item.section] !== expand) {
+      dispatch({ type: 'TOGGLE_SECTION', section: item.section });
+      applySectionStates();
+      saveSectionStates();
+      loadAndRender();
+    }
+    return true;
+  }
+
+  return false;
 }
 
 function selectParentSectionHeader() {
-  const items = getVisibleActionItems();
-  const item = items[selectedItemIndex];
-  if (!item || !item.classList.contains('tab-item')) return false;
-
-  const sectionContent = item.closest('.section-content');
-  const header = sectionContent?.previousElementSibling;
-  if (!header || !header.classList.contains('section-header') || header.offsetParent === null) {
-    return false;
-  }
-
-  selectedItemKey = itemKey(header);
-  restoreSelectedItem();
-  header.scrollIntoView({ block: 'nearest' });
-  return true;
+  const item = getCursorItem(appState);
+  if (!item || item.type !== 'tab') return false;
+  dispatch({ type: 'NAVIGATE_PARENT' });
+  applyCursorToDom();
+  return Boolean(getCursorItem(appState));
 }
 
 function selectOwningDomainHeader() {
-  const items = getVisibleActionItems();
-  const item = items[selectedItemIndex];
-  if (!item || !item.classList.contains('btn-action')) return false;
-
-  const section = item.closest('.domain-section');
-  const header = section?.querySelector('.section-header');
-  if (!header || header.offsetParent === null) return false;
-
-  selectedItemKey = itemKey(header);
-  restoreSelectedItem();
-  header.scrollIntoView({ block: 'nearest' });
-  return true;
+  const item = getCursorItem(appState);
+  if (!item || item.type !== 'action') return false;
+  dispatch({ type: 'NAVIGATE_PARENT' });
+  applyCursorToDom();
+  return Boolean(getCursorItem(appState));
 }
 
 /**
@@ -588,6 +584,15 @@ async function loadSectionStates() {
     if (result.domainSectionStates) {
       domainSectionStates = result.domainSectionStates;
     }
+    appState = createInitialPopupState({
+      currentWindowOnly: settings.currentWindowOnly,
+      focusedWindowId: appState.browser.focusedWindowId,
+      defaultBrowseView: settings.defaultBrowseView,
+      defaultSearchMode: settings.defaultSearchMode,
+      sectionStates,
+      domainSectionStates
+    });
+    updateStoreSettings();
     applySectionStates();
   } catch (err) {
     error('Error loading section states:', err);
@@ -621,8 +626,7 @@ async function loadSettings() {
       defaultSearchMode: 'contains'
     });
     settings = result;
-    browseView = settings.defaultBrowseView || 'tabs';
-    searchPrecision = settings.defaultSearchMode || 'contains';
+    updateStoreSettings();
     updateSearchPrecisionControls();
 
     // Apply theme and font
@@ -641,7 +645,7 @@ async function loadSettings() {
  */
 async function saveSectionStates() {
   try {
-    await chrome.storage.local.set({ sectionStates, domainSectionStates });
+    await chrome.storage.local.set(serializeExpansion(appState));
   } catch (err) {
     error('Error saving section states:', err);
   }
@@ -664,26 +668,17 @@ function applySectionStates() {
 
 // Toggle section visibility
 function toggleSection(section) {
-  sectionStates[section] = !sectionStates[section];
+  dispatch({ type: 'TOGGLE_SECTION', section });
   applySectionStates();
   saveSectionStates();
+  loadAndRender();
 }
 
 // Toggle domain section visibility
 function toggleDomainSection(domain) {
-  // Default to expanded (true) if not set
-  const currentState = domainSectionStates[domain] !== false;
-  domainSectionStates[domain] = !currentState;
-
-  // Update DOM
-  const header = document.querySelector(`[data-domain="${domain}"]`);
-  const content = document.getElementById(`domain-content-${domain}`);
-  if (header && content) {
-    header.setAttribute('aria-expanded', !currentState);
-    content.classList.toggle('collapsed', currentState);
-  }
-
+  dispatch({ type: 'TOGGLE_DOMAIN', domain });
   saveSectionStates();
+  loadAndRender();
 }
 
 // Enable undo button based on context
@@ -743,25 +738,13 @@ async function undoClose() {
  */
 async function closeTabsFromDomain(domain) {
   try {
-    const tabs = await chrome.tabs.query({});
-    const domainTabs = tabs.filter(tab => {
-      const tabDomain = extractDomain(tab.url);
-      return tabDomain === domain;
-    });
-
-    // Get active tab to avoid closing it
-    const activeTabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    const activeTabId = activeTabs[0]?.id;
-
-    // Filter out active tab and pinned tabs (if protection enabled)
-    const tabsToClose = domainTabs
-      .filter(tab => tab.id !== activeTabId)
-      .filter(tab => !settings.protectPinned || !tab.pinned)
-      .map(tab => tab.id);
+    const domainTabs = getTabsForDomain(appState, domain);
+    const tabsToClose = selectTabIds(filterCloseableTabs(appState, domainTabs));
 
     if (tabsToClose.length > 0) {
       const closedCount = tabsToClose.length;
       await chrome.tabs.remove(tabsToClose);
+      tabsToClose.forEach(tabId => dispatch({ type: 'TAB_REMOVED', tabId }));
       log(`✅ Closed ${closedCount} tabs from ${domain}`);
 
       // Store count for undo
@@ -777,6 +760,7 @@ async function closeTabsFromDomain(domain) {
     }
 
     // Refresh the list
+    await refreshBrowserSnapshot({ currentWindowOnly: settings.currentWindowOnly });
     await loadAndRender();
   } catch (err) {
     error('❌ Error closing domain tabs:', err);
@@ -792,11 +776,7 @@ async function closeTabsFromDomain(domain) {
  */
 async function moveTabsFromDomainToWindow(domain) {
   try {
-    const tabs = await chrome.tabs.query({});
-    const domainTabs = tabs.filter(tab => {
-      const tabDomain = extractDomain(tab.url);
-      return tabDomain === domain;
-    });
+    const domainTabs = getTabsForDomain(appState, domain);
 
     if (domainTabs.length === 0) return;
 
@@ -825,11 +805,7 @@ async function moveTabsFromDomainToWindow(domain) {
 
 async function moveSearchResultsToWindow() {
   try {
-    if (!searchResultTabIds || searchResultTabIds.length === 0) return;
-
-    const idSet = new Set(searchResultTabIds);
-    const allTabs = await chrome.tabs.query({});
-    const tabsToMove = allTabs.filter(tab => idSet.has(tab.id));
+    const tabsToMove = getSearchResults(appState).map(({ tab }) => tab);
     if (tabsToMove.length === 0) return;
 
     const newWindow = await chrome.windows.create({ tabId: tabsToMove[0].id });
@@ -844,6 +820,7 @@ async function moveSearchResultsToWindow() {
     undoContext = null;
     hideAllUndoButtons();
     log(`✅ Moved ${tabsToMove.length} search-result tabs to new window`);
+    await refreshBrowserSnapshot({ currentWindowOnly: settings.currentWindowOnly });
     await loadAndRender();
   } catch (err) {
     error('❌ Error moving search results:', err);
@@ -1118,67 +1095,10 @@ function createGroupedDuplicateItem(group, index = 0, matchResult = null) {
  */
 async function closeDuplicatesOfUrl(url) {
   try {
-    // Query current tabs
-    const queryOptions = settings.currentWindowOnly ? { currentWindow: true } : {};
-    const allTabs = await chrome.tabs.query(queryOptions);
+    const tabsWithUrl = getTabsToCloseForDuplicateUrl(appState, url);
+    if (tabsWithUrl.length === 0) return;
 
-    // Normalize the URL for comparison based on matchMode
-    const normalizedUrl = normalizeUrl(url, settings.matchMode);
-    let tabsWithUrl = allTabs.filter(tab => normalizeUrl(tab.url, settings.matchMode) === normalizedUrl);
-    if (tabsWithUrl.length <= 1) return;
-
-    // Get active tab to avoid closing it
-    const activeTabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    const activeTabId = activeTabs[0]?.id;
-
-    // Sort by age based on keepTab setting
-    if (settings.keepTab === 'newest') {
-      // Sort newest first (highest id = newest)
-      tabsWithUrl = [...tabsWithUrl].sort((a, b) => b.id - a.id);
-    } else {
-      // Sort oldest first (lowest id = oldest) - default
-      tabsWithUrl = [...tabsWithUrl].sort((a, b) => a.id - b.id);
-    }
-
-    // Keep the first tab (based on sort order) or the active tab if it has this URL
-    let tabsToClose = tabsWithUrl.slice(1); // Keep first based on sort
-
-    // If active tab has this URL, keep it instead
-    if (tabsWithUrl.some(t => t.id === activeTabId)) {
-      tabsToClose = tabsWithUrl.filter(t => t.id !== activeTabId);
-    }
-
-    // Filter out pinned tabs if protection is enabled
-    if (settings.protectPinned) {
-      const beforeCount = tabsToClose.length;
-      tabsToClose = tabsToClose.filter(tab => !tab.pinned);
-      const skipped = beforeCount - tabsToClose.length;
-      if (skipped > 0) {
-        pinnedDuplicatesSkipped = skipped;
-      }
-    }
-
-    // Filter out grouped tabs if protection is enabled
-    if (settings.protectGroups) {
-      const beforeCount = tabsToClose.length;
-      tabsToClose = tabsToClose.filter(tab => tab.groupId === -1 || tab.groupId === undefined);
-      const skipped = beforeCount - tabsToClose.length;
-      if (skipped > 0) {
-        groupedDuplicatesSkipped = skipped;
-      }
-    }
-
-    // Filter out browser tabs (chrome://, edge://) - they can't be closed by extensions
-    {
-      const beforeCount = tabsToClose.length;
-      tabsToClose = tabsToClose.filter(tab => !isBrowserUrl(tab.url));
-      const skipped = beforeCount - tabsToClose.length;
-      if (skipped > 0) {
-        browserTabsSkipped = skipped;
-      }
-    }
-
-    const tabIdsToClose = tabsToClose.map(tab => tab.id);
+    const tabIdsToClose = selectTabIds(tabsWithUrl);
 
     if (tabIdsToClose.length > 0) {
       // Animate the row
@@ -1189,6 +1109,7 @@ async function closeDuplicatesOfUrl(url) {
       }
 
       await chrome.tabs.remove(tabIdsToClose);
+      tabIdsToClose.forEach(tabId => dispatch({ type: 'TAB_REMOVED', tabId }));
       log(`✅ Closed ${tabIdsToClose.length} duplicates of ${url}`);
       lastClosedCount = tabIdsToClose.length;
       undoContext = 'duplicates';
@@ -1330,8 +1251,8 @@ function isBrowserUrl(url) {
 // Close a single tab with animation
 async function closeTab(tabId) {
   try {
-    // Get tab info to check if it's a browser URL
-    const tab = await chrome.tabs.get(tabId);
+    const tab = getTab(appState, tabId);
+    if (!tab) return;
 
     if (isBrowserUrl(tab.url)) {
       // Show warning - browser tabs can't be closed by extensions
@@ -1361,6 +1282,7 @@ async function closeTab(tabId) {
 
     // Now remove the tab from Chrome
     await chrome.tabs.remove(tabId);
+    dispatch({ type: 'TAB_REMOVED', tabId });
     log(`✅ Closed tab ${tabId}`);
     lastClosedCount = 1;
     undoContext = 'tab';
@@ -1383,87 +1305,16 @@ async function closeTab(tabId) {
  */
 async function closeAllDuplicates() {
   try {
-    const tabs = await chrome.tabs.query({});
-    const duplicates = findDuplicates(tabs, settings.matchMode);
+    const tabs = getScopedTabs(appState);
+    const duplicates = getDuplicateTabs(appState);
 
     if (duplicates.length === 0) {
       return;
     }
-
-    // Get active tab to avoid closing it
-    const activeTabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    const activeTab = activeTabs[0];
-    const activeTabId = activeTab?.id;
-    const activeTabUrl = activeTab?.url;
-
-    // Build a map of normalized URL -> all tabs with that URL
-    const urlToTabs = new Map();
-    tabs.forEach(tab => {
-      if (!tab.url) return;
-      const normalizedTabUrl = normalizeUrl(tab.url, settings.matchMode);
-      if (!urlToTabs.has(normalizedTabUrl)) {
-        urlToTabs.set(normalizedTabUrl, []);
-      }
-      urlToTabs.get(normalizedTabUrl).push(tab);
-    });
-
-    // For each URL with duplicates, decide which tab to keep based on setting
-    let tabsToClose = [];
-    urlToTabs.forEach((tabsWithUrl, url) => {
-      if (tabsWithUrl.length <= 1) return;
-
-      // Sort by age based on keepTab setting
-      let sorted;
-      if (settings.keepTab === 'newest') {
-        sorted = [...tabsWithUrl].sort((a, b) => b.id - a.id); // newest first
-      } else {
-        sorted = [...tabsWithUrl].sort((a, b) => a.id - b.id); // oldest first
-      }
-
-      // Check if active tab is in this group
-      const activeInGroup = sorted.some(t => t.id === activeTabId);
-
-      if (activeInGroup) {
-        // Keep active tab, close all others
-        sorted.forEach(tab => {
-          if (tab.id !== activeTabId) {
-            tabsToClose.push(tab);
-          }
-        });
-      } else {
-        // Keep the first (based on sort), close the rest
-        sorted.slice(1).forEach(tab => tabsToClose.push(tab));
-      }
-    });
-
-    // Filter out pinned tabs if protection is enabled
-    let skippedPinnedCount = 0;
-    if (settings.protectPinned) {
-      const beforeCount = tabsToClose.length;
-      tabsToClose = tabsToClose.filter(tab => !tab.pinned);
-      skippedPinnedCount = beforeCount - tabsToClose.length;
-    }
-
-    // Filter out grouped tabs if protection is enabled
-    let skippedGroupedCount = 0;
-    if (settings.protectGroups) {
-      const beforeCount = tabsToClose.length;
-      tabsToClose = tabsToClose.filter(tab => tab.groupId === -1 || tab.groupId === undefined);
-      skippedGroupedCount = beforeCount - tabsToClose.length;
-    }
-
-    // Filter out browser tabs (chrome://, edge://) - they can't be closed by extensions
-    let skippedBrowserCount = 0;
-    {
-      const beforeCount = tabsToClose.length;
-      tabsToClose = tabsToClose.filter(tab => !isBrowserUrl(tab.url));
-      skippedBrowserCount = beforeCount - tabsToClose.length;
-    }
-
-    // Track count of skipped duplicates
-    pinnedDuplicatesSkipped = skippedPinnedCount;
-    groupedDuplicatesSkipped = skippedGroupedCount;
-    browserTabsSkipped = skippedBrowserCount;
+    const tabsToClose = getTabsToCloseForAllDuplicates(appState);
+    pinnedDuplicatesSkipped = settings.protectPinned ? duplicates.filter(tab => tab.pinned).length : 0;
+    groupedDuplicatesSkipped = settings.protectGroups ? duplicates.filter(tab => tab.groupId !== -1 && tab.groupId !== undefined).length : 0;
+    browserTabsSkipped = duplicates.filter(tab => isBrowserUrl(tab.url)).length;
 
     // Get tab IDs to close
     const tabIdsToClose = tabsToClose.map(tab => tab.id);
@@ -1471,6 +1322,7 @@ async function closeAllDuplicates() {
     if (tabIdsToClose.length > 0) {
       const closedCount = tabIdsToClose.length;
       await chrome.tabs.remove(tabIdsToClose);
+      tabIdsToClose.forEach(tabId => dispatch({ type: 'TAB_REMOVED', tabId }));
       log(`✅ Closed ${closedCount} duplicate tabs`);
 
       // Store count for undo
@@ -1495,23 +1347,7 @@ async function closeAllDuplicates() {
  */
 async function closeAllSearchResults() {
   try {
-    if (!searchResultTabIds || searchResultTabIds.length === 0) return;
-
-    const idSet = new Set(searchResultTabIds);
-    const allTabs = await chrome.tabs.query({});
-    let tabsToClose = allTabs.filter(tab => idSet.has(tab.id));
-
-    const activeTabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    const activeTabId = activeTabs[0]?.id;
-    tabsToClose = tabsToClose.filter(tab => tab.id !== activeTabId);
-
-    if (settings.protectPinned) {
-      tabsToClose = tabsToClose.filter(tab => !tab.pinned);
-    }
-    if (settings.protectGroups) {
-      tabsToClose = tabsToClose.filter(tab => tab.groupId === -1 || tab.groupId === undefined);
-    }
-    tabsToClose = tabsToClose.filter(tab => !isBrowserUrl(tab.url));
+    const tabsToClose = filterCloseableTabs(appState, getSearchResults(appState).map(({ tab }) => tab));
 
     const tabIdsToClose = tabsToClose.map(tab => tab.id);
     if (tabIdsToClose.length === 0) {
@@ -1521,6 +1357,7 @@ async function closeAllSearchResults() {
 
     const closedCount = tabIdsToClose.length;
     await chrome.tabs.remove(tabIdsToClose);
+    tabIdsToClose.forEach(tabId => dispatch({ type: 'TAB_REMOVED', tabId }));
     log(`✅ Closed ${closedCount} search-result tabs`);
 
     lastClosedCount = closedCount;
@@ -1626,7 +1463,7 @@ function selectHighlightedOption() {
 
 // Select a domain and update filter
 function selectDomain(domain, count = null) {
-  activeDomain = domain;
+  dispatch({ type: 'SET_DOMAIN_FILTER', domain });
 
   if (domain) {
     domainFilterInputEl.value = `${domain} (${count})`;
@@ -1642,7 +1479,7 @@ function selectDomain(domain, count = null) {
 
 // Clear the domain filter
 function clearDomainFilter() {
-  activeDomain = null;
+  dispatch({ type: 'SET_DOMAIN_FILTER', domain: null });
   domainFilterInputEl.value = '';
   domainFilterClearEl.classList.add('hidden');
   hideDomainDropdown();
@@ -1669,6 +1506,9 @@ function hideDomainDropdown() {
  * @param {Object[]} duplicates - Duplicate tabs only
  */
 function render(tabs, duplicates) {
+  tabs = getScopedTabs(appState);
+  duplicates = getDuplicateTabs(appState);
+  syncLegacyStateFromStore();
   // Play the staggered slide-in only on the first render (initial popup open).
   // Re-renders (closing a tab, sorting, etc.) skip it so the list doesn't
   // re-animate every item — which is disruptive when a small group collapses.
@@ -1682,9 +1522,9 @@ function render(tabs, duplicates) {
     domainSections: domainSectionsContainer.scrollTop
   };
 
-  // Perform search if query exists
+  const stateSearchResults = getSearchResults(appState);
   if (searchQuery) {
-    searchResults = performSearch(effectiveSearchQuery(), tabs);
+    searchResults = new Map(stateSearchResults.map(({ tab, match }) => [tab.id, match]));
     document.body.classList.add('search-active');
     document.body.classList.add('searching');
     document.body.dataset.searchQuery = searchQuery;
@@ -1715,13 +1555,7 @@ function render(tabs, duplicates) {
     const { urlCounts } = computeRenderData(tabs);
 
     // Sort results by score (descending - best matches first)
-    const sortedResults = [...searchResults.entries()]
-      .sort((a, b) => b[1].score - a[1].score)
-      .map(([tabId, match]) => ({
-        tab: tabs.find(t => t.id === tabId),
-        match
-      }))
-      .filter(r => r.tab);
+    const sortedResults = stateSearchResults;
 
     // Track tab IDs for keyboard navigation
     searchResultTabIds = sortedResults.map(r => r.tab.id);
@@ -1756,13 +1590,8 @@ function render(tabs, duplicates) {
     moveSearchResultsBtn.classList.add('hidden');
   }
 
-  // Use cached single-pass computation
-  const { urlCounts, domainMap } = computeRenderData(tabs);
-
-  // Convert domainMap to sorted array for compatibility
-  const domainGroups = Array.from(domainMap.entries())
-    .map(([domain, domainTabs]) => ({ domain, tabs: domainTabs, count: domainTabs.length }))
-    .sort((a, b) => b.count - a.count);
+  const urlCounts = getUrlCounts(appState);
+  const domainGroups = getDomainGroups(appState);
 
   // Update stats
   totalTabsEl.textContent = tabs.length;
@@ -1772,7 +1601,7 @@ function render(tabs, duplicates) {
   document.body.classList.toggle('has-duplicates', duplicates.length > 0);
 
   // Track playing media without duplicating audible tabs outside their normal list positions.
-  const audibleTabs = tabs.filter(tab => tab.audible);
+  const audibleTabs = getPlayingTabs(appState);
   mediaSectionCountEl.textContent = audibleTabs.length;
   mediaListEl.innerHTML = '';
   mediaContainerEl.classList.add('hidden');
@@ -1864,24 +1693,7 @@ function render(tabs, duplicates) {
       browserWarningEl.classList.add('hidden');
     }
 
-    // Group duplicates by normalized URL
-    const duplicatesByUrl = new Map();
-    duplicates.forEach(tab => {
-      const normalizedTabUrl = normalizeUrl(tab.url, settings.matchMode);
-      if (!duplicatesByUrl.has(normalizedTabUrl)) {
-        duplicatesByUrl.set(normalizedTabUrl, []);
-      }
-      duplicatesByUrl.get(normalizedTabUrl).push(tab);
-    });
-
-    // Convert to array and sort
-    let groupedDuplicates = Array.from(duplicatesByUrl.entries()).map(([normalizedUrl, dupes]) => ({
-      url: normalizedUrl,
-      tabs: dupes,
-      // Use first duplicate as representative
-      representative: dupes[0],
-      totalCount: urlCounts.get(normalizedUrl) || dupes.length + 1
-    }));
+    let groupedDuplicates = getDuplicateGroups(appState);
     duplicatesSummaryPrimaryEl.textContent = `${duplicates.length} duplicate${duplicates.length === 1 ? '' : 's'}`;
     duplicatesSummarySecondaryEl.textContent = `${groupedDuplicates.length} group${groupedDuplicates.length === 1 ? '' : 's'}`;
 
@@ -1907,21 +1719,8 @@ function render(tabs, duplicates) {
 
   // Render all tabs section
   // Filter out chrome:// and edge:// pages
-  let visibleTabs = tabs.filter(tab =>
-    tab.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('edge://')
-  );
-
-  // Apply domain filter if active
   document.body.classList.toggle('has-domain-filter', Boolean(activeDomain));
-  if (activeDomain) {
-    visibleTabs = visibleTabs.filter(tab => {
-      const domain = extractDomain(tab.url);
-      return domain === activeDomain;
-    });
-  }
-
-  // Apply sorting, then float any tab playing media to the top
-  visibleTabs = sortAudibleFirst(sortTabs(visibleTabs, activeSort, urlCounts, ageSortDirection));
+  let visibleTabs = getVisibleTabs(appState);
 
   // Update all tabs section count
   allTabsSectionCountEl.textContent = visibleTabs.length;
@@ -1936,53 +1735,7 @@ function render(tabs, duplicates) {
   // Render domain sections (for domains with 3+ tabs)
   domainSectionsContainer.innerHTML = '';
 
-  // Group all tabs by domain (not filtered)
-  const allVisibleTabs = tabs.filter(tab =>
-    tab.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('edge://')
-  );
-
-  const sectionDomainMap = new Map();
-  allVisibleTabs.forEach(tab => {
-    const domain = extractDomain(tab.url);
-    if (!domain) return;
-    if (!sectionDomainMap.has(domain)) {
-      sectionDomainMap.set(domain, []);
-    }
-    sectionDomainMap.get(domain).push(tab);
-  });
-
-  // Get domains with 3+ tabs
-  const largeDomains = [];
-  sectionDomainMap.forEach((domainTabs, domain) => {
-    if (domainTabs.length >= 3) {
-      largeDomains.push({ domain, tabs: domainTabs });
-    }
-  });
-
-  // Sort domain sections based on selected sort order
-  largeDomains.sort((a, b) => {
-    const domainA = a.domain.replace(/^www\./, '');
-    const domainB = b.domain.replace(/^www\./, '');
-    switch (domainSectionSort) {
-      case 'name':
-        return domainNameDirection === 'az'
-          ? domainA.localeCompare(domainB)
-          : domainB.localeCompare(domainA);
-      case 'count': {
-        const diff = domainCountDirection === 'most'
-          ? b.tabs.length - a.tabs.length
-          : a.tabs.length - b.tabs.length;
-        return diff || domainA.localeCompare(domainB);
-      }
-      case 'recent': {
-        const recentA = a.tabs.reduce((max, t) => Math.max(max, t.lastAccessed || 0), 0);
-        const recentB = b.tabs.reduce((max, t) => Math.max(max, t.lastAccessed || 0), 0);
-        return recentB - recentA || domainA.localeCompare(domainB);
-      }
-      default:
-        return domainA.localeCompare(domainB);
-    }
-  });
+  const largeDomains = getLargeDomainGroups(appState);
 
   // Show/hide domain sort bar based on whether there are domain sections
   domainSortBarEl.classList.toggle('hidden', largeDomains.length === 0);
@@ -2026,14 +1779,11 @@ function render(tabs, duplicates) {
  */
 async function loadAndRender() {
   try {
-    // Clear cache since we're fetching fresh data
     clearRenderCache();
+    const tabs = getScopedTabs(appState);
+    const duplicates = getDuplicateTabs(appState);
 
-    const queryOptions = settings.currentWindowOnly ? { currentWindow: true } : {};
-    const tabs = await chrome.tabs.query(queryOptions);
-    const duplicates = findDuplicates(tabs, settings.matchMode);
-
-    log(`📊 Loaded ${tabs.length} tabs (${settings.currentWindowOnly ? 'current window' : 'all windows'}), ${duplicates.length} duplicates`);
+    log(`📊 Rendered ${tabs.length} tabs (${appState.scope.type === 'window' ? `window ${appState.scope.windowId}` : 'all windows'}), ${duplicates.length} duplicates`);
 
     render(tabs, duplicates);
   } catch (err) {
@@ -2041,19 +1791,84 @@ async function loadAndRender() {
   }
 }
 
+async function refreshBrowserSnapshot({ currentWindowOnly = settings.currentWindowOnly } = {}) {
+  const [tabs, activeTabs] = await Promise.all([
+    chrome.tabs.query({}),
+    chrome.tabs.query({ active: true, currentWindow: true })
+  ]);
+  const focusedWindowId = activeTabs[0]?.windowId ?? null;
+
+  dispatch({
+    type: 'SET_BROWSER_SNAPSHOT',
+    tabs,
+    focusedWindowId,
+    currentWindowOnly
+  });
+}
+
+async function reconcileTabFromChrome(tabId, eventType = 'TAB_UPDATED') {
+  try {
+    const tab = await chrome.tabs.get(tabId);
+    dispatch({ type: eventType, tab });
+    loadAndRender();
+  } catch (err) {
+    dispatch({ type: 'TAB_REMOVED', tabId });
+    loadAndRender();
+  }
+}
+
+function attachChromeEventListeners() {
+  chrome.tabs.onCreated?.addListener((tab) => {
+    dispatch({ type: 'TAB_CREATED', tab });
+    loadAndRender();
+  });
+
+  chrome.tabs.onUpdated?.addListener((tabId, changeInfo, tab) => {
+    dispatch({ type: 'TAB_UPDATED', tab: { ...(getTab(appState, tabId) || {}), ...tab, ...changeInfo, id: tabId } });
+    loadAndRender();
+  });
+
+  chrome.tabs.onRemoved?.addListener((tabId) => {
+    dispatch({ type: 'TAB_REMOVED', tabId });
+    loadAndRender();
+  });
+
+  chrome.tabs.onMoved?.addListener((tabId) => {
+    reconcileTabFromChrome(tabId, 'TAB_MOVED');
+  });
+
+  chrome.tabs.onAttached?.addListener((tabId) => {
+    reconcileTabFromChrome(tabId, 'TAB_ATTACHED');
+  });
+
+  chrome.tabs.onDetached?.addListener((tabId) => {
+    dispatch({ type: 'TAB_DETACHED', tabId });
+    loadAndRender();
+  });
+
+  chrome.tabs.onReplaced?.addListener((addedTabId, removedTabId) => {
+    dispatch({ type: 'TAB_REMOVED', tabId: removedTabId });
+    reconcileTabFromChrome(addedTabId, 'TAB_REPLACED');
+  });
+
+  chrome.windows.onFocusChanged?.addListener((windowId) => {
+    dispatch({ type: 'WINDOW_FOCUS_CHANGED', windowId });
+    loadAndRender();
+  });
+}
+
 // Event Listeners
 closeAllBtn.addEventListener('click', closeAllDuplicates);
 reviewDuplicatesBtn.addEventListener('click', () => {
-  sectionStates.duplicates = true;
-  duplicateReviewOpen = true;
+  dispatch({ type: 'SET_DUPLICATE_REVIEW', open: true });
   applySectionStates();
   saveSectionStates();
   loadAndRender();
 });
 exitDuplicatesReviewBtn.addEventListener('click', () => {
-  duplicateReviewOpen = false;
+  dispatch({ type: 'SET_DUPLICATE_REVIEW', open: false });
   document.body.classList.remove('duplicate-review-open');
-  selectedItemKey = 'section-header:duplicates-header';
+  dispatch({ type: 'SET_CURSOR', cursorId: makeItemId('section', 'duplicates') });
   loadAndRender();
 });
 closeSearchResultsBtn.addEventListener('click', closeAllSearchResults);
@@ -2072,7 +1887,7 @@ searchFieldControlsEl.addEventListener('change', (e) => {
   globalSearchInputEl.focus();
 });
 searchPrecisionControlsEl.addEventListener('change', (e) => {
-  searchPrecision = e.target.value;
+  dispatch({ type: 'SET_SEARCH_MODE', mode: e.target.value });
   updateSearchPrecisionControls();
   loadAndRender();
   globalSearchInputEl.focus();
@@ -2125,11 +1940,11 @@ document.addEventListener('keydown', (e) => {
       e.preventDefault();
       globalSearchInputEl.blur();
 
-      const nextIndex = selectedItemIndex >= 0
-        ? selectedItemIndex + (e.key === 'ArrowDown' ? 1 : -1)
-        : (e.key === 'ArrowDown' ? 0 : items.length - 1);
-
-      updateSelectedItem(nextIndex);
+      const searchItems = items.filter(item => item.zone === 'search');
+      const targetItems = searchItems.length > 0 ? searchItems : items;
+      const target = e.key === 'ArrowDown' ? targetItems[0] : targetItems[targetItems.length - 1];
+      dispatch({ type: 'SET_CURSOR', cursorId: target.id, focusZone: 'content' });
+      applyCursorToDom();
     }
     return;
   }
@@ -2162,27 +1977,27 @@ document.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowDown') {
         const items = getVisibleActionItems();
         if (items.length > 0 && selectedItemIndex >= items.length - 1) {
-          document.querySelectorAll('.browse-tab.selected, .tab-item.selected, .section-header.selected, .btn-action.selected').forEach(item => item.classList.remove('selected'));
-          selectedItemIndex = -1;
-          selectedItemKey = null;
+          dispatch({ type: 'SET_CURSOR', cursorId: null, focusZone: 'search' });
+          applyCursorToDom();
           globalSearchInputEl.focus();
           return;
         }
       }
-      updateSelectedItem(selectedItemIndex + 1);
+      dispatch({ type: 'NAVIGATE_NEXT' });
+      applyCursorToDom();
       return;
     }
 
     if (e.key === 'k' || e.key === 'ArrowUp') {
       e.preventDefault();
       if (e.key === 'ArrowUp' && selectedItemIndex <= 0) {
-        document.querySelectorAll('.browse-tab.selected, .tab-item.selected, .section-header.selected, .btn-action.selected').forEach(item => item.classList.remove('selected'));
-        selectedItemIndex = -1;
-        selectedItemKey = null;
+        dispatch({ type: 'SET_CURSOR', cursorId: null, focusZone: 'search' });
+        applyCursorToDom();
         globalSearchInputEl.focus();
         return;
       }
-      updateSelectedItem(selectedItemIndex - 1);
+      dispatch({ type: 'NAVIGATE_PREVIOUS' });
+      applyCursorToDom();
       return;
     }
 
@@ -2406,6 +2221,11 @@ scopeBtn.addEventListener('click', async () => {
   // Toggle currentWindowOnly
   settings.currentWindowOnly = !settings.currentWindowOnly;
   await chrome.storage.sync.set({ currentWindowOnly: settings.currentWindowOnly });
+  if (settings.currentWindowOnly) {
+    await refreshBrowserSnapshot({ currentWindowOnly: true });
+  } else {
+    dispatch({ type: 'SET_SCOPE', scope: { type: 'all' } });
+  }
   updateScopeButton();
   loadAndRender();
 });
@@ -2428,8 +2248,8 @@ function updateScopeButton() {
 browseTabsEl.addEventListener('click', (e) => {
   const button = e.target.closest('.browse-tab');
   if (!button) return;
-  browseView = button.dataset.view;
-  selectedItemKey = itemKey(button);
+  dispatch({ type: 'SET_VIEW', view: button.dataset.view });
+  dispatch({ type: 'SET_CURSOR', cursorId: makeItemId('view', button.dataset.view) });
   loadAndRender();
 });
 
@@ -2437,15 +2257,7 @@ browseTabsEl.addEventListener('click', (e) => {
 sortButtonsEl.addEventListener('click', (e) => {
   const btn = e.target.closest('.btn-toggle');
   if (btn && btn.dataset.sort) {
-    const newSort = btn.dataset.sort;
-    // Toggle age direction if clicking age button again
-    if (newSort === 'age' && activeSort === 'age') {
-      ageSortDirection = ageSortDirection === 'old' ? 'new' : 'old';
-    } else if (newSort === 'age') {
-      // Reset to 'old' when first selecting age sort
-      ageSortDirection = 'old';
-    }
-    activeSort = newSort;
+    dispatch({ type: 'SET_SORT', area: 'tabs', sort: btn.dataset.sort });
     loadAndRender();
   }
 });
@@ -2454,7 +2266,7 @@ sortButtonsEl.addEventListener('click', (e) => {
 duplicatesSortButtonsEl.addEventListener('click', (e) => {
   const btn = e.target.closest('.btn-toggle');
   if (btn && btn.dataset.sort) {
-    duplicateSortOrder = btn.dataset.sort;
+    dispatch({ type: 'SET_SORT', area: 'duplicates', sort: btn.dataset.sort });
     loadAndRender();
   }
 });
@@ -2463,19 +2275,7 @@ duplicatesSortButtonsEl.addEventListener('click', (e) => {
 domainSortButtonsEl.addEventListener('click', (e) => {
   const btn = e.target.closest('.btn-toggle');
   if (btn && btn.dataset.sort) {
-    const newSort = btn.dataset.sort;
-    // Toggle direction if clicking the same button again
-    if (newSort === 'name' && domainSectionSort === 'name') {
-      domainNameDirection = domainNameDirection === 'az' ? 'za' : 'az';
-    } else if (newSort === 'name') {
-      domainNameDirection = 'az';
-    }
-    if (newSort === 'count' && domainSectionSort === 'count') {
-      domainCountDirection = domainCountDirection === 'most' ? 'few' : 'most';
-    } else if (newSort === 'count') {
-      domainCountDirection = 'most';
-    }
-    domainSectionSort = newSort;
+    dispatch({ type: 'SET_SORT', area: 'domains', sort: btn.dataset.sort });
     loadAndRender();
   }
 });
@@ -2504,7 +2304,9 @@ function initFooter() {
   await initLogger();
   await loadSettings();
   await loadSectionStates();
+  await refreshBrowserSnapshot({ currentWindowOnly: settings.currentWindowOnly });
   updateScopeButton();
   initFooter();
+  attachChromeEventListeners();
   loadAndRender();
 })();
