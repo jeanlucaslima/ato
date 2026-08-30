@@ -24,7 +24,7 @@
     </header>
 
     <!-- Stats Bar -->
-    <div class="stats">
+    <div class="stats" aria-hidden="true">
       <div class="stat">
         <span class="stat-label">Tabs</span>
         <span class="stat-value" id="total-tabs">0</span>
@@ -70,8 +70,8 @@
           <button type="button" class="segmented-button" data-field="url">URL</button>
         </div>
         <div id="search-precision-controls" class="segmented-control" role="group" aria-label="Search mode">
-          <button type="button" class="segmented-button active" data-mode="fuzzy">Fuzzy</button>
-          <button type="button" class="segmented-button" data-mode="contains">Contains</button>
+          <button type="button" class="segmented-button" data-mode="fuzzy">Fuzzy</button>
+          <button type="button" class="segmented-button active" data-mode="contains">Contains</button>
           <button type="button" class="segmented-button" data-mode="exact">Exact</button>
         </div>
         <button class="btn-action btn-scope" id="scope-btn" title="Toggle search and browse scope">
@@ -146,6 +146,9 @@
             </button>
             <button class="btn-action btn-accent" id="review-duplicates-btn" title="Review duplicate groups">
               <span>Review</span>
+            </button>
+            <button class="btn-action btn-accent hidden" id="exit-duplicates-review-btn" title="Return to tab index">
+              <span>Back</span>
             </button>
             <div class="btn-group" id="duplicates-sort-buttons">
               <button class="btn-toggle active" data-sort="default" title="Default order">Default</button>

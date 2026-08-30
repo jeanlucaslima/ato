@@ -29,6 +29,7 @@ const allTabsListEl = document.getElementById('all-tabs-list');
 const emptyStateEl = document.getElementById('empty-state');
 const closeAllBtn = document.getElementById('close-all-btn');
 const reviewDuplicatesBtn = document.getElementById('review-duplicates-btn');
+const exitDuplicatesReviewBtn = document.getElementById('exit-duplicates-review-btn');
 const domainFilterInputEl = document.getElementById('domain-filter-input');
 const domainFilterClearEl = document.getElementById('domain-filter-clear');
 const domainFilterDropdownEl = document.getElementById('domain-filter-dropdown');
@@ -93,7 +94,7 @@ let settings = {
   matchMode: 'exact',
   currentWindowOnly: false,
   defaultBrowseView: 'tabs',
-  defaultSearchMode: 'fuzzy'
+  defaultSearchMode: 'contains'
 };
 
 // State
@@ -347,7 +348,7 @@ function clearSearch() {
   globalSearchClearEl.classList.add('hidden');
   searchResultsCountEl.classList.add('hidden');
   document.body.classList.remove('search-active');
-  searchPrecision = settings.defaultSearchMode || 'fuzzy';
+  searchPrecision = settings.defaultSearchMode || 'contains';
   updateSearchPrecisionControls();
   loadAndRender();
 }
@@ -394,11 +395,14 @@ function switchToHighlightedResult() {
 }
 
 function getVisibleActionItems() {
-  return Array.from(document.querySelectorAll('.browse-tab, .section-header, .tab-item'))
+  return Array.from(document.querySelectorAll('.browse-tab, .section-header, .tab-item, .domain-action-bar .btn-action'))
     .filter(item => item.offsetParent !== null && !item.closest('.section-content.collapsed'));
 }
 
 function itemKey(item) {
+  if (item.classList.contains('btn-action')) {
+    return `action:${item.dataset.action}:${item.dataset.domain || ''}`;
+  }
   if (item.classList.contains('browse-tab')) {
     return `browse-tab:${item.dataset.view}`;
   }
@@ -410,7 +414,7 @@ function itemKey(item) {
 
 function updateSelectedItem(newIndex) {
   const items = getVisibleActionItems();
-  document.querySelectorAll('.browse-tab.selected, .tab-item.selected, .section-header.selected').forEach(item => item.classList.remove('selected'));
+  document.querySelectorAll('.browse-tab.selected, .tab-item.selected, .section-header.selected, .btn-action.selected').forEach(item => item.classList.remove('selected'));
 
   if (items.length === 0) {
     selectedItemIndex = -1;
@@ -435,7 +439,7 @@ function updateSelectedItem(newIndex) {
 
 function restoreSelectedItem() {
   const items = getVisibleActionItems();
-  document.querySelectorAll('.browse-tab.selected, .tab-item.selected, .section-header.selected').forEach(item => item.classList.remove('selected'));
+  document.querySelectorAll('.browse-tab.selected, .tab-item.selected, .section-header.selected, .btn-action.selected').forEach(item => item.classList.remove('selected'));
 
   if (items.length === 0) {
     selectedItemIndex = -1;
@@ -471,6 +475,11 @@ function activateSelectedItem() {
     return;
   }
 
+  if (item.classList.contains('btn-action')) {
+    item.click();
+    return;
+  }
+
   if (duplicateListEl.contains(item)) return;
 
   const tabId = parseInt(item.dataset.tabId, 10);
@@ -482,7 +491,7 @@ function closeSelectedItem() {
   const items = getVisibleActionItems();
   const item = items[selectedItemIndex];
   if (!item) return;
-  if (item.classList.contains('browse-tab') || item.classList.contains('section-header')) return;
+  if (item.classList.contains('browse-tab') || item.classList.contains('section-header') || item.classList.contains('btn-action')) return;
 
   if (item.dataset.url && duplicateListEl.contains(item)) {
     closeDuplicatesOfUrl(item.dataset.url);
@@ -532,6 +541,21 @@ function selectParentSectionHeader() {
   return true;
 }
 
+function selectOwningDomainHeader() {
+  const items = getVisibleActionItems();
+  const item = items[selectedItemIndex];
+  if (!item || !item.classList.contains('btn-action')) return false;
+
+  const section = item.closest('.domain-section');
+  const header = section?.querySelector('.section-header');
+  if (!header || header.offsetParent === null) return false;
+
+  selectedItemKey = itemKey(header);
+  restoreSelectedItem();
+  header.scrollIntoView({ block: 'nearest' });
+  return true;
+}
+
 /**
  * Updates the search results count display.
  *
@@ -550,7 +574,7 @@ function updateSearchResultsCount(count, total) {
     searchResultsCountEl.textContent = 'No results found';
     searchResultsCountEl.classList.add('no-results');
   } else {
-    searchResultsCountEl.textContent = `${count} matches / ${total} tabs`;
+    searchResultsCountEl.textContent = `${count} match${count === 1 ? '' : 'es'}`;
     searchResultsCountEl.classList.remove('no-results');
   }
 }
@@ -602,11 +626,11 @@ async function loadSettings() {
       matchMode: 'exact',
       currentWindowOnly: false,
       defaultBrowseView: 'tabs',
-      defaultSearchMode: 'fuzzy'
+      defaultSearchMode: 'contains'
     });
     settings = result;
     browseView = settings.defaultBrowseView || 'tabs';
-    searchPrecision = settings.defaultSearchMode || 'fuzzy';
+    searchPrecision = settings.defaultSearchMode || 'contains';
     updateSearchPrecisionControls();
 
     // Apply theme and font
@@ -895,6 +919,8 @@ function createDomainSection(domain, tabs, urlCounts) {
 
   const moveBtn = document.createElement('button');
   moveBtn.className = 'btn-action btn-accent btn-small';
+  moveBtn.dataset.action = 'move-domain';
+  moveBtn.dataset.domain = domain;
   moveBtn.title = `Move all tabs from ${domain} to a new window`;
   moveBtn.innerHTML = `
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -911,6 +937,8 @@ function createDomainSection(domain, tabs, urlCounts) {
 
   const closeBtn = document.createElement('button');
   closeBtn.className = 'btn-action btn-danger btn-small';
+  closeBtn.dataset.action = 'close-domain';
+  closeBtn.dataset.domain = domain;
   closeBtn.title = `Close all tabs from ${domain}`;
   closeBtn.innerHTML = `
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1687,6 +1715,7 @@ function render(tabs, duplicates) {
     searchEmptyStateEl.classList.add('hidden');
     searchResultsListEl.innerHTML = '';
     searchResultsSectionCountEl.textContent = searchResults.size;
+    searchResultsContainerEl.querySelector('.section-title').textContent = `${searchResults.size} match${searchResults.size === 1 ? '' : 'es'}`;
     closeSearchResultsBtn.classList.remove('hidden');
     moveSearchResultsBtn.classList.remove('hidden');
 
@@ -1721,6 +1750,7 @@ function render(tabs, duplicates) {
     searchEmptyStateEl.classList.remove('hidden');
     searchResultsListEl.innerHTML = '';
     searchResultsSectionCountEl.textContent = '0';
+    searchResultsContainerEl.querySelector('.section-title').textContent = 'No matches';
     searchResultTabIds = [];
     highlightedResultIndex = -1;
     closeSearchResultsBtn.classList.add('hidden');
@@ -1749,20 +1779,11 @@ function render(tabs, duplicates) {
   statsSummaryEl.textContent = `${tabs.length} tabs · ${duplicates.length} duplicates · ${domainGroups.length} domains`;
   document.body.classList.toggle('has-duplicates', duplicates.length > 0);
 
-  // Render Playing Media section (tabs currently producing sound)
+  // Track playing media without duplicating audible tabs outside their normal list positions.
   const audibleTabs = tabs.filter(tab => tab.audible);
   mediaSectionCountEl.textContent = audibleTabs.length;
   mediaListEl.innerHTML = '';
-  if (audibleTabs.length > 0) {
-    mediaContainerEl.classList.remove('hidden');
-    audibleTabs.forEach((tab, index) => {
-      const count = urlCounts.get(normalizeUrl(tab.url, settings.matchMode)) || 0;
-      const item = createTabItem(tab, count, index, null);
-      mediaListEl.appendChild(item);
-    });
-  } else {
-    mediaContainerEl.classList.add('hidden');
-  }
+  mediaContainerEl.classList.add('hidden');
   document.body.classList.toggle('has-media', audibleTabs.length > 0);
 
   // Update section counts using the primary duplicate metric: redundant tabs that can be closed.
@@ -1794,10 +1815,11 @@ function render(tabs, duplicates) {
     duplicateReviewOpen = false;
     document.body.classList.remove('duplicate-review-open');
     duplicatesSummaryPrimaryEl.textContent = '00';
-    duplicatesSummarySecondaryEl.textContent = 'duplicate tabs across 0 groups';
+    duplicatesSummarySecondaryEl.textContent = 'duplicates';
     // Show empty state
     duplicateListEl.style.display = 'none';
     reviewDuplicatesBtn.classList.add('hidden');
+    exitDuplicatesReviewBtn.classList.add('hidden');
     emptyStateEl.style.display = 'block';
     pinnedWarningEl.classList.add('hidden');
     browserWarningEl.classList.add('hidden');
@@ -1809,6 +1831,7 @@ function render(tabs, duplicates) {
     duplicateListEl.style.display = duplicateReviewOpen ? 'flex' : 'none';
     document.body.classList.toggle('duplicate-review-open', duplicateReviewOpen);
     reviewDuplicatesBtn.classList.toggle('hidden', duplicateReviewOpen);
+    exitDuplicatesReviewBtn.classList.toggle('hidden', !duplicateReviewOpen);
     emptyStateEl.style.display = 'none';
 
     // Show warning if there are protected tabs (pinned or grouped) in duplicate groups
@@ -1860,8 +1883,8 @@ function render(tabs, duplicates) {
       representative: dupes[0],
       totalCount: urlCounts.get(normalizedUrl) || dupes.length + 1
     }));
-    duplicatesSummaryPrimaryEl.textContent = String(duplicates.length).padStart(2, '0');
-    duplicatesSummarySecondaryEl.textContent = `duplicate tab${duplicates.length === 1 ? '' : 's'} across ${groupedDuplicates.length} group${groupedDuplicates.length === 1 ? '' : 's'}`;
+    duplicatesSummaryPrimaryEl.textContent = `${duplicates.length} duplicate${duplicates.length === 1 ? '' : 's'}`;
+    duplicatesSummarySecondaryEl.textContent = `${groupedDuplicates.length} group${groupedDuplicates.length === 1 ? '' : 's'}`;
 
     // Sort groups based on duplicateSortOrder
     if (duplicateSortOrder === 'title') {
@@ -1984,6 +2007,7 @@ function render(tabs, duplicates) {
   document.body.classList.toggle('browse-domains', browseView === 'domains');
   document.body.classList.toggle('browse-tabs-view', browseView === 'tabs');
   browseTabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.view === browseView));
+  exitDuplicatesReviewBtn.classList.toggle('hidden', !duplicateReviewOpen);
 
   // Restore scroll positions after DOM updates
   requestAnimationFrame(() => {
@@ -2025,6 +2049,12 @@ reviewDuplicatesBtn.addEventListener('click', () => {
   duplicateReviewOpen = true;
   applySectionStates();
   saveSectionStates();
+  loadAndRender();
+});
+exitDuplicatesReviewBtn.addEventListener('click', () => {
+  duplicateReviewOpen = false;
+  document.body.classList.remove('duplicate-review-open');
+  selectedItemKey = 'section-header:duplicates-header';
   loadAndRender();
 });
 closeSearchResultsBtn.addEventListener('click', closeAllSearchResults);
@@ -2139,7 +2169,7 @@ document.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowDown') {
         const items = getVisibleActionItems();
         if (items.length > 0 && selectedItemIndex >= items.length - 1) {
-          document.querySelectorAll('.browse-tab.selected, .tab-item.selected, .section-header.selected').forEach(item => item.classList.remove('selected'));
+          document.querySelectorAll('.browse-tab.selected, .tab-item.selected, .section-header.selected, .btn-action.selected').forEach(item => item.classList.remove('selected'));
           selectedItemIndex = -1;
           selectedItemKey = null;
           globalSearchInputEl.focus();
@@ -2153,7 +2183,7 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'k' || e.key === 'ArrowUp') {
       e.preventDefault();
       if (e.key === 'ArrowUp' && selectedItemIndex <= 0) {
-        document.querySelectorAll('.browse-tab.selected, .tab-item.selected, .section-header.selected').forEach(item => item.classList.remove('selected'));
+        document.querySelectorAll('.browse-tab.selected, .tab-item.selected, .section-header.selected, .btn-action.selected').forEach(item => item.classList.remove('selected'));
         selectedItemIndex = -1;
         selectedItemKey = null;
         globalSearchInputEl.focus();
@@ -2164,6 +2194,10 @@ document.addEventListener('keydown', (e) => {
     }
 
     if (e.key === 'ArrowLeft') {
+      if (selectOwningDomainHeader()) {
+        e.preventDefault();
+        return;
+      }
       if (selectParentSectionHeader()) {
         e.preventDefault();
         return;
