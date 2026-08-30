@@ -11,6 +11,7 @@
     "icons": "node scripts/generate-icons.js",
     "zip": "npm run build && cd dist && zip -r ../ato-v$(node -p \"require('../package.json').version\").zip . -x '*.DS_Store'",
     "preview": "vite preview",
+    "preview:popup": "vite preview --host 127.0.0.1 --port 4180",
     "test": "vitest run",
     "test:watch": "vitest"
   },

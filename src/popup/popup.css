@@ -2466,6 +2466,23 @@ body {
   color: var(--text-muted);
 }
 
+.search-control-select {
+  max-width: 94px;
+  padding: 0 12px 0 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-weight: 600;
+  outline: none;
+}
+
+.search-control-select:hover,
+.search-control-select:focus-visible {
+  color: var(--text-primary);
+}
+
 .segmented-control,
 .btn-group {
   display: inline-flex;
@@ -2516,15 +2533,7 @@ body {
 }
 
 .search-results-count {
-  position: static;
-  width: auto;
-  margin-top: 3px;
-  color: var(--text-secondary);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0;
-  text-align: left;
-  text-transform: none;
+  display: none;
 }
 
 .search-results-container,
@@ -2566,6 +2575,14 @@ body {
   gap: 18px;
   align-items: baseline;
   padding: 4px 0 9px;
+}
+
+body.has-media .browse-tabs::after {
+  content: "\266B  " attr(data-media-count) " playing";
+  margin-left: auto;
+  color: var(--media-color);
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .browse-tab {

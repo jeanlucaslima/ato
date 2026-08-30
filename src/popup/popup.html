@@ -64,16 +64,16 @@
       </div>
       <div id="search-results-count" class="search-results-count hidden"></div>
       <div class="search-control-row">
-        <div id="search-field-controls" class="segmented-control" role="group" aria-label="Search field">
-          <button type="button" class="segmented-button active" data-field="all">All</button>
-          <button type="button" class="segmented-button" data-field="title">Title</button>
-          <button type="button" class="segmented-button" data-field="url">URL</button>
-        </div>
-        <div id="search-precision-controls" class="segmented-control" role="group" aria-label="Search mode">
-          <button type="button" class="segmented-button" data-mode="fuzzy">Fuzzy</button>
-          <button type="button" class="segmented-button active" data-mode="contains">Contains</button>
-          <button type="button" class="segmented-button" data-mode="exact">Exact</button>
-        </div>
+        <select id="search-field-controls" class="search-control-select" aria-label="Search field">
+          <option value="all">All fields</option>
+          <option value="title">Title</option>
+          <option value="url">URL</option>
+        </select>
+        <select id="search-precision-controls" class="search-control-select" aria-label="Search mode">
+          <option value="contains" selected>Contains</option>
+          <option value="fuzzy">Fuzzy</option>
+          <option value="exact">Exact</option>
+        </select>
         <button class="btn-action btn-scope" id="scope-btn" title="Toggle search and browse scope">
           <span id="scope-label">All windows</span>
         </button>

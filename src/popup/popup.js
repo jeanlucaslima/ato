@@ -310,19 +310,11 @@ function exitSearchMode() {
 
 function updateSearchFieldControls() {
   const current = searchField || 'all';
-  searchFieldControlsEl.querySelectorAll('.segmented-button').forEach(button => {
-    const isActive = button.dataset.field === current;
-    button.classList.toggle('active', isActive);
-    button.setAttribute('aria-pressed', String(isActive));
-  });
+  searchFieldControlsEl.value = current;
 }
 
 function updateSearchPrecisionControls() {
-  searchPrecisionControlsEl.querySelectorAll('.segmented-button').forEach(button => {
-    const isActive = button.dataset.mode === searchPrecision;
-    button.classList.toggle('active', isActive);
-    button.setAttribute('aria-pressed', String(isActive));
-  });
+  searchPrecisionControlsEl.value = searchPrecision;
 }
 
 /**
@@ -1785,6 +1777,13 @@ function render(tabs, duplicates) {
   mediaListEl.innerHTML = '';
   mediaContainerEl.classList.add('hidden');
   document.body.classList.toggle('has-media', audibleTabs.length > 0);
+  if (audibleTabs.length > 0) {
+    document.body.dataset.mediaCount = audibleTabs.length;
+    browseTabsEl.dataset.mediaCount = audibleTabs.length;
+  } else {
+    delete document.body.dataset.mediaCount;
+    delete browseTabsEl.dataset.mediaCount;
+  }
 
   // Update section counts using the primary duplicate metric: redundant tabs that can be closed.
   duplicatesSectionCountEl.textContent = duplicates.length;
@@ -2063,23 +2062,17 @@ moveSearchResultsBtn.addEventListener('click', moveSearchResultsToWindow);
 // Global search event listeners
 globalSearchInputEl.addEventListener('input', handleSearchInput);
 globalSearchClearEl.addEventListener('click', clearSearch);
-searchFieldControlsEl.addEventListener('click', (e) => {
-  const button = e.target.closest('.segmented-button');
-  if (!button) return;
-
-  if (button.dataset.field === 'all') {
+searchFieldControlsEl.addEventListener('change', (e) => {
+  if (e.target.value === 'all') {
     exitSearchMode();
   } else {
-    enterSearchMode(button.dataset.field);
+    enterSearchMode(e.target.value);
   }
   applySearchModeChange();
   globalSearchInputEl.focus();
 });
-searchPrecisionControlsEl.addEventListener('click', (e) => {
-  const button = e.target.closest('.segmented-button');
-  if (!button) return;
-
-  searchPrecision = button.dataset.mode;
+searchPrecisionControlsEl.addEventListener('change', (e) => {
+  searchPrecision = e.target.value;
   updateSearchPrecisionControls();
   loadAndRender();
   globalSearchInputEl.focus();
