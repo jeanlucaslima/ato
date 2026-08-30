@@ -1824,18 +1824,20 @@ body {
 
 .search-results-header {
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: 42px minmax(0, 1fr) auto auto;
   align-items: baseline;
-  gap: 8px;
+  gap: 7px;
   margin-bottom: 9px;
 }
 
 .search-results-header .section-title {
+  grid-column: 2;
   font-size: 10px;
 }
 
 .search-results-header .section-count {
-  order: -1;
+  grid-column: 1;
+  grid-row: 1;
   margin: 0;
   padding: 0;
   background: transparent;
@@ -1846,6 +1848,11 @@ body {
 
 #close-search-results-btn {
   margin-left: 0;
+}
+
+.search-results-header .btn-action {
+  padding-inline: 5px;
+  white-space: nowrap;
 }
 
 .fuzzy-match {
@@ -1907,8 +1914,7 @@ body {
   border-color: transparent;
 }
 
-.browse-tab.active::after,
-.browse-tab.selected::after {
+.browse-tab.active::after {
   content: "";
   position: absolute;
   left: 0;
@@ -1919,8 +1925,20 @@ body {
 }
 
 .browse-tab.selected {
+  padding-inline: 5px;
+  background: var(--accent-light);
   color: var(--accent-color);
   box-shadow: none;
+}
+
+.browse-tab.selected:not(.active)::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  bottom: 7px;
+  left: 0;
+  width: 2px;
+  background: var(--accent-color);
 }
 
 .all-tabs-container {
