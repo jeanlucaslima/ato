@@ -61,6 +61,15 @@ describe('popup state scope', () => {
 
     expect(getScopedTabs(state).map(tab => tab.id)).toEqual([1, 2, 3, 4]);
   });
+
+  it('tracks the focused window while current-window scope is active', () => {
+    let state = withTabs(tabs);
+    state = reducePopupState(state, { type: 'SET_SCOPE', scope: { type: 'window', windowId: 1 } });
+    state = reducePopupState(state, { type: 'WINDOW_FOCUS_CHANGED', windowId: 2 });
+
+    expect(state.scope).toEqual({ type: 'window', windowId: 2 });
+    expect(getScopedTabs(state).map(tab => tab.id)).toEqual([3, 4]);
+  });
 });
 
 describe('popup search and navigation', () => {

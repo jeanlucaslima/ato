@@ -95,7 +95,6 @@ export function createInitialPopupState({
     },
     navigation: {
       cursorId: null,
-      cursorIndex: -1,
       focusZone: 'search'
     },
     expansion: {
@@ -430,33 +429,25 @@ function reconcileState(state, previousItems = []) {
 
   const items = getVisibleNavigationItems(state);
   if (state.navigation.cursorId == null) {
-    state.navigation.cursorIndex = -1;
     return state;
   }
 
   const currentIndex = items.findIndex(item => item.id === state.navigation.cursorId);
   if (currentIndex >= 0) {
-    state.navigation.cursorIndex = currentIndex;
     return state;
   }
 
   if (items.length === 0) {
     state.navigation.cursorId = null;
-    state.navigation.cursorIndex = -1;
     return state;
   }
 
-  const fallbackIndex = Math.min(
-    Math.max(state.navigation.cursorIndex, 0),
-    items.length - 1
-  );
   const removedPreviousIndex = previousItems.findIndex(item => item.id === state.navigation.cursorId);
   const index = removedPreviousIndex >= 0
     ? Math.min(removedPreviousIndex, items.length - 1)
-    : fallbackIndex;
+    : 0;
 
   state.navigation.cursorId = items[index].id;
-  state.navigation.cursorIndex = index;
   return state;
 }
 
@@ -480,10 +471,21 @@ export function reducePopupState(currentState, action) {
     case 'SET_BROWSER_SNAPSHOT':
       setTabs(state, action.tabs || []);
       state.browser.focusedWindowId = action.focusedWindowId ?? state.browser.focusedWindowId;
-      if (action.currentWindowOnly) {
-        state.scope = { type: 'window', windowId: state.browser.focusedWindowId };
-      }
       break;
+    case 'SET_EXPANSION': {
+      state.expansion.sections = {
+        ...state.expansion.sections,
+        ...(action.sectionStates || {})
+      };
+      const domains = action.domainSectionStates || {};
+      state.expansion.domainIds = new Set(
+        Object.entries(domains).filter(([, expanded]) => expanded !== false).map(([domain]) => domain)
+      );
+      state.expansion.collapsedDomainIds = new Set(
+        Object.entries(domains).filter(([, expanded]) => expanded === false).map(([domain]) => domain)
+      );
+      break;
+    }
     case 'SET_SCOPE':
       state.scope = action.scope.type === 'window'
         ? { type: 'window', windowId: action.scope.windowId }
@@ -501,7 +503,6 @@ export function reducePopupState(currentState, action) {
       state.search.mode = action.defaultMode || state.search.mode;
       state.navigation.focusZone = 'search';
       state.navigation.cursorId = null;
-      state.navigation.cursorIndex = -1;
       break;
     case 'SET_SEARCH_FIELD':
       state.search.field = action.field === 'url' || action.field === 'title' ? action.field : 'all';
@@ -562,14 +563,12 @@ export function reducePopupState(currentState, action) {
       break;
     case 'SET_CURSOR':
       state.navigation.cursorId = action.cursorId;
-      state.navigation.cursorIndex = getVisibleNavigationItems(state).findIndex(item => item.id === action.cursorId);
       state.navigation.focusZone = action.focusZone || 'content';
       break;
     case 'NAVIGATE_FIRST': {
       const items = getVisibleNavigationItems(state);
       const item = items[0];
       state.navigation.cursorId = item?.id || null;
-      state.navigation.cursorIndex = item ? 0 : -1;
       state.navigation.focusZone = item ? 'content' : 'search';
       break;
     }
@@ -577,7 +576,6 @@ export function reducePopupState(currentState, action) {
       const items = getVisibleNavigationItems(state);
       const item = items[items.length - 1];
       state.navigation.cursorId = item?.id || null;
-      state.navigation.cursorIndex = item ? items.length - 1 : -1;
       state.navigation.focusZone = item ? 'content' : 'search';
       break;
     }
@@ -586,11 +584,10 @@ export function reducePopupState(currentState, action) {
       const items = getVisibleNavigationItems(state);
       if (items.length === 0) break;
       const currentIndex = items.findIndex(item => item.id === state.navigation.cursorId);
-      const baseIndex = currentIndex >= 0 ? currentIndex : state.navigation.cursorIndex;
+      const baseIndex = currentIndex >= 0 ? currentIndex : (action.type === 'NAVIGATE_NEXT' ? -1 : items.length);
       const delta = action.type === 'NAVIGATE_NEXT' ? 1 : -1;
       const nextIndex = Math.min(Math.max(baseIndex + delta, 0), items.length - 1);
       state.navigation.cursorId = items[nextIndex].id;
-      state.navigation.cursorIndex = nextIndex;
       state.navigation.focusZone = 'content';
       break;
     }
@@ -645,6 +642,9 @@ export function reducePopupState(currentState, action) {
       break;
     case 'WINDOW_FOCUS_CHANGED':
       state.browser.focusedWindowId = action.windowId;
+      if (state.scope.type === 'window') {
+        state.scope.windowId = action.windowId;
+      }
       break;
     default:
       break;

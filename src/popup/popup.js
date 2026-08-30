@@ -2,11 +2,9 @@
 // Displays duplicate tabs and handles user actions
 
 import {
-  extractDomain,
-  groupTabsByDomain,
   formatTimeAgo,
-  sortAudibleFirst,
   normalizeUrl,
+  sortAudibleFirst,
   highlightMatches,
   isLoadableFavicon
 } from '../shared/tab-utils.js';
@@ -14,7 +12,6 @@ import { applyFont } from '../shared/font-config.js';
 import { initLogger, log, error } from '../shared/logger.js';
 import {
   createInitialPopupState,
-  effectiveSearchQuery as effectiveStateSearchQuery,
   filterCloseableTabs,
   getCursorItem,
   getDuplicateGroups,
@@ -24,7 +21,6 @@ import {
   getPlayingTabs,
   getScopedTabs,
   getSearchResults,
-  getSearchResultTabIds,
   getTab,
   getTabsForDomain,
   getTabsToCloseForAllDuplicates,
@@ -121,29 +117,7 @@ let settings = {
 
 // State
 let appState = createInitialPopupState();
-let activeDomain = null;
-let activeSort = 'default';
-let duplicateSortOrder = 'default'; // Sort order for duplicates section
-let domainSectionSort = 'name'; // Sort order for domain sections
-let domainNameDirection = 'az'; // 'az' or 'za' - toggles on click
-let domainCountDirection = 'most'; // 'most' or 'few' - toggles on click
-let allDomainGroups = []; // Store domain groups for filtering
 let highlightedOptionIndex = -1; // Track highlighted option in dropdown
-let ageSortDirection = 'old'; // 'old' or 'new' - toggles on each click
-let sectionStates = {
-  media: true,      // expanded by default
-  duplicates: true, // expanded by default so the quick cleanup summary is visible
-  allTabs: true     // expanded by default
-};
-let domainSectionStates = {}; // Track collapse state per domain
-let browseView = 'tabs';
-let duplicateReviewOpen = false;
-
-// Search state
-let searchQuery = '';
-let searchField = null; // null = all fields, 'url' = URL mode, 'title' = title mode
-let searchPrecision = 'fuzzy';
-let searchResults = null; // Map<tabId, matchResult> when searching, null otherwise
 let searchDebounceTimer = null;
 const SEARCH_DEBOUNCE_MS = 150;
 
@@ -152,10 +126,6 @@ const SEARCH_DEBOUNCE_MS = 150;
 const SEARCH_FIELD_PREFIX = { url: 'url', title: 'title' };
 const SEARCH_FIELD_PLACEHOLDER = { url: 'Search URLs', title: 'Search titles' };
 const DEFAULT_SEARCH_PLACEHOLDER = 'Search tabs';
-let highlightedResultIndex = -1; // Currently highlighted search result
-let searchResultTabIds = []; // Array of tab IDs in display order for navigation
-let selectedItemIndex = -1;
-
 // Undo state
 let lastClosedCount = 0;        // Number of tabs closed (for undo)
 let undoContext = null;         // 'duplicates', 'domain', or specific domain name
@@ -165,101 +135,8 @@ let groupedDuplicatesSkipped = 0; // Track count of grouped duplicates skipped
 let browserTabsSkipped = 0;     // Track count of browser tabs (chrome://, edge://) skipped
 let hasRenderedOnce = false;    // Stagger slide-in only plays on the first render
 
-// Render cache for single-pass computation
-let renderCache = {
-  tabs: null,
-  tabsLength: 0,
-  urlCounts: null,
-  domainMap: null,
-  matchMode: null
-};
-
-/**
- * Computes render data in a single pass through the tabs array.
- * Caches results to avoid redundant computation on re-renders.
- *
- * @param {Object[]} tabs - Array of tab objects
- * @returns {Object} Computed render data with urlCounts and domainMap
- */
-function computeRenderData(tabs) {
-  // Check if cache is valid (same tabs array and settings)
-  if (renderCache.tabs === tabs &&
-      renderCache.tabsLength === tabs.length &&
-      renderCache.matchMode === settings.matchMode) {
-    return renderCache;
-  }
-
-  const urlCounts = new Map();
-  const domainMap = new Map();
-
-  // Single pass through all tabs
-  for (const tab of tabs) {
-    if (!tab.url) continue;
-
-    // Count by normalized URL
-    const normalizedUrl = normalizeUrl(tab.url, settings.matchMode);
-    urlCounts.set(normalizedUrl, (urlCounts.get(normalizedUrl) || 0) + 1);
-
-    // Group by domain
-    const domain = extractDomain(tab.url);
-    if (domain) {
-      if (!domainMap.has(domain)) domainMap.set(domain, []);
-      domainMap.get(domain).push(tab);
-    }
-  }
-
-  // Update cache
-  renderCache = {
-    tabs,
-    tabsLength: tabs.length,
-    urlCounts,
-    domainMap,
-    matchMode: settings.matchMode
-  };
-
-  return renderCache;
-}
-
-/**
- * Clears the render cache. Call when tabs are modified.
- */
-function clearRenderCache() {
-  renderCache = {
-    tabs: null,
-    tabsLength: 0,
-    urlCounts: null,
-    domainMap: null,
-    matchMode: null
-  };
-}
-
 function dispatch(action) {
   appState = reducePopupState(appState, action);
-  syncLegacyStateFromStore();
-  clearRenderCache();
-}
-
-function syncLegacyStateFromStore() {
-  activeDomain = appState.filters.domain;
-  activeSort = appState.sort.tabs;
-  duplicateSortOrder = appState.sort.duplicate;
-  domainSectionSort = appState.sort.domainSection;
-  domainNameDirection = appState.sort.domainNameDirection;
-  domainCountDirection = appState.sort.domainCountDirection;
-  ageSortDirection = appState.sort.ageDirection;
-  sectionStates = appState.expansion.sections;
-  domainSectionStates = Object.fromEntries(
-    getLargeDomainGroups(appState).map(group => [group.domain, isDomainExpanded(appState, group.domain)])
-  );
-  browseView = appState.view.type;
-  duplicateReviewOpen = appState.duplicateReviewOpen;
-  searchQuery = appState.search.query;
-  searchField = appState.search.field === 'all' ? null : appState.search.field;
-  searchPrecision = appState.search.mode;
-  searchResults = new Map(getSearchResults(appState).map(({ tab, match }) => [tab.id, match]));
-  searchResultTabIds = getSearchResultTabIds(appState);
-  selectedItemIndex = appState.navigation.cursorIndex;
-  highlightedResultIndex = searchResultTabIds.indexOf(Number((getCursorItem(appState)?.tabId)));
 }
 
 function updateStoreSettings() {
@@ -281,17 +158,6 @@ function updateStoreSettings() {
 // =============================================================================
 
 /**
- * Builds the query string handed to the search engine, prefixing the active
- * field mode (e.g. `url:`) so tab-utils' parseSearchQuery scopes the search.
- * Exact (`"…"`) and wildcard (`…*`) syntax still compose inside the mode.
- *
- * @returns {string} The effective query
- */
-function effectiveSearchQuery() {
-  return effectiveStateSearchQuery(appState);
-}
-
-/**
  * Handles search input changes with debouncing. Also detects a field-mode
  * prefix (`url:`, `title:`, or a legacy alias) typed at the start of the input and converts
  * it into a mode chip so only the bare term remains in the box.
@@ -300,7 +166,7 @@ function handleSearchInput(e) {
   let query = e.target.value;
 
   // Convert a typed prefix into a mode chip (only when not already in a mode).
-  if (!searchField) {
+  if (appState.search.field === 'all') {
     const prefixMatch = /^(url|title|inurl|intitle):/i.exec(query);
     if (prefixMatch) {
       const prefix = prefixMatch[1].toLowerCase();
@@ -311,7 +177,7 @@ function handleSearchInput(e) {
   }
 
   // Show/hide clear button (also visible when a mode is active with no term)
-  globalSearchClearEl.classList.toggle('hidden', !query && !searchField);
+  globalSearchClearEl.classList.toggle('hidden', !query && appState.search.field === 'all');
 
   // Debounce the search
   clearTimeout(searchDebounceTimer);
@@ -345,12 +211,11 @@ function exitSearchMode() {
 }
 
 function updateSearchFieldControls() {
-  const current = searchField || 'all';
-  searchFieldControlsEl.value = current;
+  searchFieldControlsEl.value = appState.search.field;
 }
 
 function updateSearchPrecisionControls() {
-  searchPrecisionControlsEl.value = searchPrecision;
+  searchPrecisionControlsEl.value = appState.search.mode;
 }
 
 /**
@@ -359,7 +224,7 @@ function updateSearchPrecisionControls() {
  */
 function applySearchModeChange() {
   dispatch({ type: 'SET_SEARCH_QUERY', query: globalSearchInputEl.value });
-  globalSearchClearEl.classList.toggle('hidden', !searchQuery && !searchField);
+  globalSearchClearEl.classList.toggle('hidden', !appState.search.query && appState.search.field === 'all');
   loadAndRender();
 }
 
@@ -391,24 +256,7 @@ function getVisibleActionItems() {
   return getStateNavigationItems(appState);
 }
 
-function updateSelectedItem(newIndex) {
-  const items = getVisibleActionItems();
-  document.querySelectorAll('.browse-tab.selected, .tab-item.selected, .section-header.selected, .btn-action.selected').forEach(item => item.classList.remove('selected'));
-
-  if (items.length === 0) {
-    dispatch({ type: 'SET_CURSOR', cursorId: null, focusZone: 'content' });
-    return;
-  }
-
-  if (newIndex < 0) newIndex = 0;
-  if (newIndex >= items.length) newIndex = items.length - 1;
-
-  dispatch({ type: 'SET_CURSOR', cursorId: items[newIndex].id, focusZone: 'content' });
-  applyCursorToDom();
-}
-
 function restoreSelectedItem() {
-  syncLegacyStateFromStore();
   applyCursorToDom();
 }
 
@@ -551,7 +399,7 @@ function selectOwningDomainHeader() {
  * @param {number} total - Total number of tabs
  */
 function updateSearchResultsCount(count, total) {
-  if (!searchQuery) {
+  if (!appState.search.query) {
     searchResultsCountEl.classList.add('hidden');
     searchResultsCountEl.classList.remove('no-results');
     return;
@@ -577,22 +425,11 @@ function updateSearchResultsCount(count, total) {
 async function loadSectionStates() {
   try {
     const result = await chrome.storage.local.get(['sectionStates', 'domainSectionStates']);
-    if (result.sectionStates) {
-      // Preserve saved states while letting newly added sections keep defaults.
-      sectionStates = { ...sectionStates, ...result.sectionStates };
-    }
-    if (result.domainSectionStates) {
-      domainSectionStates = result.domainSectionStates;
-    }
-    appState = createInitialPopupState({
-      currentWindowOnly: settings.currentWindowOnly,
-      focusedWindowId: appState.browser.focusedWindowId,
-      defaultBrowseView: settings.defaultBrowseView,
-      defaultSearchMode: settings.defaultSearchMode,
-      sectionStates,
-      domainSectionStates
+    dispatch({
+      type: 'SET_EXPANSION',
+      sectionStates: result.sectionStates,
+      domainSectionStates: result.domainSectionStates
     });
-    updateStoreSettings();
     applySectionStates();
   } catch (err) {
     error('Error loading section states:', err);
@@ -654,16 +491,16 @@ async function saveSectionStates() {
 // Apply current section states to the DOM
 function applySectionStates() {
   // Playing Media section
-  mediaHeaderEl.setAttribute('aria-expanded', sectionStates.media);
-  mediaContentEl.classList.toggle('collapsed', !sectionStates.media);
+  mediaHeaderEl.setAttribute('aria-expanded', appState.expansion.sections.media);
+  mediaContentEl.classList.toggle('collapsed', !appState.expansion.sections.media);
 
   // Duplicates section
-  duplicatesHeaderEl.setAttribute('aria-expanded', sectionStates.duplicates);
-  duplicatesContentEl.classList.toggle('collapsed', !sectionStates.duplicates);
+  duplicatesHeaderEl.setAttribute('aria-expanded', appState.expansion.sections.duplicates);
+  duplicatesContentEl.classList.toggle('collapsed', !appState.expansion.sections.duplicates);
 
   // All Tabs section
-  allTabsHeaderEl.setAttribute('aria-expanded', sectionStates.allTabs);
-  allTabsContentEl.classList.toggle('collapsed', !sectionStates.allTabs);
+  allTabsHeaderEl.setAttribute('aria-expanded', appState.expansion.sections.allTabs);
+  allTabsContentEl.classList.toggle('collapsed', !appState.expansion.sections.allTabs);
 }
 
 // Toggle section visibility
@@ -760,7 +597,7 @@ async function closeTabsFromDomain(domain) {
     }
 
     // Refresh the list
-    await refreshBrowserSnapshot({ currentWindowOnly: settings.currentWindowOnly });
+    await refreshBrowserSnapshot();
     await loadAndRender();
   } catch (err) {
     error('❌ Error closing domain tabs:', err);
@@ -820,7 +657,7 @@ async function moveSearchResultsToWindow() {
     undoContext = null;
     hideAllUndoButtons();
     log(`✅ Moved ${tabsToMove.length} search-result tabs to new window`);
-    await refreshBrowserSnapshot({ currentWindowOnly: settings.currentWindowOnly });
+    await refreshBrowserSnapshot();
     await loadAndRender();
   } catch (err) {
     error('❌ Error moving search results:', err);
@@ -829,11 +666,7 @@ async function moveSearchResultsToWindow() {
 
 // Create a domain section element
 function createDomainSection(domain, tabs, urlCounts) {
-  // Explicitly set state if not already set (prevents undefined state issues)
-  if (domainSectionStates[domain] === undefined) {
-    domainSectionStates[domain] = true; // Default to expanded
-  }
-  const isExpanded = domainSectionStates[domain];
+  const isExpanded = isDomainExpanded(appState, domain);
 
   const section = document.createElement('div');
   section.className = 'domain-section';
@@ -1372,11 +1205,12 @@ async function closeAllSearchResults() {
 
 // Render domain filter
 function renderDomainFilter(tabs) {
-  allDomainGroups = groupTabsByDomain(tabs);
+  const domainGroups = getDomainGroups(appState);
+  const activeDomain = appState.filters.domain;
 
   // Update input value if domain is selected
   if (activeDomain) {
-    const selectedGroup = allDomainGroups.find(g => g.domain === activeDomain);
+    const selectedGroup = domainGroups.find(g => g.domain === activeDomain);
     if (selectedGroup) {
       domainFilterInputEl.value = `${selectedGroup.domain} (${selectedGroup.count})`;
       domainFilterClearEl.classList.remove('hidden');
@@ -1392,7 +1226,8 @@ function renderDomainDropdownOptions(query = '') {
   domainFilterDropdownEl.innerHTML = '';
   highlightedOptionIndex = -1; // Reset highlight
 
-  const filteredDomains = allDomainGroups.filter(({ domain }) =>
+  const activeDomain = appState.filters.domain;
+  const filteredDomains = getDomainGroups(appState).filter(({ domain }) =>
     domain.toLowerCase().includes(query.toLowerCase())
   );
 
@@ -1488,7 +1323,7 @@ function clearDomainFilter() {
 
 // Show dropdown
 function showDomainDropdown() {
-  const query = activeDomain ? '' : domainFilterInputEl.value;
+  const query = appState.filters.domain ? '' : domainFilterInputEl.value;
   renderDomainDropdownOptions(query);
   domainFilterDropdownEl.classList.remove('hidden');
 }
@@ -1508,7 +1343,6 @@ function hideDomainDropdown() {
 function render(tabs, duplicates) {
   tabs = getScopedTabs(appState);
   duplicates = getDuplicateTabs(appState);
-  syncLegacyStateFromStore();
   // Play the staggered slide-in only on the first render (initial popup open).
   // Re-renders (closing a tab, sorting, etc.) skip it so the list doesn't
   // re-animate every item — which is disruptive when a small group collapses.
@@ -1523,13 +1357,12 @@ function render(tabs, duplicates) {
   };
 
   const stateSearchResults = getSearchResults(appState);
-  if (searchQuery) {
-    searchResults = new Map(stateSearchResults.map(({ tab, match }) => [tab.id, match]));
+  const urlCounts = getUrlCounts(appState);
+  if (appState.search.query) {
     document.body.classList.add('search-active');
     document.body.classList.add('searching');
-    document.body.dataset.searchQuery = searchQuery;
+    document.body.dataset.searchQuery = appState.search.query;
   } else {
-    searchResults = null;
     document.body.classList.remove('search-active');
     document.body.classList.remove('searching');
     delete document.body.dataset.searchQuery;
@@ -1537,60 +1370,45 @@ function render(tabs, duplicates) {
 
   // Update search results count
   updateSearchResultsCount(
-    searchResults ? searchResults.size : 0,
+    stateSearchResults.length,
     tabs.length
   );
 
   // Handle search results section
-  if (searchResults && searchResults.size > 0) {
+  if (stateSearchResults.length > 0) {
     searchResultsContainerEl.classList.remove('hidden');
     searchEmptyStateEl.classList.add('hidden');
     searchResultsListEl.innerHTML = '';
-    searchResultsSectionCountEl.textContent = searchResults.size;
-    searchResultsContainerEl.querySelector('.section-title').textContent = `${searchResults.size} match${searchResults.size === 1 ? '' : 'es'}`;
+    searchResultsSectionCountEl.textContent = stateSearchResults.length;
+    searchResultsContainerEl.querySelector('.section-title').textContent = `${stateSearchResults.length} match${stateSearchResults.length === 1 ? '' : 'es'}`;
     closeSearchResultsBtn.classList.remove('hidden');
     moveSearchResultsBtn.classList.remove('hidden');
-
-    // Use cached single-pass computation
-    const { urlCounts } = computeRenderData(tabs);
 
     // Sort results by score (descending - best matches first)
     const sortedResults = stateSearchResults;
 
-    // Track tab IDs for keyboard navigation
-    searchResultTabIds = sortedResults.map(r => r.tab.id);
-
     // Render search results
     sortedResults.forEach(({ tab, match }, index) => {
-      const count = urlCounts.get(normalizeUrl(tab.url, settings.matchMode)) || 0;
+      const count = urlCounts.get(normalizeUrl(tab.url, appState.matchMode || 'exact')) || 0;
       const item = createTabItem(tab, count, index, match);
-      // Apply highlight if this is the highlighted result
-      if (index === highlightedResultIndex) {
-        item.classList.add('highlighted');
-      }
       searchResultsListEl.appendChild(item);
     });
-  } else if (searchQuery && (!searchResults || searchResults.size === 0)) {
+  } else if (appState.search.query) {
     // Show empty state for search
     searchResultsContainerEl.classList.remove('hidden');
     searchEmptyStateEl.classList.remove('hidden');
     searchResultsListEl.innerHTML = '';
     searchResultsSectionCountEl.textContent = '0';
     searchResultsContainerEl.querySelector('.section-title').textContent = 'No matches';
-    searchResultTabIds = [];
-    highlightedResultIndex = -1;
     closeSearchResultsBtn.classList.add('hidden');
     moveSearchResultsBtn.classList.add('hidden');
   } else {
     // Hide search results section when not searching
     searchResultsContainerEl.classList.add('hidden');
-    searchResultTabIds = [];
-    highlightedResultIndex = -1;
     closeSearchResultsBtn.classList.add('hidden');
     moveSearchResultsBtn.classList.add('hidden');
   }
 
-  const urlCounts = getUrlCounts(appState);
   const domainGroups = getDomainGroups(appState);
 
   // Update stats
@@ -1625,14 +1443,14 @@ function render(tabs, duplicates) {
 
   // Update sort button active states
   sortButtonsEl.querySelectorAll('.btn-toggle').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.sort === activeSort);
+    btn.classList.toggle('active', btn.dataset.sort === appState.sort.tabs);
   });
 
   // Update duplicate sort button active states
   duplicatesSortButtonsEl.querySelectorAll('.btn-toggle').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.sort === duplicateSortOrder);
+    btn.classList.toggle('active', btn.dataset.sort === appState.sort.duplicate);
   });
-  duplicatesSortButtonsEl.classList.toggle('hidden', !duplicateReviewOpen);
+  duplicatesSortButtonsEl.classList.toggle('hidden', !appState.duplicateReviewOpen);
 
   // Clear lists
   duplicateListEl.innerHTML = '';
@@ -1640,7 +1458,7 @@ function render(tabs, duplicates) {
 
   // Render duplicates section
   if (duplicates.length === 0) {
-    duplicateReviewOpen = false;
+    if (appState.duplicateReviewOpen) dispatch({ type: 'SET_DUPLICATE_REVIEW', open: false });
     document.body.classList.remove('duplicate-review-open');
     duplicatesSummaryPrimaryEl.textContent = '00';
     duplicatesSummarySecondaryEl.textContent = 'duplicates';
@@ -1656,10 +1474,10 @@ function render(tabs, duplicates) {
     browserTabsSkipped = 0;
   } else {
     // Show duplicates
-    duplicateListEl.style.display = duplicateReviewOpen ? 'flex' : 'none';
-    document.body.classList.toggle('duplicate-review-open', duplicateReviewOpen);
-    reviewDuplicatesBtn.classList.toggle('hidden', duplicateReviewOpen);
-    exitDuplicatesReviewBtn.classList.toggle('hidden', !duplicateReviewOpen);
+    duplicateListEl.style.display = appState.duplicateReviewOpen ? 'flex' : 'none';
+    document.body.classList.toggle('duplicate-review-open', appState.duplicateReviewOpen);
+    reviewDuplicatesBtn.classList.toggle('hidden', appState.duplicateReviewOpen);
+    exitDuplicatesReviewBtn.classList.toggle('hidden', !appState.duplicateReviewOpen);
     emptyStateEl.style.display = 'none';
 
     // Show warning if there are protected tabs (pinned or grouped) in duplicate groups
@@ -1697,17 +1515,6 @@ function render(tabs, duplicates) {
     duplicatesSummaryPrimaryEl.textContent = `${duplicates.length} duplicate${duplicates.length === 1 ? '' : 's'}`;
     duplicatesSummarySecondaryEl.textContent = `${groupedDuplicates.length} group${groupedDuplicates.length === 1 ? '' : 's'}`;
 
-    // Sort groups based on duplicateSortOrder
-    if (duplicateSortOrder === 'title') {
-      groupedDuplicates.sort((a, b) =>
-        (a.representative.title || '').localeCompare(b.representative.title || '')
-      );
-    } else if (duplicateSortOrder === 'domain') {
-      groupedDuplicates.sort((a, b) =>
-        extractDomain(a.url).localeCompare(extractDomain(b.url))
-      );
-    }
-
     // Render each grouped duplicate
     let duplicateIndex = 0;
     groupedDuplicates.forEach((group) => {
@@ -1719,7 +1526,7 @@ function render(tabs, duplicates) {
 
   // Render all tabs section
   // Filter out chrome:// and edge:// pages
-  document.body.classList.toggle('has-domain-filter', Boolean(activeDomain));
+  document.body.classList.toggle('has-domain-filter', Boolean(appState.filters.domain));
   let visibleTabs = getVisibleTabs(appState);
 
   // Update all tabs section count
@@ -1727,7 +1534,7 @@ function render(tabs, duplicates) {
 
   // Render all tabs as flat list (sortable)
   visibleTabs.forEach((tab, index) => {
-    const count = urlCounts.get(normalizeUrl(tab.url, settings.matchMode)) || 0;
+    const count = urlCounts.get(normalizeUrl(tab.url, appState.matchMode || 'exact')) || 0;
     const item = createTabItem(tab, count, index, null);
     allTabsListEl.appendChild(item);
   });
@@ -1742,11 +1549,11 @@ function render(tabs, duplicates) {
 
   // Update active state and labels on domain sort buttons
   domainSortButtonsEl.querySelectorAll('.btn-toggle').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.sort === domainSectionSort);
+    btn.classList.toggle('active', btn.dataset.sort === appState.sort.domainSection);
     if (btn.dataset.sort === 'name') {
-      btn.textContent = domainNameDirection === 'az' ? 'A-Z' : 'Z-A';
+      btn.textContent = appState.sort.domainNameDirection === 'az' ? 'A-Z' : 'Z-A';
     } else if (btn.dataset.sort === 'count') {
-      btn.textContent = domainCountDirection === 'most' ? 'Most' : 'Few';
+      btn.textContent = appState.sort.domainCountDirection === 'most' ? 'Most' : 'Few';
     }
   });
 
@@ -1756,10 +1563,10 @@ function render(tabs, duplicates) {
     domainSectionsContainer.appendChild(section);
   });
 
-  document.body.classList.toggle('browse-domains', browseView === 'domains');
-  document.body.classList.toggle('browse-tabs-view', browseView === 'tabs');
-  browseTabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.view === browseView));
-  exitDuplicatesReviewBtn.classList.toggle('hidden', !duplicateReviewOpen);
+  document.body.classList.toggle('browse-domains', appState.view.type === 'domains');
+  document.body.classList.toggle('browse-tabs-view', appState.view.type === 'tabs');
+  browseTabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.view === appState.view.type));
+  exitDuplicatesReviewBtn.classList.toggle('hidden', !appState.duplicateReviewOpen);
 
   // Restore scroll positions after DOM updates
   requestAnimationFrame(() => {
@@ -1779,7 +1586,6 @@ function render(tabs, duplicates) {
  */
 async function loadAndRender() {
   try {
-    clearRenderCache();
     const tabs = getScopedTabs(appState);
     const duplicates = getDuplicateTabs(appState);
 
@@ -1791,7 +1597,7 @@ async function loadAndRender() {
   }
 }
 
-async function refreshBrowserSnapshot({ currentWindowOnly = settings.currentWindowOnly } = {}) {
+async function refreshBrowserSnapshot() {
   const [tabs, activeTabs] = await Promise.all([
     chrome.tabs.query({}),
     chrome.tabs.query({ active: true, currentWindow: true })
@@ -1801,8 +1607,14 @@ async function refreshBrowserSnapshot({ currentWindowOnly = settings.currentWind
   dispatch({
     type: 'SET_BROWSER_SNAPSHOT',
     tabs,
-    focusedWindowId,
-    currentWindowOnly
+    focusedWindowId
+  });
+
+  dispatch({
+    type: 'SET_SCOPE',
+    scope: settings.currentWindowOnly
+      ? { type: 'window', windowId: focusedWindowId }
+      : { type: 'all' }
   });
 }
 
@@ -1905,7 +1717,7 @@ searchModeChipRemoveEl.addEventListener('click', (e) => {
 globalSearchInputEl.addEventListener('keydown', (e) => {
   if (
     e.key === 'Backspace' &&
-    searchField &&
+    appState.search.field !== 'all' &&
     globalSearchInputEl.selectionStart === 0 &&
     globalSearchInputEl.selectionEnd === 0
   ) {
@@ -1951,7 +1763,7 @@ document.addEventListener('keydown', (e) => {
 
   // Clear search with Escape (when search is focused)
   if (e.key === 'Escape' && document.activeElement === globalSearchInputEl) {
-    if (searchQuery || searchField) {
+    if (appState.search.query || appState.search.field !== 'all') {
       e.preventDefault();
       clearSearch();
     }
@@ -1959,7 +1771,7 @@ document.addEventListener('keydown', (e) => {
     return;
   }
 
-  if (document.activeElement === globalSearchInputEl && e.key === 'Enter' && highlightedResultIndex >= 0) {
+  if (document.activeElement === globalSearchInputEl && e.key === 'Enter' && getCursorItem(appState)?.type === 'tab') {
     e.preventDefault();
     switchToHighlightedResult();
     return;
@@ -1976,7 +1788,7 @@ document.addEventListener('keydown', (e) => {
       e.preventDefault();
       if (e.key === 'ArrowDown') {
         const items = getVisibleActionItems();
-        if (items.length > 0 && selectedItemIndex >= items.length - 1) {
+        if (items.length > 0 && appState.navigation.cursorId === items[items.length - 1].id) {
           dispatch({ type: 'SET_CURSOR', cursorId: null, focusZone: 'search' });
           applyCursorToDom();
           globalSearchInputEl.focus();
@@ -1990,7 +1802,8 @@ document.addEventListener('keydown', (e) => {
 
     if (e.key === 'k' || e.key === 'ArrowUp') {
       e.preventDefault();
-      if (e.key === 'ArrowUp' && selectedItemIndex <= 0) {
+      const items = getVisibleActionItems();
+      if (e.key === 'ArrowUp' && appState.navigation.cursorId === items[0]?.id) {
         dispatch({ type: 'SET_CURSOR', cursorId: null, focusZone: 'search' });
         applyCursorToDom();
         globalSearchInputEl.focus();
@@ -2136,7 +1949,7 @@ searchResultsListEl.addEventListener('click', (e) => {
 // Domain filter event listeners
 domainFilterInputEl.addEventListener('focus', () => {
   // Clear input if a domain is selected, so user can search
-  if (activeDomain) {
+  if (appState.filters.domain) {
     domainFilterInputEl.value = '';
   }
   showDomainDropdown();
@@ -2150,7 +1963,7 @@ domainFilterInputEl.addEventListener('input', (e) => {
   // Show/hide clear button based on input
   if (query) {
     domainFilterClearEl.classList.remove('hidden');
-  } else if (!activeDomain) {
+  } else if (!appState.filters.domain) {
     domainFilterClearEl.classList.add('hidden');
   }
 });
@@ -2188,8 +2001,8 @@ domainFilterInputEl.addEventListener('blur', (e) => {
   setTimeout(() => {
     hideDomainDropdown();
     // Restore selected domain display if user didn't select anything
-    if (activeDomain) {
-      const selectedGroup = allDomainGroups.find(g => g.domain === activeDomain);
+    if (appState.filters.domain) {
+      const selectedGroup = getDomainGroups(appState).find(g => g.domain === appState.filters.domain);
       if (selectedGroup) {
         domainFilterInputEl.value = `${selectedGroup.domain} (${selectedGroup.count})`;
       }
@@ -2218,11 +2031,10 @@ optionsBtn.addEventListener('click', () => {
 
 // Scope button - toggle detection scope
 scopeBtn.addEventListener('click', async () => {
-  // Toggle currentWindowOnly
-  settings.currentWindowOnly = !settings.currentWindowOnly;
+  settings.currentWindowOnly = appState.scope.type !== 'window';
   await chrome.storage.sync.set({ currentWindowOnly: settings.currentWindowOnly });
   if (settings.currentWindowOnly) {
-    await refreshBrowserSnapshot({ currentWindowOnly: true });
+    await refreshBrowserSnapshot();
   } else {
     dispatch({ type: 'SET_SCOPE', scope: { type: 'all' } });
   }
@@ -2234,7 +2046,7 @@ scopeBtn.addEventListener('click', async () => {
  * Updates the scope button visibility and appearance based on settings.
  */
 function updateScopeButton() {
-  if (settings.currentWindowOnly) {
+  if (appState.scope.type === 'window') {
     scopeLabel.textContent = 'This window';
     scopeBtn.title = 'Current window only - click to switch to all windows';
     scopeBtn.classList.add('active');
@@ -2304,7 +2116,7 @@ function initFooter() {
   await initLogger();
   await loadSettings();
   await loadSectionStates();
-  await refreshBrowserSnapshot({ currentWindowOnly: settings.currentWindowOnly });
+  await refreshBrowserSnapshot();
   updateScopeButton();
   initFooter();
   attachChromeEventListeners();
