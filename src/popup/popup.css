@@ -2936,6 +2936,51 @@ body.searching .global-search-input {
   opacity: 1;
 }
 
+html {
+  width: 420px;
+  height: 620px;
+  overflow: hidden;
+}
+
+body {
+  width: 420px;
+  height: 620px;
+  overflow: hidden;
+}
+
+.container {
+  height: 620px;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.duplicates-container,
+.duplicate-list,
+.all-tabs-container,
+.domain-sections-container,
+.search-results-container {
+  overflow: visible;
+}
+
+.container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.container::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 3px;
+}
+
+.container::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-hover);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .tab-item,
   .section-content,
