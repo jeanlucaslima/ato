@@ -635,7 +635,7 @@ async function moveTabsFromDomainToWindow(domain) {
 
     log(`✅ Moved ${domainTabs.length} tabs from ${domain} to new window`);
 
-    // Refresh the list
+    await refreshBrowserSnapshot();
     await loadAndRender();
   } catch (err) {
     error('❌ Error moving domain tabs:', err);
@@ -1607,11 +1607,16 @@ async function loadAndRender() {
 }
 
 async function refreshBrowserSnapshot() {
+  // Full snapshots are intentionally limited to popup initialization, enabling
+  // current-window scope, and multi-step tab/window mutations. Chrome events
+  // normally reconcile incremental changes, but these paths can emit several
+  // tab/window events in transient order, so an authoritative resync is safer.
   const [tabs, activeTabs] = await Promise.all([
     chrome.tabs.query({}),
     chrome.tabs.query({ active: true, currentWindow: true })
   ]);
   const focusedWindowId = activeTabs[0]?.windowId ?? null;
+  const scopeWindowId = focusedWindowId ?? appState.browser.focusedWindowId;
 
   dispatch({
     type: 'SET_BROWSER_SNAPSHOT',
@@ -1622,7 +1627,7 @@ async function refreshBrowserSnapshot() {
   dispatch({
     type: 'SET_SCOPE',
     scope: settings.currentWindowOnly
-      ? { type: 'window', windowId: focusedWindowId }
+      ? { type: 'window', windowId: scopeWindowId }
       : { type: 'all' }
   });
 }

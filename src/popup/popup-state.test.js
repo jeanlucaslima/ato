@@ -113,6 +113,14 @@ describe('popup state scope', () => {
     expect(state.scope).toEqual({ type: 'all', windowId: null });
   });
 
+  it('does not replace focused-window metadata from an invalid snapshot focus', () => {
+    let state = withTabs(tabs);
+
+    state = reducePopupState(state, { type: 'SET_BROWSER_SNAPSHOT', tabs, focusedWindowId: -1 });
+
+    expect(state.browser.focusedWindowId).toBe(1);
+  });
+
   it('does not initialize current-window scope from an invalid focused window', () => {
     const state = createInitialPopupState({ currentWindowOnly: true, focusedWindowId: -1 });
 
