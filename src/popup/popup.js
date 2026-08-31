@@ -21,6 +21,7 @@ import {
   getPlayingTabs,
   getScopedTabs,
   getSearchResults,
+  getSearchNavigationItems,
   getTab,
   getTabsForDomain,
   getTabsToCloseForAllDuplicates,
@@ -30,6 +31,7 @@ import {
   getVisibleTabs,
   isDomainExpanded,
   makeItemId,
+  makeTabItemId,
   reducePopupState,
   selectTabIds,
   serializeExpansion
@@ -262,6 +264,9 @@ function restoreSelectedItem() {
 
 function domElementForItemId(cursorId) {
   if (!cursorId) return null;
+  if (cursorId.startsWith('tab:')) {
+    return document.querySelector(`[data-nav-id="${CSS.escape(cursorId)}"]`);
+  }
   if (cursorId.startsWith('view:')) {
     return browseTabsEl.querySelector(`[data-view="${CSS.escape(cursorId.slice('view:'.length))}"]`);
   }
@@ -279,9 +284,6 @@ function domElementForItemId(cursorId) {
   }
   if (cursorId.startsWith('duplicate:')) {
     return duplicateListEl.querySelector(`[data-url="${CSS.escape(cursorId.slice('duplicate:'.length))}"]`);
-  }
-  if (cursorId.startsWith('tab:')) {
-    return document.querySelector(`[data-tab-id="${CSS.escape(cursorId.slice('tab:'.length))}"]`);
   }
   return null;
 }
@@ -340,7 +342,7 @@ function closeSelectedItem() {
     return;
   }
 
-  if (item.type === 'tab') closeTab(item.tabId);
+  if (item.type === 'tab') closeTab(item.tabId, item.id);
 }
 
 function setSelectedHeaderExpanded(expand) {
@@ -762,7 +764,7 @@ function createDomainSection(domain, tabs, urlCounts) {
   // Add tabs, floating any tab playing media to the top of the group
   sortAudibleFirst(tabs).forEach((tab, index) => {
     const dupCount = urlCounts.get(normalizeUrl(tab.url, settings.matchMode)) || 0;
-    const item = createTabItem(tab, dupCount, index, null);
+    const item = createTabItem(tab, dupCount, index, null, makeTabItemId('domain', tab.id, domain));
     tabList.appendChild(item);
   });
 
@@ -978,7 +980,7 @@ async function closeDuplicatesOfUrl(url) {
  * @param {Object} [matchResult=null] - Fuzzy match result for highlighting
  * @returns {HTMLDivElement} The tab item element
  */
-function createTabItem(tab, duplicateCount = 0, index = 0, matchResult = null) {
+function createTabItem(tab, duplicateCount = 0, index = 0, matchResult = null, navigationId = null) {
   const item = document.createElement('div');
   item.className = 'tab-item';
   if (tab.audible) {
@@ -995,6 +997,7 @@ function createTabItem(tab, duplicateCount = 0, index = 0, matchResult = null) {
   }
   item.dataset.tabId = tab.id;
   item.dataset.windowId = tab.windowId;
+  if (navigationId) item.dataset.navId = navigationId;
   item.style.setProperty('--item-index', index);
 
   // Favicon
@@ -1082,7 +1085,7 @@ function isBrowserUrl(url) {
 }
 
 // Close a single tab with animation
-async function closeTab(tabId) {
+async function closeTab(tabId, navigationId = null) {
   try {
     const tab = getTab(appState, tabId);
     if (!tab) return;
@@ -1104,7 +1107,9 @@ async function closeTab(tabId) {
     }
 
     // Find the tab-item element in DOM and animate it
-    const tabItem = document.querySelector(`[data-tab-id="${tabId}"]`);
+    const tabItem = navigationId
+      ? document.querySelector(`[data-nav-id="${CSS.escape(navigationId)}"]`)
+      : document.querySelector(`[data-tab-id="${tabId}"]`);
 
     if (tabItem) {
       // Add closing class to trigger animation
@@ -1388,7 +1393,7 @@ function render() {
     // Render search results
     sortedResults.forEach(({ tab, match }, index) => {
       const count = urlCounts.get(normalizeUrl(tab.url, appState.matchMode || 'exact')) || 0;
-      const item = createTabItem(tab, count, index, match);
+      const item = createTabItem(tab, count, index, match, makeTabItemId('search', tab.id));
       searchResultsListEl.appendChild(item);
     });
   } else if (appState.search.query) {
@@ -1425,6 +1430,12 @@ function render() {
   if (audibleTabs.length > 0) {
     document.body.dataset.mediaCount = audibleTabs.length;
     browseTabsEl.dataset.mediaCount = audibleTabs.length;
+    mediaContainerEl.classList.remove('hidden');
+    sortAudibleFirst(audibleTabs).forEach((tab, index) => {
+      const count = urlCounts.get(normalizeUrl(tab.url, appState.matchMode || 'exact')) || 0;
+      const item = createTabItem(tab, count, index, null, makeTabItemId('media', tab.id));
+      mediaListEl.appendChild(item);
+    });
   } else {
     delete document.body.dataset.mediaCount;
     delete browseTabsEl.dataset.mediaCount;
@@ -1533,7 +1544,7 @@ function render() {
   // Render all tabs as flat list (sortable)
   visibleTabs.forEach((tab, index) => {
     const count = urlCounts.get(normalizeUrl(tab.url, appState.matchMode || 'exact')) || 0;
-    const item = createTabItem(tab, count, index, null);
+    const item = createTabItem(tab, count, index, null, makeTabItemId('tabs', tab.id));
     allTabsListEl.appendChild(item);
   });
 
@@ -1745,14 +1756,13 @@ document.addEventListener('keydown', (e) => {
   }
 
   if (document.activeElement === globalSearchInputEl && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
-    const items = getVisibleActionItems();
+    const searchItems = getSearchNavigationItems(appState);
+    const items = searchItems.length > 0 ? searchItems : getVisibleActionItems();
     if (items.length > 0) {
       e.preventDefault();
       globalSearchInputEl.blur();
 
-      const searchItems = items.filter(item => item.zone === 'search');
-      const targetItems = searchItems.length > 0 ? searchItems : items;
-      const target = e.key === 'ArrowDown' ? targetItems[0] : targetItems[targetItems.length - 1];
+      const target = e.key === 'ArrowDown' ? items[0] : items[items.length - 1];
       dispatch({ type: 'SET_CURSOR', cursorId: target.id, focusZone: 'content' });
       applyCursorToDom();
     }
@@ -1785,11 +1795,16 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'j' || e.key === 'ArrowDown') {
       e.preventDefault();
       if (e.key === 'ArrowDown') {
-        const items = getVisibleActionItems();
+        const items = appState.search.query ? getSearchNavigationItems(appState) : getVisibleActionItems();
         if (items.length > 0 && appState.navigation.cursorId === items[items.length - 1].id) {
           dispatch({ type: 'SET_CURSOR', cursorId: null, focusZone: 'search' });
           applyCursorToDom();
           globalSearchInputEl.focus();
+          return;
+        }
+        if (appState.search.query) {
+          dispatch({ type: 'NAVIGATE_SEARCH_NEXT' });
+          applyCursorToDom();
           return;
         }
       }
@@ -1800,11 +1815,16 @@ document.addEventListener('keydown', (e) => {
 
     if (e.key === 'k' || e.key === 'ArrowUp') {
       e.preventDefault();
-      const items = getVisibleActionItems();
+      const items = appState.search.query ? getSearchNavigationItems(appState) : getVisibleActionItems();
       if (e.key === 'ArrowUp' && appState.navigation.cursorId === items[0]?.id) {
         dispatch({ type: 'SET_CURSOR', cursorId: null, focusZone: 'search' });
         applyCursorToDom();
         globalSearchInputEl.focus();
+        return;
+      }
+      if (e.key === 'ArrowUp' && appState.search.query) {
+        dispatch({ type: 'NAVIGATE_SEARCH_PREVIOUS' });
+        applyCursorToDom();
         return;
       }
       dispatch({ type: 'NAVIGATE_PREVIOUS' });
@@ -1879,7 +1899,7 @@ allTabsListEl.addEventListener('click', (e) => {
   if (closeBtn && item) {
     e.stopPropagation();
     const tabId = parseInt(item.dataset.tabId, 10);
-    if (tabId) closeTab(tabId);
+    if (tabId) closeTab(tabId, item.dataset.navId);
     return;
   }
 
@@ -1897,7 +1917,7 @@ mediaListEl.addEventListener('click', (e) => {
   if (closeBtn && item) {
     e.stopPropagation();
     const tabId = parseInt(item.dataset.tabId, 10);
-    if (tabId) closeTab(tabId);
+    if (tabId) closeTab(tabId, item.dataset.navId);
     return;
   }
 
@@ -1915,7 +1935,7 @@ domainSectionsContainer.addEventListener('click', (e) => {
   if (closeBtn && item) {
     e.stopPropagation();
     const tabId = parseInt(item.dataset.tabId, 10);
-    if (tabId) closeTab(tabId);
+    if (tabId) closeTab(tabId, item.dataset.navId);
     return;
   }
 
@@ -1933,7 +1953,7 @@ searchResultsListEl.addEventListener('click', (e) => {
   if (closeBtn && item) {
     e.stopPropagation();
     const tabId = parseInt(item.dataset.tabId, 10);
-    if (tabId) closeTab(tabId);
+    if (tabId) closeTab(tabId, item.dataset.navId);
     return;
   }
 

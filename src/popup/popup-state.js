@@ -17,8 +17,9 @@ export function makeItemId(type, id = '') {
   return `${type}:${id}`;
 }
 
-function tabItemId(tabId) {
-  return makeItemId('tab', tabId);
+export function makeTabItemId(zone, tabId, domain = '') {
+  const context = zone === 'domain' ? `domain:${domain}` : zone;
+  return makeItemId('tab', `${context}:${tabId}`);
 }
 
 function domainItemId(domain) {
@@ -87,7 +88,7 @@ export function createInitialPopupState({
       focusedWindowId,
       snapshotLoaded: false
     },
-    scope: currentWindowOnly && focusedWindowId != null
+    scope: currentWindowOnly && isValidWindowId(focusedWindowId)
       ? { type: 'window', windowId: focusedWindowId }
       : { type: 'all', windowId: null },
     view: {
@@ -294,7 +295,7 @@ export function getVisibleNavigationItems(state) {
 
   if (state.search.query.trim()) {
     for (const { tab } of getSearchResults(state)) {
-      items.push({ id: tabItemId(tab.id), type: 'tab', tabId: tab.id, windowId: tab.windowId, zone: 'search' });
+      items.push({ id: makeTabItemId('search', tab.id), type: 'tab', tabId: tab.id, windowId: tab.windowId, zone: 'search' });
     }
     return items;
   }
@@ -304,7 +305,7 @@ export function getVisibleNavigationItems(state) {
     items.push({ id: makeItemId('section', 'media'), type: 'section', section: 'media' });
     if (state.expansion.sections.media) {
       for (const tab of playingTabs) {
-        items.push({ id: tabItemId(tab.id), type: 'tab', tabId: tab.id, windowId: tab.windowId, zone: 'media' });
+        items.push({ id: makeTabItemId('media', tab.id), type: 'tab', tabId: tab.id, windowId: tab.windowId, section: 'media', zone: 'media' });
       }
     }
   }
@@ -324,7 +325,7 @@ export function getVisibleNavigationItems(state) {
     items.push({ id: makeItemId('section', 'allTabs'), type: 'section', section: 'allTabs' });
     if (state.expansion.sections.allTabs) {
       for (const tab of getVisibleTabs(state)) {
-        items.push({ id: tabItemId(tab.id), type: 'tab', tabId: tab.id, windowId: tab.windowId, zone: 'tabs' });
+        items.push({ id: makeTabItemId('tabs', tab.id), type: 'tab', tabId: tab.id, windowId: tab.windowId, section: 'allTabs', zone: 'tabs' });
       }
     }
     return items;
@@ -336,12 +337,17 @@ export function getVisibleNavigationItems(state) {
       items.push({ id: actionItemId('move-domain', group.domain), type: 'action', action: 'move-domain', domain: group.domain });
       items.push({ id: actionItemId('close-domain', group.domain), type: 'action', action: 'close-domain', domain: group.domain });
       for (const tab of sortAudibleFirst(group.tabs)) {
-        items.push({ id: tabItemId(tab.id), type: 'tab', tabId: tab.id, windowId: tab.windowId, domain: group.domain, zone: 'domain' });
+        items.push({ id: makeTabItemId('domain', tab.id, group.domain), type: 'tab', tabId: tab.id, windowId: tab.windowId, domain: group.domain, zone: 'domain' });
       }
     }
   }
 
   return items;
+}
+
+export function getSearchNavigationItems(state) {
+  if (!state.search.query.trim()) return [];
+  return getVisibleNavigationItems(state).filter(item => item.zone === 'search');
 }
 
 export function getCursorItem(state) {
@@ -596,6 +602,29 @@ export function reducePopupState(currentState, action) {
       const currentIndex = items.findIndex(item => item.id === state.navigation.cursorId);
       const baseIndex = currentIndex >= 0 ? currentIndex : (action.type === 'NAVIGATE_NEXT' ? -1 : items.length);
       const delta = action.type === 'NAVIGATE_NEXT' ? 1 : -1;
+      const nextIndex = Math.min(Math.max(baseIndex + delta, 0), items.length - 1);
+      state.navigation.cursorId = items[nextIndex].id;
+      state.navigation.focusZone = 'content';
+      break;
+    }
+    case 'NAVIGATE_SEARCH_NEXT':
+    case 'NAVIGATE_SEARCH_PREVIOUS': {
+      const items = getSearchNavigationItems(state);
+      if (items.length === 0) break;
+      const currentIndex = items.findIndex(item => item.id === state.navigation.cursorId);
+      const isNext = action.type === 'NAVIGATE_SEARCH_NEXT';
+      if (!isNext && currentIndex === 0) {
+        state.navigation.cursorId = null;
+        state.navigation.focusZone = 'search';
+        break;
+      }
+      if (isNext && currentIndex === items.length - 1) {
+        state.navigation.cursorId = null;
+        state.navigation.focusZone = 'search';
+        break;
+      }
+      const baseIndex = currentIndex >= 0 ? currentIndex : (isNext ? -1 : items.length);
+      const delta = isNext ? 1 : -1;
       const nextIndex = Math.min(Math.max(baseIndex + delta, 0), items.length - 1);
       state.navigation.cursorId = items[nextIndex].id;
       state.navigation.focusZone = 'content';
