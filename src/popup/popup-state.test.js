@@ -7,6 +7,7 @@ import {
   getScopedTabs,
   getSearchResultTabIds,
   getSearchNavigationItems,
+  getSearchKeyboardNavigationAction,
   getTabsToCloseForAllDuplicates,
   getVisibleNavigationItems,
   isDomainExpanded,
@@ -190,6 +191,75 @@ describe('popup search and navigation', () => {
 
     state = reducePopupState(state, { type: 'NAVIGATE_SEARCH_PREVIOUS' });
     expect(getCursorItem(state)?.id).toBe(makeTabItemId('search', 1));
+  });
+
+  it('routes j and k through search-only navigation while search is active', () => {
+    let state = withTabs(tabs);
+    state = reducePopupState(state, { type: 'SET_SEARCH_QUERY', query: 'Alpha' });
+    state = reducePopupState(state, { type: 'SET_CURSOR', cursorId: makeTabItemId('search', 1) });
+
+    state = reducePopupState(state, getSearchKeyboardNavigationAction(state, 'j'));
+    expect(getCursorItem(state)?.id).toBe(makeTabItemId('search', 3));
+
+    state = reducePopupState(state, getSearchKeyboardNavigationAction(state, 'k'));
+    expect(getCursorItem(state)?.id).toBe(makeTabItemId('search', 1));
+
+    state = reducePopupState(state, getSearchKeyboardNavigationAction(state, 'k'));
+    expect(state.navigation.cursorId).toBeNull();
+    expect(state.navigation.focusZone).toBe('search');
+  });
+
+  it('returns search focus from the last result when j navigates down', () => {
+    let state = withTabs(tabs);
+    state = reducePopupState(state, { type: 'SET_SEARCH_QUERY', query: 'Alpha' });
+    state = reducePopupState(state, { type: 'SET_CURSOR', cursorId: makeTabItemId('search', 3) });
+
+    state = reducePopupState(state, getSearchKeyboardNavigationAction(state, 'j'));
+
+    expect(state.navigation.cursorId).toBeNull();
+    expect(state.navigation.focusZone).toBe('search');
+  });
+
+  it('returns search focus from the first result when k navigates up', () => {
+    let state = withTabs(tabs);
+    state = reducePopupState(state, { type: 'SET_SEARCH_QUERY', query: 'Alpha' });
+    state = reducePopupState(state, { type: 'SET_CURSOR', cursorId: makeTabItemId('search', 1) });
+
+    state = reducePopupState(state, getSearchKeyboardNavigationAction(state, 'k'));
+
+    expect(state.navigation.cursorId).toBeNull();
+    expect(state.navigation.focusZone).toBe('search');
+  });
+
+  it('does not enter browse navigation for active search with no results', () => {
+    let state = withTabs(tabs);
+    state = reducePopupState(state, { type: 'SET_SEARCH_QUERY', query: 'Nope' });
+
+    expect(getSearchNavigationItems(state)).toEqual([]);
+
+    state = reducePopupState(state, getSearchKeyboardNavigationAction(state, 'ArrowDown', { searchInputFocused: true }));
+    expect(state.navigation.cursorId).toBeNull();
+    expect(state.navigation.focusZone).toBe('search');
+
+    state = reducePopupState(state, getSearchKeyboardNavigationAction(state, 'ArrowUp', { searchInputFocused: true }));
+    expect(state.navigation.cursorId).toBeNull();
+    expect(state.navigation.focusZone).toBe('search');
+
+    state = reducePopupState(state, getSearchKeyboardNavigationAction(state, 'j'));
+    expect(state.navigation.cursorId).toBeNull();
+    expect(state.navigation.focusZone).toBe('search');
+
+    state = reducePopupState(state, getSearchKeyboardNavigationAction(state, 'k'));
+    expect(state.navigation.cursorId).toBeNull();
+    expect(state.navigation.focusZone).toBe('search');
+  });
+
+  it('does not route j or k from the search input', () => {
+    let state = withTabs(tabs);
+    state = reducePopupState(state, { type: 'SET_SEARCH_QUERY', query: 'Alpha' });
+
+    expect(getSearchKeyboardNavigationAction(state, 'j', { searchInputFocused: true })).toBeNull();
+    expect(getSearchKeyboardNavigationAction(state, 'k', { searchInputFocused: true })).toBeNull();
   });
 });
 

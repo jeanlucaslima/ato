@@ -350,6 +350,17 @@ export function getSearchNavigationItems(state) {
   return getVisibleNavigationItems(state).filter(item => item.zone === 'search');
 }
 
+export function getSearchKeyboardNavigationAction(state, key, { searchInputFocused = false } = {}) {
+  if (!state.search.query.trim()) return null;
+
+  if (key === 'ArrowDown') return { type: 'NAVIGATE_SEARCH_NEXT' };
+  if (key === 'ArrowUp') return { type: 'NAVIGATE_SEARCH_PREVIOUS' };
+  if (!searchInputFocused && key === 'j') return { type: 'NAVIGATE_SEARCH_NEXT' };
+  if (!searchInputFocused && key === 'k') return { type: 'NAVIGATE_SEARCH_PREVIOUS' };
+
+  return null;
+}
+
 export function getCursorItem(state) {
   return getVisibleNavigationItems(state).find(item => item.id === state.navigation.cursorId) || null;
 }

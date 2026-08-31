@@ -22,6 +22,7 @@ import {
   getScopedTabs,
   getSearchResults,
   getSearchNavigationItems,
+  getSearchKeyboardNavigationAction,
   getTab,
   getTabsForDomain,
   getTabsToCloseForAllDuplicates,
@@ -1761,16 +1762,16 @@ document.addEventListener('keydown', (e) => {
   }
 
   if (document.activeElement === globalSearchInputEl && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
-    const searchItems = getSearchNavigationItems(appState);
-    const items = searchItems.length > 0 ? searchItems : getVisibleActionItems();
-    if (items.length > 0) {
-      e.preventDefault();
-      globalSearchInputEl.blur();
+    if (!appState.search.query.trim()) return;
+    e.preventDefault();
 
-      const target = e.key === 'ArrowDown' ? items[0] : items[items.length - 1];
-      dispatch({ type: 'SET_CURSOR', cursorId: target.id, focusZone: 'content' });
-      applyCursorToDom();
-    }
+    const items = getSearchNavigationItems(appState);
+    if (items.length === 0) return;
+
+    globalSearchInputEl.blur();
+    const target = e.key === 'ArrowDown' ? items[0] : items[items.length - 1];
+    dispatch({ type: 'SET_CURSOR', cursorId: target.id, focusZone: 'content' });
+    applyCursorToDom();
     return;
   }
 
@@ -1799,19 +1800,12 @@ document.addEventListener('keydown', (e) => {
 
     if (e.key === 'j' || e.key === 'ArrowDown') {
       e.preventDefault();
-      if (e.key === 'ArrowDown') {
-        const items = appState.search.query ? getSearchNavigationItems(appState) : getVisibleActionItems();
-        if (items.length > 0 && appState.navigation.cursorId === items[items.length - 1].id) {
-          dispatch({ type: 'SET_CURSOR', cursorId: null, focusZone: 'search' });
-          applyCursorToDom();
-          globalSearchInputEl.focus();
-          return;
-        }
-        if (appState.search.query) {
-          dispatch({ type: 'NAVIGATE_SEARCH_NEXT' });
-          applyCursorToDom();
-          return;
-        }
+      const searchAction = getSearchKeyboardNavigationAction(appState, e.key);
+      if (searchAction) {
+        dispatch(searchAction);
+        applyCursorToDom();
+        if (appState.navigation.focusZone === 'search') globalSearchInputEl.focus();
+        return;
       }
       dispatch({ type: 'NAVIGATE_NEXT' });
       applyCursorToDom();
@@ -1820,16 +1814,11 @@ document.addEventListener('keydown', (e) => {
 
     if (e.key === 'k' || e.key === 'ArrowUp') {
       e.preventDefault();
-      const items = appState.search.query ? getSearchNavigationItems(appState) : getVisibleActionItems();
-      if (e.key === 'ArrowUp' && appState.navigation.cursorId === items[0]?.id) {
-        dispatch({ type: 'SET_CURSOR', cursorId: null, focusZone: 'search' });
+      const searchAction = getSearchKeyboardNavigationAction(appState, e.key);
+      if (searchAction) {
+        dispatch(searchAction);
         applyCursorToDom();
-        globalSearchInputEl.focus();
-        return;
-      }
-      if (e.key === 'ArrowUp' && appState.search.query) {
-        dispatch({ type: 'NAVIGATE_SEARCH_PREVIOUS' });
-        applyCursorToDom();
+        if (appState.navigation.focusZone === 'search') globalSearchInputEl.focus();
         return;
       }
       dispatch({ type: 'NAVIGATE_PREVIOUS' });
