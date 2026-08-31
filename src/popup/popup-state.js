@@ -29,6 +29,10 @@ function actionItemId(action, domain = '') {
   return makeItemId('action', `${action}:${domain}`);
 }
 
+function isValidWindowId(windowId) {
+  return Number.isFinite(windowId) && windowId >= 0;
+}
+
 function cloneSet(value) {
   return new Set(value || []);
 }
@@ -80,7 +84,8 @@ export function createInitialPopupState({
   return {
     browser: {
       tabs: new Map(),
-      focusedWindowId
+      focusedWindowId,
+      snapshotLoaded: false
     },
     scope: currentWindowOnly && focusedWindowId != null
       ? { type: 'window', windowId: focusedWindowId }
@@ -418,12 +423,14 @@ function reconcileState(state, previousItems = []) {
     state.filters.domain = null;
   }
 
-  const largeDomains = new Set(getLargeDomainGroups(state).map(group => group.domain));
-  state.expansion.domainIds = new Set([...state.expansion.domainIds].filter(domain => largeDomains.has(domain)));
-  state.expansion.collapsedDomainIds = new Set([...state.expansion.collapsedDomainIds].filter(domain => largeDomains.has(domain)));
-  for (const domain of largeDomains) {
-    if (!state.expansion.collapsedDomainIds.has(domain)) {
-      state.expansion.domainIds.add(domain);
+  if (state.browser.snapshotLoaded) {
+    const largeDomains = new Set(getLargeDomainGroups(state).map(group => group.domain));
+    state.expansion.domainIds = new Set([...state.expansion.domainIds].filter(domain => largeDomains.has(domain)));
+    state.expansion.collapsedDomainIds = new Set([...state.expansion.collapsedDomainIds].filter(domain => largeDomains.has(domain)));
+    for (const domain of largeDomains) {
+      if (!state.expansion.collapsedDomainIds.has(domain)) {
+        state.expansion.domainIds.add(domain);
+      }
     }
   }
 
@@ -470,7 +477,10 @@ export function reducePopupState(currentState, action) {
       break;
     case 'SET_BROWSER_SNAPSHOT':
       setTabs(state, action.tabs || []);
-      state.browser.focusedWindowId = action.focusedWindowId ?? state.browser.focusedWindowId;
+      state.browser.snapshotLoaded = true;
+      if (isValidWindowId(action.focusedWindowId)) {
+        state.browser.focusedWindowId = action.focusedWindowId;
+      }
       break;
     case 'SET_EXPANSION': {
       state.expansion.sections = {
@@ -487,7 +497,7 @@ export function reducePopupState(currentState, action) {
       break;
     }
     case 'SET_SCOPE':
-      state.scope = action.scope.type === 'window'
+      state.scope = action.scope.type === 'window' && isValidWindowId(action.scope.windowId)
         ? { type: 'window', windowId: action.scope.windowId }
         : { type: 'all', windowId: null };
       break;
@@ -641,6 +651,7 @@ export function reducePopupState(currentState, action) {
       state.selection.tabIds.delete(Number(action.tabId));
       break;
     case 'WINDOW_FOCUS_CHANGED':
+      if (!isValidWindowId(action.windowId)) break;
       state.browser.focusedWindowId = action.windowId;
       if (state.scope.type === 'window') {
         state.scope.windowId = action.windowId;

@@ -70,6 +70,41 @@ describe('popup state scope', () => {
     expect(state.scope).toEqual({ type: 'window', windowId: 2 });
     expect(getScopedTabs(state).map(tab => tab.id)).toEqual([3, 4]);
   });
+
+  it('ignores WINDOW_ID_NONE while current-window scope is active', () => {
+    let state = withTabs(tabs);
+    state = reducePopupState(state, { type: 'SET_SCOPE', scope: { type: 'window', windowId: 1 } });
+    state = reducePopupState(state, { type: 'WINDOW_FOCUS_CHANGED', windowId: -1 });
+
+    expect(state.browser.focusedWindowId).toBe(1);
+    expect(state.scope).toEqual({ type: 'window', windowId: 1 });
+    expect(getScopedTabs(state).map(tab => tab.id)).toEqual([1, 2]);
+
+    state = reducePopupState(state, { type: 'WINDOW_FOCUS_CHANGED', windowId: 2 });
+
+    expect(state.browser.focusedWindowId).toBe(2);
+    expect(state.scope).toEqual({ type: 'window', windowId: 2 });
+    expect(getScopedTabs(state).map(tab => tab.id)).toEqual([3, 4]);
+  });
+
+  it('keeps all-window scope while tracking valid focused-window changes', () => {
+    let state = withTabs(tabs);
+
+    state = reducePopupState(state, { type: 'WINDOW_FOCUS_CHANGED', windowId: -1 });
+    expect(state.scope).toEqual({ type: 'all', windowId: null });
+    expect(state.browser.focusedWindowId).toBe(1);
+
+    state = reducePopupState(state, { type: 'WINDOW_FOCUS_CHANGED', windowId: 2 });
+    expect(state.scope).toEqual({ type: 'all', windowId: null });
+    expect(state.browser.focusedWindowId).toBe(2);
+  });
+
+  it('does not create current-window scope from an invalid snapshot focus', () => {
+    let state = withTabs(tabs);
+    state = reducePopupState(state, { type: 'SET_SCOPE', scope: { type: 'window', windowId: -1 } });
+
+    expect(state.scope).toEqual({ type: 'all', windowId: null });
+  });
 });
 
 describe('popup search and navigation', () => {
@@ -132,6 +167,36 @@ describe('popup domains', () => {
     state = reducePopupState(state, { type: 'SET_CURSOR', cursorId: makeItemId('tab', 2) });
     state = reducePopupState(state, { type: 'NAVIGATE_PARENT' });
     expect(getCursorItem(state)?.id).toBe(makeItemId('domain', 'a.test'));
+  });
+
+  it('preserves persisted collapsed domains loaded before the browser snapshot', () => {
+    let state = createInitialPopupState({ focusedWindowId: 1, defaultBrowseView: 'domains' });
+
+    state = reducePopupState(state, {
+      type: 'SET_EXPANSION',
+      domainSectionStates: { 'a.test': false }
+    });
+
+    expect(isDomainExpanded(state, 'a.test')).toBe(false);
+
+    state = reducePopupState(state, { type: 'SET_BROWSER_SNAPSHOT', tabs: domainTabs, focusedWindowId: 1 });
+
+    expect(getLargeDomainGroups(state).map(group => group.domain)).toEqual(['a.test']);
+    expect(isDomainExpanded(state, 'a.test')).toBe(false);
+    expect(getVisibleNavigationItems(state).some(item => item.id === makeItemId('tab', 1))).toBe(false);
+  });
+
+  it('preserves persisted expanded domains loaded before the browser snapshot', () => {
+    let state = createInitialPopupState({ focusedWindowId: 1, defaultBrowseView: 'domains' });
+
+    state = reducePopupState(state, {
+      type: 'SET_EXPANSION',
+      domainSectionStates: { 'a.test': true }
+    });
+    state = reducePopupState(state, { type: 'SET_BROWSER_SNAPSHOT', tabs: domainTabs, focusedWindowId: 1 });
+
+    expect(isDomainExpanded(state, 'a.test')).toBe(true);
+    expect(getVisibleNavigationItems(state).some(item => item.id === makeItemId('tab', 1))).toBe(true);
   });
 });
 
