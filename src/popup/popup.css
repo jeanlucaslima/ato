@@ -1301,6 +1301,13 @@ body.no-stagger .tab-item {
   padding-bottom: 12px;
 }
 
+.domain-section .section-content.collapsed {
+  max-height: 0;
+  padding-bottom: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
 /* Domain Action Bar */
 .domain-action-bar {
   display: flex;
@@ -2707,9 +2714,7 @@ body.duplicate-review-open .duplicates-container > .section-header .section-titl
 .all-tabs-container .section-content,
 .all-tabs-container .section-content-inner,
 .duplicates-container .section-content,
-.duplicates-container .section-content-inner,
-.domain-section .section-content,
-.domain-section .section-content-inner {
+.duplicates-container .section-content-inner {
   display: block;
   overflow: visible;
 }
