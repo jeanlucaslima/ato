@@ -6,6 +6,12 @@ import {
   sortAudibleFirst,
   sortTabs
 } from '../shared/tab-utils.js';
+import {
+  createInitialPopupMachineState,
+  getBrowseView,
+  isDuplicateReviewMode,
+  transitionPopupMachine
+} from './popup-machine.js';
 
 const DEFAULT_SECTION_EXPANSION = {
   media: true,
@@ -51,6 +57,10 @@ function cloneState(state) {
     },
     scope: { ...state.scope },
     view: { ...state.view },
+    ui: {
+      ...state.ui,
+      machine: { ...(state.ui?.machine || createInitialPopupMachineState({ defaultBrowseView: state.view?.type })) }
+    },
     search: { ...state.search },
     navigation: { ...state.navigation },
     expansion: {
@@ -93,6 +103,9 @@ export function createInitialPopupState({
       : { type: 'all', windowId: null },
     view: {
       type: defaultBrowseView === 'domains' ? 'domains' : 'tabs'
+    },
+    ui: {
+      machine: createInitialPopupMachineState({ defaultBrowseView })
     },
     search: {
       query: '',
@@ -493,11 +506,16 @@ export function reducePopupState(currentState, action) {
       state.protectPinned = action.settings.protectPinned;
       state.protectGroups = action.settings.protectGroups;
       state.search.mode = action.settings.defaultSearchMode || state.search.mode;
-      state.view.type = action.settings.defaultBrowseView === 'domains' ? 'domains' : 'tabs';
+      state.ui.machine = transitionPopupMachine(state.ui.machine, {
+        type: 'SET_VIEW',
+        view: action.settings.defaultBrowseView
+      });
+      state.view.type = getBrowseView(state.ui.machine);
       break;
     case 'SET_BROWSER_SNAPSHOT':
       setTabs(state, action.tabs || []);
       state.browser.snapshotLoaded = true;
+      state.ui.machine = transitionPopupMachine(state.ui.machine, { type: 'SNAPSHOT_LOADED' });
       if (isValidWindowId(action.focusedWindowId)) {
         state.browser.focusedWindowId = action.focusedWindowId;
       }
@@ -522,10 +540,15 @@ export function reducePopupState(currentState, action) {
         : { type: 'all', windowId: null };
       break;
     case 'SET_VIEW':
-      state.view.type = action.view === 'domains' ? 'domains' : 'tabs';
+      state.ui.machine = transitionPopupMachine(state.ui.machine, { type: 'SET_VIEW', view: action.view });
+      state.view.type = getBrowseView(state.ui.machine);
       break;
     case 'SET_SEARCH_QUERY':
       state.search.query = action.query || '';
+      state.ui.machine = transitionPopupMachine(state.ui.machine, {
+        type: 'SEARCH_CHANGED',
+        query: state.search.query
+      });
       break;
     case 'CLEAR_SEARCH':
       state.search.query = '';
@@ -533,6 +556,8 @@ export function reducePopupState(currentState, action) {
       state.search.mode = action.defaultMode || state.search.mode;
       state.navigation.focusZone = 'search';
       state.navigation.cursorId = null;
+      state.ui.machine = transitionPopupMachine(state.ui.machine, { type: 'CLEAR_SEARCH' });
+      state.view.type = getBrowseView(state.ui.machine);
       break;
     case 'SET_SEARCH_FIELD':
       state.search.field = action.field === 'url' || action.field === 'title' ? action.field : 'all';
@@ -543,8 +568,15 @@ export function reducePopupState(currentState, action) {
     case 'SET_DOMAIN_FILTER':
       state.filters.domain = action.domain || null;
       break;
+    case 'OPEN_DOMAIN_FILTER':
+    case 'CLOSE_DOMAIN_FILTER':
+      state.ui.machine = transitionPopupMachine(state.ui.machine, { type: action.type });
+      break;
     case 'SET_DUPLICATE_REVIEW':
-      state.duplicateReviewOpen = Boolean(action.open);
+      state.ui.machine = transitionPopupMachine(state.ui.machine, {
+        type: action.open ? 'REVIEW_DUPLICATES' : 'EXIT_DUPLICATES_REVIEW'
+      });
+      state.duplicateReviewOpen = isDuplicateReviewMode(state.ui.machine);
       if (state.duplicateReviewOpen) state.expansion.sections.duplicates = true;
       break;
     case 'TOGGLE_SECTION':

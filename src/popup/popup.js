@@ -11,6 +11,17 @@ import {
 import { applyFont } from '../shared/font-config.js';
 import { initLogger, log, error } from '../shared/logger.js';
 import {
+  getBrowseView,
+  isDomainFilterOpen,
+  isDuplicateReviewMode,
+  isSearchMode
+} from './popup-machine.js';
+import {
+  bindDuplicateGroupListClicks,
+  bindTabListClicks
+} from './popup-list-events.js';
+import { getPopupElements } from './popup-dom.js';
+import {
   createInitialPopupState,
   filterCloseableTabs,
   getCursorItem,
@@ -31,6 +42,7 @@ import {
   getVisibleNavigationItems as getStateNavigationItems,
   getVisibleTabs,
   isDomainExpanded,
+  isBrowserUrl,
   makeItemId,
   makeTabItemId,
   reducePopupState,
@@ -40,70 +52,65 @@ import {
 
 log('🎨 ATO popup loaded');
 
-// DOM Elements
-const totalTabsEl = document.getElementById('total-tabs');
-const duplicateCountEl = document.getElementById('duplicate-count');
-const domainCountEl = document.getElementById('domain-count');
-const statsSummaryEl = document.getElementById('stats-summary');
-const duplicateListEl = document.getElementById('duplicate-list');
-const allTabsListEl = document.getElementById('all-tabs-list');
-const emptyStateEl = document.getElementById('empty-state');
-const closeAllBtn = document.getElementById('close-all-btn');
-const reviewDuplicatesBtn = document.getElementById('review-duplicates-btn');
-const exitDuplicatesReviewBtn = document.getElementById('exit-duplicates-review-btn');
-const domainFilterInputEl = document.getElementById('domain-filter-input');
-const domainFilterClearEl = document.getElementById('domain-filter-clear');
-const domainFilterDropdownEl = document.getElementById('domain-filter-dropdown');
-const sortButtonsEl = document.getElementById('sort-buttons');
-const duplicatesSortButtonsEl = document.getElementById('duplicates-sort-buttons');
-const undoDuplicatesBtn = document.getElementById('undo-duplicates-btn');
-const undoRowEl = document.getElementById('undo-row');
-const undoMessageEl = document.getElementById('undo-message');
-const pinnedWarningEl = document.getElementById('pinned-warning');
-const pinnedSkipCountEl = document.getElementById('pinned-skip-count');
-const browserWarningEl = document.getElementById('browser-warning');
-const browserSkipCountEl = document.getElementById('browser-skip-count');
-const optionsBtn = document.getElementById('options-btn');
-const scopeBtn = document.getElementById('scope-btn');
-const scopeLabel = document.getElementById('scope-label');
-
-// Global search elements
-const globalSearchInputEl = document.getElementById('global-search-input');
-const globalSearchClearEl = document.getElementById('global-search-clear');
-const searchResultsCountEl = document.getElementById('search-results-count');
-const searchModeChipEl = document.getElementById('search-mode-chip');
-const searchModeChipLabelEl = document.getElementById('search-mode-chip-label');
-const searchModeChipRemoveEl = document.getElementById('search-mode-chip-remove');
-const searchFieldControlsEl = document.getElementById('search-field-controls');
-const searchPrecisionControlsEl = document.getElementById('search-precision-controls');
-
-// Collapsible section elements
-const mediaContainerEl = document.getElementById('media-container');
-const mediaHeaderEl = document.getElementById('media-header');
-const mediaContentEl = document.getElementById('media-content');
-const mediaSectionCountEl = document.getElementById('media-section-count');
-const mediaListEl = document.getElementById('media-list');
-const duplicatesHeaderEl = document.getElementById('duplicates-header');
-const duplicatesContentEl = document.getElementById('duplicates-content');
-const duplicatesSectionCountEl = document.getElementById('duplicates-section-count');
-const allTabsHeaderEl = document.getElementById('all-tabs-header');
-const allTabsContentEl = document.getElementById('all-tabs-content');
-const allTabsSectionCountEl = document.getElementById('all-tabs-section-count');
-const domainSectionsContainer = document.getElementById('domain-sections-container');
-const domainSortBarEl = document.getElementById('domain-sort-bar');
-const domainSortButtonsEl = document.getElementById('domain-sort-buttons');
-
-// Search results section elements
-const searchResultsContainerEl = document.getElementById('search-results-container');
-const searchResultsListEl = document.getElementById('search-results-list');
-const searchResultsSectionCountEl = document.getElementById('search-results-section-count');
-const searchEmptyStateEl = document.getElementById('search-empty-state');
-const closeSearchResultsBtn = document.getElementById('close-search-results-btn');
-const moveSearchResultsBtn = document.getElementById('move-search-results-btn');
-const browseTabsEl = document.querySelector('.browse-tabs');
-const browseTabButtons = document.querySelectorAll('.browse-tab');
-const duplicatesSummaryPrimaryEl = document.getElementById('duplicates-summary-primary');
-const duplicatesSummarySecondaryEl = document.getElementById('duplicates-summary-secondary');
+const {
+  totalTabsEl,
+  duplicateCountEl,
+  domainCountEl,
+  statsSummaryEl,
+  duplicateListEl,
+  allTabsListEl,
+  emptyStateEl,
+  closeAllBtn,
+  reviewDuplicatesBtn,
+  exitDuplicatesReviewBtn,
+  domainFilterInputEl,
+  domainFilterClearEl,
+  domainFilterDropdownEl,
+  sortButtonsEl,
+  duplicatesSortButtonsEl,
+  undoDuplicatesBtn,
+  undoRowEl,
+  undoMessageEl,
+  pinnedWarningEl,
+  pinnedSkipCountEl,
+  browserWarningEl,
+  browserSkipCountEl,
+  optionsBtn,
+  scopeBtn,
+  scopeLabel,
+  globalSearchInputEl,
+  globalSearchClearEl,
+  searchResultsCountEl,
+  searchModeChipEl,
+  searchModeChipLabelEl,
+  searchModeChipRemoveEl,
+  searchFieldControlsEl,
+  searchPrecisionControlsEl,
+  mediaContainerEl,
+  mediaHeaderEl,
+  mediaContentEl,
+  mediaSectionCountEl,
+  mediaListEl,
+  duplicatesHeaderEl,
+  duplicatesContentEl,
+  duplicatesSectionCountEl,
+  allTabsHeaderEl,
+  allTabsContentEl,
+  allTabsSectionCountEl,
+  domainSectionsContainer,
+  domainSortBarEl,
+  domainSortButtonsEl,
+  searchResultsContainerEl,
+  searchResultsListEl,
+  searchResultsSectionCountEl,
+  searchEmptyStateEl,
+  closeSearchResultsBtn,
+  moveSearchResultsBtn,
+  browseTabsEl,
+  browseTabButtons,
+  duplicatesSummaryPrimaryEl,
+  duplicatesSummarySecondaryEl
+} = getPopupElements();
 
 // Settings (loaded from chrome.storage.sync)
 let settings = {
@@ -1074,17 +1081,6 @@ function switchToTab(tabId, windowId) {
   });
 }
 
-/**
- * Checks if a URL is a browser internal page (chrome://, edge://).
- * These pages cannot be closed by extensions due to Chrome security restrictions.
- *
- * @param {string} url - The URL to check
- * @returns {boolean} True if the URL is a browser internal page
- */
-function isBrowserUrl(url) {
-  return url && (url.startsWith('chrome://') || url.startsWith('edge://'));
-}
-
 // Close a single tab with animation
 async function closeTab(tabId, navigationId = null) {
   try {
@@ -1331,11 +1327,13 @@ function clearDomainFilter() {
 function showDomainDropdown() {
   const query = appState.filters.domain ? '' : domainFilterInputEl.value;
   renderDomainDropdownOptions(query);
+  dispatch({ type: 'OPEN_DOMAIN_FILTER' });
   domainFilterDropdownEl.classList.remove('hidden');
 }
 
 // Hide dropdown
 function hideDomainDropdown() {
+  dispatch({ type: 'CLOSE_DOMAIN_FILTER' });
   domainFilterDropdownEl.classList.add('hidden');
 }
 
@@ -1347,6 +1345,9 @@ function hideDomainDropdown() {
 function render() {
   const tabs = getScopedTabs(appState);
   const duplicates = getDuplicateTabs(appState);
+  const searching = isSearchMode(appState.ui.machine);
+  const duplicateReviewOpen = isDuplicateReviewMode(appState.ui.machine);
+  const browseView = getBrowseView(appState.ui.machine);
   // Play the staggered slide-in only on the first render (initial popup open).
   // Re-renders (closing a tab, sorting, etc.) skip it so the list doesn't
   // re-animate every item — which is disruptive when a small group collapses.
@@ -1362,7 +1363,7 @@ function render() {
 
   const stateSearchResults = getSearchResults(appState);
   const urlCounts = getUrlCounts(appState);
-  if (appState.search.query) {
+  if (searching) {
     document.body.classList.add('search-active');
     document.body.classList.add('searching');
     document.body.dataset.searchQuery = appState.search.query;
@@ -1460,7 +1461,7 @@ function render() {
   duplicatesSortButtonsEl.querySelectorAll('.btn-toggle').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.sort === appState.sort.duplicate);
   });
-  duplicatesSortButtonsEl.classList.toggle('hidden', !appState.duplicateReviewOpen);
+  duplicatesSortButtonsEl.classList.toggle('hidden', !duplicateReviewOpen);
 
   // Clear lists
   duplicateListEl.innerHTML = '';
@@ -1468,7 +1469,7 @@ function render() {
 
   // Render duplicates section
   if (duplicates.length === 0) {
-    if (appState.duplicateReviewOpen) dispatch({ type: 'SET_DUPLICATE_REVIEW', open: false });
+    if (duplicateReviewOpen) dispatch({ type: 'SET_DUPLICATE_REVIEW', open: false });
     document.body.classList.remove('duplicate-review-open');
     duplicatesSummaryPrimaryEl.textContent = '00';
     duplicatesSummarySecondaryEl.textContent = 'duplicates';
@@ -1484,10 +1485,10 @@ function render() {
     browserTabsSkipped = 0;
   } else {
     // Show duplicates
-    duplicateListEl.style.display = appState.duplicateReviewOpen ? 'flex' : 'none';
-    document.body.classList.toggle('duplicate-review-open', appState.duplicateReviewOpen);
-    reviewDuplicatesBtn.classList.toggle('hidden', appState.duplicateReviewOpen);
-    exitDuplicatesReviewBtn.classList.toggle('hidden', !appState.duplicateReviewOpen);
+    duplicateListEl.style.display = duplicateReviewOpen ? 'flex' : 'none';
+    document.body.classList.toggle('duplicate-review-open', duplicateReviewOpen);
+    reviewDuplicatesBtn.classList.toggle('hidden', duplicateReviewOpen);
+    exitDuplicatesReviewBtn.classList.toggle('hidden', !duplicateReviewOpen);
     emptyStateEl.style.display = 'none';
 
     // Show warning if there are protected tabs (pinned or grouped) in duplicate groups
@@ -1573,10 +1574,10 @@ function render() {
     domainSectionsContainer.appendChild(section);
   });
 
-  document.body.classList.toggle('browse-domains', appState.view.type === 'domains');
-  document.body.classList.toggle('browse-tabs-view', appState.view.type === 'tabs');
-  browseTabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.view === appState.view.type));
-  exitDuplicatesReviewBtn.classList.toggle('hidden', !appState.duplicateReviewOpen);
+  document.body.classList.toggle('browse-domains', browseView === 'domains');
+  document.body.classList.toggle('browse-tabs-view', browseView === 'tabs');
+  browseTabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.view === browseView));
+  exitDuplicatesReviewBtn.classList.toggle('hidden', !duplicateReviewOpen);
 
   // Restore scroll positions after DOM updates
   requestAnimationFrame(() => {
@@ -1875,93 +1876,11 @@ document.addEventListener('keydown', (e) => {
 // Delegated event listeners for tab lists (performance optimization)
 // Handles clicks on tab items and close buttons without per-item handlers
 
-duplicateListEl.addEventListener('click', (e) => {
-  const closeBtn = e.target.closest('.tab-close');
-  const item = e.target.closest('.tab-item');
-
-  if (closeBtn && item) {
-    e.stopPropagation();
-    const url = item.dataset.url;
-    if (url) closeDuplicatesOfUrl(url);
-    return;
-  }
-
-  if (item) {
-    e.preventDefault();
-  }
-});
-
-allTabsListEl.addEventListener('click', (e) => {
-  const closeBtn = e.target.closest('.tab-close');
-  const item = e.target.closest('.tab-item');
-
-  if (closeBtn && item) {
-    e.stopPropagation();
-    const tabId = parseInt(item.dataset.tabId, 10);
-    if (tabId) closeTab(tabId, item.dataset.navId);
-    return;
-  }
-
-  if (item) {
-    const tabId = parseInt(item.dataset.tabId, 10);
-    const windowId = parseInt(item.dataset.windowId, 10);
-    if (tabId) switchToTab(tabId, windowId);
-  }
-});
-
-mediaListEl.addEventListener('click', (e) => {
-  const closeBtn = e.target.closest('.tab-close');
-  const item = e.target.closest('.tab-item');
-
-  if (closeBtn && item) {
-    e.stopPropagation();
-    const tabId = parseInt(item.dataset.tabId, 10);
-    if (tabId) closeTab(tabId, item.dataset.navId);
-    return;
-  }
-
-  if (item) {
-    const tabId = parseInt(item.dataset.tabId, 10);
-    const windowId = parseInt(item.dataset.windowId, 10);
-    if (tabId) switchToTab(tabId, windowId);
-  }
-});
-
-domainSectionsContainer.addEventListener('click', (e) => {
-  const closeBtn = e.target.closest('.tab-close');
-  const item = e.target.closest('.tab-item');
-
-  if (closeBtn && item) {
-    e.stopPropagation();
-    const tabId = parseInt(item.dataset.tabId, 10);
-    if (tabId) closeTab(tabId, item.dataset.navId);
-    return;
-  }
-
-  if (item) {
-    const tabId = parseInt(item.dataset.tabId, 10);
-    const windowId = parseInt(item.dataset.windowId, 10);
-    if (tabId) switchToTab(tabId, windowId);
-  }
-});
-
-searchResultsListEl.addEventListener('click', (e) => {
-  const closeBtn = e.target.closest('.tab-close');
-  const item = e.target.closest('.tab-item');
-
-  if (closeBtn && item) {
-    e.stopPropagation();
-    const tabId = parseInt(item.dataset.tabId, 10);
-    if (tabId) closeTab(tabId, item.dataset.navId);
-    return;
-  }
-
-  if (item) {
-    const tabId = parseInt(item.dataset.tabId, 10);
-    const windowId = parseInt(item.dataset.windowId, 10);
-    if (tabId) switchToTab(tabId, windowId);
-  }
-});
+bindDuplicateGroupListClicks(duplicateListEl, { onCloseDuplicates: closeDuplicatesOfUrl });
+bindTabListClicks(allTabsListEl, { onCloseTab: closeTab, onSwitchTab: switchToTab });
+bindTabListClicks(mediaListEl, { onCloseTab: closeTab, onSwitchTab: switchToTab });
+bindTabListClicks(domainSectionsContainer, { onCloseTab: closeTab, onSwitchTab: switchToTab });
+bindTabListClicks(searchResultsListEl, { onCloseTab: closeTab, onSwitchTab: switchToTab });
 
 // Domain filter event listeners
 domainFilterInputEl.addEventListener('focus', () => {
@@ -1986,7 +1905,7 @@ domainFilterInputEl.addEventListener('input', (e) => {
 });
 
 domainFilterInputEl.addEventListener('keydown', (e) => {
-  const isDropdownVisible = !domainFilterDropdownEl.classList.contains('hidden');
+  const isDropdownVisible = isDomainFilterOpen(appState.ui.machine);
 
   if (!isDropdownVisible) return;
 
