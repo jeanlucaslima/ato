@@ -2,11 +2,8 @@
 // Displays duplicate tabs and handles user actions
 
 import {
-  formatTimeAgo,
   normalizeUrl,
-  sortAudibleFirst,
-  highlightMatches,
-  isLoadableFavicon
+  sortAudibleFirst
 } from '../shared/tab-utils.js';
 import { applyFont } from '../shared/font-config.js';
 import { initLogger, log, error } from '../shared/logger.js';
@@ -21,6 +18,11 @@ import {
   bindTabListClicks
 } from './popup-list-events.js';
 import { getPopupElements } from './popup-dom.js';
+import {
+  createDomainSection,
+  createGroupedDuplicateItem,
+  createTabItem
+} from './popup-render-elements.js';
 import {
   createInitialPopupState,
   filterCloseableTabs,
@@ -674,261 +676,6 @@ async function moveSearchResultsToWindow() {
   }
 }
 
-// Create a domain section element
-function createDomainSection(domain, tabs, urlCounts) {
-  const isExpanded = isDomainExpanded(appState, domain);
-
-  const section = document.createElement('div');
-  section.className = 'domain-section';
-
-  // Create header (same structure as main section headers)
-  const header = document.createElement('button');
-  header.className = 'section-header';
-  header.setAttribute('data-domain', domain);
-  header.setAttribute('aria-expanded', isExpanded);
-  header.onclick = () => toggleDomainSection(domain);
-
-  // Arrow
-  const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  arrow.setAttribute('class', 'fold-arrow');
-  arrow.setAttribute('width', '12');
-  arrow.setAttribute('height', '12');
-  arrow.setAttribute('viewBox', '0 0 12 12');
-  arrow.setAttribute('fill', 'currentColor');
-  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  path.setAttribute('d', 'M4 2l4 4-4 4V2z');
-  arrow.appendChild(path);
-
-  // Domain name (styled as section title)
-  const domainName = document.createElement('h2');
-  domainName.className = 'section-title';
-  domainName.textContent = domain;
-
-  // Count badge
-  const count = document.createElement('span');
-  count.className = 'section-count';
-  count.textContent = tabs.length;
-
-  header.appendChild(arrow);
-  header.appendChild(domainName);
-  header.appendChild(count);
-
-  // Create content container
-  const content = document.createElement('div');
-  content.className = 'section-content';
-  content.id = `domain-content-${domain}`;
-  if (!isExpanded) {
-    content.classList.add('collapsed');
-  }
-
-  // Inner wrapper for grid animation
-  const contentInner = document.createElement('div');
-  contentInner.className = 'section-content-inner';
-
-  // Action bar with buttons
-  const actionBar = document.createElement('div');
-  actionBar.className = 'domain-action-bar';
-
-  const moveBtn = document.createElement('button');
-  moveBtn.className = 'btn-action btn-accent btn-small';
-  moveBtn.dataset.action = 'move-domain';
-  moveBtn.dataset.domain = domain;
-  moveBtn.title = `Move all tabs from ${domain} to a new window`;
-  moveBtn.innerHTML = `
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-        <line x1="9" y1="3" x2="9" y2="21"/>
-      </svg>
-      <span>Move to window</span>
-    `;
-  moveBtn.onclick = (e) => {
-    e.stopPropagation();
-    moveTabsFromDomainToWindow(domain);
-  };
-  actionBar.appendChild(moveBtn);
-
-  const closeBtn = document.createElement('button');
-  closeBtn.className = 'btn-action btn-danger btn-small';
-  closeBtn.dataset.action = 'close-domain';
-  closeBtn.dataset.domain = domain;
-  closeBtn.title = `Close all tabs from ${domain}`;
-  closeBtn.innerHTML = `
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-    </svg>
-    <span>Close all</span>
-  `;
-  closeBtn.onclick = (e) => {
-    e.stopPropagation();
-    closeTabsFromDomain(domain);
-  };
-
-  actionBar.appendChild(closeBtn);
-
-  // Tab list container
-  const tabList = document.createElement('div');
-  tabList.className = 'domain-tabs-list';
-
-  // Add tabs, floating any tab playing media to the top of the group
-  sortAudibleFirst(tabs).forEach((tab, index) => {
-    const dupCount = urlCounts.get(normalizeUrl(tab.url, settings.matchMode)) || 0;
-    const item = createTabItem(tab, dupCount, index, null, makeTabItemId('domain', tab.id, domain));
-    tabList.appendChild(item);
-  });
-
-  contentInner.appendChild(actionBar);
-  contentInner.appendChild(tabList);
-  content.appendChild(contentInner);
-  section.appendChild(header);
-  section.appendChild(content);
-
-  return section;
-}
-
-/**
- * Creates a "playing media" indicator icon for an audible tab.
- *
- * @returns {HTMLSpanElement} A span containing a speaker SVG icon
- */
-function createMediaIcon() {
-  const span = document.createElement('span');
-  span.className = 'tab-media-icon';
-  span.title = 'Playing media';
-  span.innerHTML = `
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M11 5 6 9H2v6h4l5 4V5z"/>
-      <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-      <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
-    </svg>
-  `;
-  return span;
-}
-
-/**
- * Creates a favicon <img> for a tab, shared by every render path.
- *
- * Sets the favicon src when the URL is loadable, otherwise renders the
- * placeholder directly. An `error` handler falls back to the same placeholder
- * appearance when the image fails to load (e.g. cross-origin/CORP-blocked, 404),
- * so a broken-image glyph is never shown. The handler clears its own reference
- * and the broken src so it cannot loop.
- *
- * @param {string} [favIconUrl] - The tab's favicon URL
- * @returns {HTMLImageElement} The favicon element
- */
-function createFaviconElement(favIconUrl) {
-  const favicon = document.createElement('img');
-  favicon.className = 'tab-favicon';
-  favicon.alt = '';
-
-  if (isLoadableFavicon(favIconUrl)) {
-    favicon.loading = 'lazy';
-    favicon.onerror = () => {
-      favicon.onerror = null;
-      favicon.removeAttribute('src');
-      favicon.className = 'tab-favicon placeholder';
-    };
-    favicon.src = favIconUrl;
-  } else {
-    favicon.className = 'tab-favicon placeholder';
-  }
-
-  return favicon;
-}
-
-/**
- * Creates a DOM element for a grouped duplicate row.
- * Shows one row per URL with count badge and close button to close all duplicates.
- * Supports fuzzy match highlighting when matchResult is provided.
- *
- * @param {Object} group - The grouped duplicate data
- * @param {string} group.url - The duplicate URL
- * @param {Object[]} group.tabs - Array of duplicate tabs
- * @param {Object} group.representative - Representative tab for display
- * @param {number} group.totalCount - Total tabs with this URL
- * @param {number} [index=0] - Index for staggered animation
- * @param {Object} [matchResult=null] - Fuzzy match result for highlighting
- * @returns {HTMLDivElement} The grouped duplicate item element
- */
-function createGroupedDuplicateItem(group, index = 0, matchResult = null) {
-  const { url, tabs: duplicateTabs, representative, totalCount } = group;
-
-  const item = document.createElement('div');
-  item.className = 'tab-item duplicate-group-item';
-  if (duplicateTabs.some(t => t.audible)) {
-    item.classList.add('is-audible');
-  }
-  if (representative.active) {
-    item.classList.add('is-current');
-  }
-  if (representative.pinned) {
-    item.classList.add('is-pinned');
-  }
-  if (representative.discarded) {
-    item.classList.add('is-discarded');
-  }
-  item.dataset.url = url;
-  item.dataset.tabId = representative.id;
-  item.dataset.windowId = representative.windowId;
-  item.style.setProperty('--item-index', index);
-
-  // Favicon
-  const favicon = createFaviconElement(representative.favIconUrl);
-
-  // Tab info container
-  const info = document.createElement('div');
-  info.className = 'tab-info';
-
-  // Title - with optional highlighting
-  const title = document.createElement('div');
-  title.className = 'tab-title';
-  const titleText = representative.title || 'Untitled';
-  if (matchResult?.matches?.title) {
-    title.innerHTML = highlightMatches(titleText, matchResult.matches.title.indices);
-  } else {
-    title.textContent = titleText;
-  }
-  title.title = titleText;
-
-  // URL - with optional highlighting
-  const urlEl = document.createElement('div');
-  urlEl.className = 'tab-url';
-  if (matchResult?.matches?.url) {
-    urlEl.innerHTML = highlightMatches(url, matchResult.matches.url.indices);
-  } else {
-    urlEl.textContent = url;
-  }
-  urlEl.title = url;
-
-  info.appendChild(title);
-  info.appendChild(urlEl);
-
-  // Count badge (shows total tabs with this URL)
-  const badge = document.createElement('span');
-  badge.className = 'duplicate-badge';
-  badge.textContent = `×${totalCount}`;
-  badge.title = `${totalCount} tabs with this URL`;
-
-  // Close button (handled via event delegation)
-  const closeBtn = document.createElement('button');
-  closeBtn.className = 'tab-close';
-  closeBtn.textContent = '×';
-  closeBtn.title = `Close ${duplicateTabs.length} duplicate(s)`;
-
-  item.appendChild(favicon);
-  item.appendChild(info);
-
-  // Media indicator if any tab sharing this URL is playing media
-  if (duplicateTabs.some(t => t.audible)) {
-    item.appendChild(createMediaIcon());
-  }
-
-  item.appendChild(badge);
-  item.appendChild(closeBtn);
-
-  return item;
-}
-
 /**
  * Closes all duplicate tabs of a specific URL, keeping one original.
  *
@@ -969,109 +716,6 @@ async function closeDuplicatesOfUrl(url) {
   } catch (err) {
     error('❌ Error closing duplicates:', err);
   }
-}
-
-/**
- * Creates a DOM element for a single tab item.
- * Includes favicon, title, URL, age indicator, duplicate badge, and close button.
- * Supports fuzzy match highlighting when matchResult is provided.
- *
- * @param {Object} tab - The tab data from Chrome API
- * @param {number} tab.id - Tab identifier
- * @param {string} [tab.url] - Tab URL
- * @param {string} [tab.title] - Tab title
- * @param {string} [tab.favIconUrl] - Favicon URL
- * @param {number} [tab.lastAccessed] - Last accessed timestamp
- * @param {number} [tab.windowId] - Window containing this tab
- * @param {number} [duplicateCount=0] - Number of tabs with this URL
- * @param {number} [index=0] - Index for staggered animation
- * @param {Object} [matchResult=null] - Fuzzy match result for highlighting
- * @returns {HTMLDivElement} The tab item element
- */
-function createTabItem(tab, duplicateCount = 0, index = 0, matchResult = null, navigationId = null) {
-  const item = document.createElement('div');
-  item.className = 'tab-item';
-  if (tab.audible) {
-    item.classList.add('is-audible');
-  }
-  if (tab.active) {
-    item.classList.add('is-current');
-  }
-  if (tab.pinned) {
-    item.classList.add('is-pinned');
-  }
-  if (tab.discarded) {
-    item.classList.add('is-discarded');
-  }
-  item.dataset.tabId = tab.id;
-  item.dataset.windowId = tab.windowId;
-  if (navigationId) item.dataset.navId = navigationId;
-  item.style.setProperty('--item-index', index);
-
-  // Favicon
-  const favicon = createFaviconElement(tab.favIconUrl);
-
-  // Tab info container
-  const info = document.createElement('div');
-  info.className = 'tab-info';
-
-  // Title - with optional highlighting
-  const title = document.createElement('div');
-  title.className = 'tab-title';
-  const titleText = tab.title || 'Untitled';
-  if (matchResult?.matches?.title) {
-    title.innerHTML = highlightMatches(titleText, matchResult.matches.title.indices);
-  } else {
-    title.textContent = titleText;
-  }
-  title.title = titleText;
-
-  // URL - with optional highlighting
-  const url = document.createElement('div');
-  url.className = 'tab-url';
-  if (matchResult?.matches?.url) {
-    url.innerHTML = highlightMatches(tab.url || '', matchResult.matches.url.indices);
-  } else {
-    url.textContent = tab.url;
-  }
-  url.title = tab.url;
-
-  info.appendChild(title);
-  info.appendChild(url);
-
-  // Close button (handled via event delegation)
-  const closeBtn = document.createElement('button');
-  closeBtn.className = 'tab-close';
-  closeBtn.textContent = '×';
-  closeBtn.title = 'Close this tab';
-
-  item.appendChild(favicon);
-  item.appendChild(info);
-
-  // Media indicator if this tab is playing media
-  if (tab.audible) {
-    item.appendChild(createMediaIcon());
-  }
-
-  // Age indicator
-  const age = document.createElement('span');
-  age.className = 'tab-age';
-  age.textContent = formatTimeAgo(tab.lastAccessed);
-  age.title = tab.lastAccessed ? new Date(tab.lastAccessed).toLocaleString() : 'Unknown';
-  item.appendChild(age);
-
-  // Duplicate count badge (if count > 1)
-  if (duplicateCount > 1) {
-    const badge = document.createElement('span');
-    badge.className = 'duplicate-badge';
-    badge.textContent = `×${duplicateCount}`;
-    badge.title = `${duplicateCount} tabs with this URL`;
-    item.appendChild(badge);
-  }
-
-  item.appendChild(closeBtn);
-
-  return item;
 }
 
 // Switch to a tab
@@ -1570,7 +1214,13 @@ function render() {
 
   // Render each domain section
   largeDomains.forEach(({ domain, tabs: domainTabs }) => {
-    const section = createDomainSection(domain, domainTabs, urlCounts);
+    const section = createDomainSection(domain, domainTabs, urlCounts, {
+      isExpanded: isDomainExpanded(appState, domain),
+      matchMode: settings.matchMode,
+      onToggleDomain: toggleDomainSection,
+      onMoveDomain: moveTabsFromDomainToWindow,
+      onCloseDomain: closeTabsFromDomain
+    });
     domainSectionsContainer.appendChild(section);
   });
 
