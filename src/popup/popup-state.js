@@ -310,10 +310,13 @@ export function getVisibleNavigationItems(state) {
     }
   }
 
-  items.push({ id: makeItemId('section', 'duplicates'), type: 'section', section: 'duplicates' });
-  if (state.expansion.sections.duplicates && state.duplicateReviewOpen) {
-    for (const group of getDuplicateGroups(state)) {
-      items.push({ id: makeItemId('duplicate', group.url), type: 'duplicate', url: group.url });
+  const duplicateTabs = getDuplicateTabs(state);
+  if (duplicateTabs.length > 0) {
+    items.push({ id: makeItemId('section', 'duplicates'), type: 'section', section: 'duplicates' });
+    if (state.expansion.sections.duplicates && state.duplicateReviewOpen) {
+      for (const group of getDuplicateGroups(state)) {
+        items.push({ id: makeItemId('duplicate', group.url), type: 'duplicate', url: group.url });
+      }
     }
   }
 

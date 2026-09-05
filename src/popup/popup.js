@@ -1762,15 +1762,20 @@ document.addEventListener('keydown', (e) => {
   }
 
   if (document.activeElement === globalSearchInputEl && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
-    if (!appState.search.query.trim()) return;
     e.preventDefault();
 
-    const items = getSearchNavigationItems(appState);
-    if (items.length === 0) return;
-
     globalSearchInputEl.blur();
-    const target = e.key === 'ArrowDown' ? items[0] : items[items.length - 1];
-    dispatch({ type: 'SET_CURSOR', cursorId: target.id, focusZone: 'content' });
+
+    if (appState.search.query.trim()) {
+      const items = getSearchNavigationItems(appState);
+      if (items.length === 0) return;
+
+      const target = e.key === 'ArrowDown' ? items[0] : items[items.length - 1];
+      dispatch({ type: 'SET_CURSOR', cursorId: target.id, focusZone: 'content' });
+    } else {
+      dispatch({ type: e.key === 'ArrowDown' ? 'NAVIGATE_NEXT' : 'NAVIGATE_PREVIOUS' });
+    }
+
     applyCursorToDom();
     return;
   }

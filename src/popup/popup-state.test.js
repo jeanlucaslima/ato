@@ -286,6 +286,22 @@ describe('popup domains', () => {
     expect(getCursorItem(state)?.id).toBe(makeItemId('domain', 'a.test'));
   });
 
+  it('enters the domain list after switching to domains from keyboard navigation', () => {
+    let state = withTabs(domainTabs, { view: 'tabs' });
+
+    state = reducePopupState(state, { type: 'NAVIGATE_NEXT' });
+    expect(getCursorItem(state)?.id).toBe(makeItemId('view', 'tabs'));
+
+    state = reducePopupState(state, { type: 'NAVIGATE_NEXT' });
+    expect(getCursorItem(state)?.id).toBe(makeItemId('view', 'domains'));
+
+    state = reducePopupState(state, { type: 'NAVIGATE_CHILD' });
+    expect(state.view.type).toBe('domains');
+
+    state = reducePopupState(state, { type: 'NAVIGATE_NEXT' });
+    expect(getCursorItem(state)?.id).toBe(makeItemId('domain', 'a.test'));
+  });
+
   it('preserves persisted collapsed domains loaded before the browser snapshot', () => {
     let state = createInitialPopupState({ focusedWindowId: 1, defaultBrowseView: 'domains' });
 
@@ -337,7 +353,7 @@ describe('popup navigation identity', () => {
     expect(getCursorItem(state)).toMatchObject({ id: makeTabItemId('media', 1), tabId: 1, zone: 'media' });
 
     state = reducePopupState(state, { type: 'NAVIGATE_NEXT' });
-    expect(getCursorItem(state)).toMatchObject({ id: makeItemId('section', 'duplicates') });
+    expect(getCursorItem(state)).toMatchObject({ id: makeItemId('section', 'allTabs') });
   });
 
   it('assigns unique item IDs for search and domain tab contexts', () => {
