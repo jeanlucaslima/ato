@@ -58,6 +58,10 @@ export default defineConfig({
         {
           src: 'shared/fonts.css',
           dest: 'shared'
+        },
+        {
+          src: 'shared/theme.css',
+          dest: 'shared'
         }
       ]
     })

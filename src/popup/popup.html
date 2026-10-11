@@ -8,248 +8,90 @@
 </head>
 <body>
   <div class="container">
-    <!-- Header -->
     <header class="header">
-      <img class="header-icon" src="../assets/icons/ato-logo.svg" alt="ATO Logo">
+      <img class="header-icon" src="../assets/icons/ato-logo.svg" alt="">
       <div class="header-text">
         <h1 class="title">ATO</h1>
-        <p class="subtitle" id="stats-summary">0 tabs · 0 duplicates · 0 domains</p>
+        <p class="subtitle" id="stats-summary">Checking tabs…</p>
       </div>
       <button class="btn-action btn-options" id="options-btn" title="Open settings" aria-label="Open settings">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="3"/>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-        </svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m9 3-1 3-3 1-2 3 2 2-1 3 3 2 3-1 2 2 3-2 1-3 3-1 1-3-3-2-1-3-3-1z"/></svg>
       </button>
     </header>
+    <div hidden aria-hidden="true"><span id="total-tabs">—</span><span id="duplicate-count">0</span><span id="domain-count">0</span></div>
 
-    <!-- Stats Bar -->
-    <div class="stats" aria-hidden="true">
-      <div class="stat">
-        <span class="stat-label">Tabs</span>
-        <span class="stat-value" id="total-tabs">0</span>
-      </div>
-      <div class="stat">
-        <span class="stat-label">Duplicates</span>
-        <span class="stat-value" id="duplicate-count">0</span>
-      </div>
-      <div class="stat">
-        <span class="stat-label">Domains</span>
-        <span class="stat-value" id="domain-count">0</span>
-      </div>
-    </div>
-
-    <!-- Contextual Undo -->
-    <div class="undo-row hidden" id="undo-row">
-      <span id="undo-message">Last action</span>
-      <button class="btn-action btn-undo" id="undo-duplicates-btn" title="Undo last close action">
-        <span>Undo</span>
-      </button>
-    </div>
-
-    <!-- Global Search -->
-    <div class="search-container">
+    <div class="search-container" role="search">
       <div class="search-input-wrapper">
-        <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8"/>
-          <path d="M21 21l-4.35-4.35"/>
-        </svg>
-        <span id="search-mode-chip" class="search-mode-chip hidden">
-          <span id="search-mode-chip-label"></span>
-          <button type="button" id="search-mode-chip-remove" class="search-mode-chip-remove" aria-label="Exit search mode" title="Exit mode">×</button>
-        </span>
-        <input type="text" id="global-search-input" class="global-search-input"
-               placeholder="Search tabs" autocomplete="off" autofocus>
-        <button type="button" id="global-search-clear" class="global-search-clear hidden">×</button>
+        <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10" cy="10" r="7"/><path d="m15 15 6 6"/></svg>
+        <span id="search-mode-chip" class="search-mode-chip hidden"><span id="search-mode-chip-label"></span><button type="button" id="search-mode-chip-remove" class="search-mode-chip-remove" aria-label="Exit search field">×</button></span>
+        <input type="text" id="global-search-input" class="global-search-input" placeholder="Find a tab" aria-label="Find a tab" autocomplete="off" autofocus>
+        <button type="button" id="global-search-clear" class="global-search-clear hidden" aria-label="Clear search">×</button>
       </div>
-      <div id="search-results-count" class="search-results-count hidden"></div>
+      <div id="search-results-count" class="sr-only hidden" role="status"></div>
       <div class="search-control-row">
-        <select id="search-field-controls" class="search-control-select" aria-label="Search field">
-          <option value="all">All fields</option>
-          <option value="title">Title</option>
-          <option value="url">URL</option>
-        </select>
-        <select id="search-precision-controls" class="search-control-select" aria-label="Search mode">
-          <option value="contains" selected>Contains</option>
-          <option value="fuzzy">Fuzzy</option>
-          <option value="exact">Exact</option>
-        </select>
-        <button class="btn-action btn-scope" id="scope-btn" title="Toggle search and browse scope">
-          <span id="scope-label">All windows</span>
-        </button>
+        <select id="search-field-controls" class="search-control-select" aria-label="Search field"><option value="all">All fields</option><option value="title">Title</option><option value="url">URL</option></select>
+        <select id="search-precision-controls" class="search-control-select" aria-label="Search mode"><option value="contains">Contains</option><option value="fuzzy">Fuzzy</option><option value="exact">Exact</option></select>
+        <button class="btn-action btn-scope" id="scope-btn" title="Scope for browsing, search and duplicate cleanup"><span id="scope-label">All windows</span></button>
       </div>
     </div>
 
-    <!-- Search Results (shown only when searching) -->
-    <div class="search-results-container hidden" id="search-results-container">
-      <div class="search-results-header">
-        <h2 class="section-title">Search Results</h2>
-        <span class="section-count" id="search-results-section-count">0</span>
-        <button class="btn-action btn-danger" id="close-search-results-btn" title="Close all tabs in search results">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-          </svg>
-          <span>Close results</span>
+    <section class="duplicates-container" aria-label="Duplicate cleanup">
+      <div class="duplicates-instrument">
+        <button class="section-header" id="duplicates-header" aria-expanded="false" aria-controls="duplicates-content">
+          <svg class="fold-arrow" width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M4 2l4 4-4 4V2z"/></svg>
+          <span class="duplicates-summary"><strong id="duplicates-summary-primary">Checking tabs…</strong><span id="duplicates-summary-secondary">Reading browser state</span></span>
+          <span id="duplicates-section-count" hidden>0</span>
         </button>
-        <button class="btn-action btn-accent" id="move-search-results-btn" title="Move all search results to a new window">
-          <span>Move to window</span>
-        </button>
+        <button class="btn-action" id="review-duplicates-btn" aria-controls="duplicate-review-panel" disabled>Review</button>
       </div>
-      <div id="search-results-list" class="search-results-list">
-        <!-- Populated by JS -->
-      </div>
-      <div id="search-empty-state" class="empty-state hidden">
-        <p>No tabs match your search</p>
-      </div>
-    </div>
+      <div class="section-content collapsed" id="duplicates-content"><p id="duplicate-disclosure">Cleanup preserves current and protected tabs. Review before closing.</p></div>
+    </section>
 
-    <!-- Playing Media List (tabs producing sound) -->
-    <div class="media-container hidden" id="media-container">
-      <button class="section-header" id="media-header" aria-expanded="true">
-        <svg class="fold-arrow" width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-          <path d="M4 2l4 4-4 4V2z"/>
-        </svg>
-        <h2 class="section-title">Playing Media</h2>
-        <span class="section-count" id="media-section-count">0</span>
-      </button>
-      <div class="section-content" id="media-content">
-        <div class="section-content-inner">
-          <div id="media-list" class="media-list">
-            <!-- Will be populated by JavaScript -->
+    <nav class="browse-tabs" aria-label="Browse view">
+      <button class="browse-tab active" data-view="tabs" type="button" aria-pressed="true">Tabs</button>
+      <button class="browse-tab" data-view="domains" type="button" aria-pressed="false">Sites</button>
+    </nav>
+
+    <main class="working-surface" id="working-surface" aria-label="Browser tabs" aria-busy="true">
+      <div id="browser-empty-state" class="empty-state">Checking tabs…</div>
+      <section class="search-results-container hidden" id="search-results-container" aria-label="Search results">
+        <div class="search-results-header"><h2 class="section-title">Search results</h2><span id="search-results-section-count" hidden>0</span><button class="btn-action btn-danger" id="close-search-results-btn">Close results</button><button class="btn-action" id="move-search-results-btn">Move results</button></div>
+        <div id="search-results-list" class="search-results-list"></div>
+        <div id="search-empty-state" class="empty-state hidden"><p>No tabs match your search</p></div>
+      </section>
+
+      <section class="duplicate-review-panel" id="duplicate-review-panel" aria-label="Duplicate review">
+        <div class="review-header"><h2 class="section-title">Duplicate review</h2><button class="btn-action" id="exit-duplicates-review-btn">Back</button><button class="btn-action btn-danger" id="close-all-btn" disabled>Clean up</button></div>
+        <p class="review-context" id="review-context">Targets are checked again before closing.</p>
+        <div class="sort-bar"><span class="action-label">Sort sets</span><div class="btn-group" id="duplicates-sort-buttons"><button class="btn-toggle active" data-sort="default">Default</button><button class="btn-toggle" data-sort="title">Title</button><button class="btn-toggle" data-sort="domain">Site</button></div></div>
+        <div id="duplicate-list" class="duplicate-list"></div>
+        <div id="empty-state" class="empty-state" style="display:none"><p>No duplicate tabs</p></div>
+        <div id="pinned-warning" class="pinned-warning hidden"><span><strong id="pinned-skip-count">0</strong> protected</span></div>
+        <div id="browser-warning" class="pinned-warning hidden"><span><strong id="browser-skip-count">0</strong> browser tabs protected</span></div>
+      </section>
+
+      <section class="all-tabs-container" aria-label="Tabs">
+        <button class="section-header" id="all-tabs-header" aria-expanded="true" aria-controls="all-tabs-content"><svg class="fold-arrow" width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M4 2l4 4-4 4V2z"/></svg><span class="section-title">Tabs in scope</span><span class="section-count" id="all-tabs-section-count">0</span></button>
+        <div class="section-content" id="all-tabs-content">
+          <div class="section-content-inner">
+            <div class="sort-bar"><span class="action-label">Sort</span><div class="btn-group" id="sort-buttons"><button class="btn-toggle active" data-sort="default">Default</button><button class="btn-toggle" data-sort="title">Title</button><button class="btn-toggle" data-sort="domain">Site</button><button class="btn-toggle" data-sort="age">Old/New</button><button class="btn-toggle" data-sort="duplicates">Copies</button></div></div>
+            <details class="domain-filter"><summary class="action-label">Filter by site</summary><div class="domain-filter-input-wrapper"><input type="text" id="domain-filter-input" class="domain-filter-input" placeholder="Find a site" aria-label="Filter tabs by site" autocomplete="off"><button id="domain-filter-clear" class="domain-filter-clear hidden" aria-label="Clear site filter">×</button></div><div id="domain-filter-dropdown" class="domain-filter-dropdown hidden"></div></details>
+            <div id="all-tabs-list" class="all-tabs-list"></div>
           </div>
         </div>
-      </div>
-    </div>
+      </section>
+      <div class="domain-sections-sort-bar sort-bar hidden" id="domain-sort-bar"><span class="action-label">Sort sites</span><div class="btn-group" id="domain-sort-buttons"><button class="btn-toggle active" data-sort="name">A-Z</button><button class="btn-toggle" data-sort="count">Most</button><button class="btn-toggle" data-sort="recent">Recent</button></div></div>
+      <div id="domain-sections-container" class="domain-sections-container"></div>
 
-    <!-- Duplicate List -->
-    <div class="duplicates-container">
-      <button class="section-header" id="duplicates-header" aria-expanded="true">
-        <svg class="fold-arrow" width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-          <path d="M4 2l4 4-4 4V2z"/>
-        </svg>
-        <h2 class="section-title">Duplicates</h2>
-        <span class="section-count" id="duplicates-section-count">0</span>
-      </button>
-      <div class="section-content" id="duplicates-content">
-        <div class="section-content-inner">
-          <!-- Duplicates Action Bar -->
-          <div class="duplicates-action-bar">
-            <div class="duplicates-summary">
-              <strong id="duplicates-summary-primary">0 duplicate tabs</strong>
-              <span id="duplicates-summary-secondary">Can be closed across 0 groups</span>
-            </div>
-            <button class="btn-action btn-danger" id="close-all-btn" title="Clean up duplicate tabs">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-              </svg>
-              <span>Clean up</span>
-            </button>
-            <button class="btn-action btn-accent" id="review-duplicates-btn" title="Review duplicate groups">
-              <span>Review</span>
-            </button>
-            <button class="btn-action btn-accent hidden" id="exit-duplicates-review-btn" title="Return to tab index">
-              <span>Back</span>
-            </button>
-            <div class="btn-group" id="duplicates-sort-buttons">
-              <button class="btn-toggle active" data-sort="default" title="Default order">Default</button>
-              <button class="btn-toggle" data-sort="title" title="Sort by title A-Z">Title</button>
-              <button class="btn-toggle" data-sort="domain" title="Group by domain">Domain</button>
-            </div>
-          </div>
-          <div id="duplicate-list" class="duplicate-list">
-            <!-- Will be populated by JavaScript -->
-          </div>
-          <div id="empty-state" class="empty-state" style="display: none;">
-            <p>No duplicate tabs</p>
-          </div>
-          <div id="pinned-warning" class="pinned-warning hidden">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 9v4M12 17h.01M12 3l9 18H3z"/>
-            </svg>
-            <span><strong id="pinned-skip-count">0</strong> tab(s) protected</span>
-          </div>
-          <div id="browser-warning" class="pinned-warning hidden">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <line x1="12" y1="8" x2="12" y2="12"/>
-              <line x1="12" y1="16" x2="12.01" y2="16"/>
-            </svg>
-            <span><strong id="browser-skip-count">0</strong> browser tab(s) can't be closed by extensions</span>
-          </div>
-        </div>
-      </div>
-    </div>
+      <div class="media-container" id="media-container" hidden><button id="media-header" aria-expanded="true">Playing media <span id="media-section-count">0</span></button><div id="media-content"><div id="media-list"></div></div></div>
+    </main>
 
-    <div class="browse-tabs" role="tablist" aria-label="Browse view">
-      <button class="browse-tab active" data-view="tabs" type="button">Tabs</button>
-      <button class="browse-tab" data-view="domains" type="button">Domains</button>
-    </div>
-
-    <!-- All Tabs List -->
-    <div class="all-tabs-container">
-      <button class="section-header" id="all-tabs-header" aria-expanded="true">
-        <svg class="fold-arrow" width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-          <path d="M4 2l4 4-4 4V2z"/>
-        </svg>
-        <h2 class="section-title">All Tabs</h2>
-        <span class="section-count" id="all-tabs-section-count">0</span>
-      </button>
-      <div class="section-content" id="all-tabs-content">
-        <div class="section-content-inner">
-          <!-- Domain Filter (searchable) -->
-          <div class="domain-filter">
-            <div class="domain-filter-input-wrapper">
-              <input type="text" id="domain-filter-input" class="domain-filter-input"
-                     placeholder="Filter by domain..." autocomplete="off">
-              <button type="button" id="domain-filter-clear" class="domain-filter-clear hidden">×</button>
-            </div>
-            <div id="domain-filter-dropdown" class="domain-filter-dropdown hidden">
-              <!-- Options populated by JS -->
-            </div>
-          </div>
-          <!-- Sort Buttons -->
-          <div class="sort-bar">
-            <span class="action-label">Sort:</span>
-            <div class="btn-group" id="sort-buttons">
-              <button class="btn-toggle active" data-sort="default" title="Default order">Default</button>
-              <button class="btn-toggle" data-sort="title" title="Sort by title A-Z">Title</button>
-              <button class="btn-toggle" data-sort="domain" title="Group by domain">Domain</button>
-              <button class="btn-toggle" data-sort="age" title="Toggle oldest/newest first">Old/New</button>
-              <button class="btn-toggle" data-sort="duplicates" title="Most duplicates first">Dupes</button>
-            </div>
-          </div>
-          <div id="all-tabs-list" class="all-tabs-list">
-            <!-- Will be populated by JavaScript -->
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Domain Sections Sort Bar -->
-    <div class="domain-sections-sort-bar sort-bar hidden" id="domain-sort-bar">
-      <span class="action-label">Sort groups:</span>
-      <div class="btn-group" id="domain-sort-buttons">
-        <button class="btn-toggle active" data-sort="name" title="Toggle A-Z / Z-A">A-Z</button>
-        <button class="btn-toggle" data-sort="count" title="Toggle most / fewest tabs">Most</button>
-        <button class="btn-toggle" data-sort="recent" title="Most recently accessed first">Recent</button>
-      </div>
-    </div>
-
-    <!-- Domain Sections (for domains with 3+ tabs) -->
-    <div id="domain-sections-container" class="domain-sections-container">
-      <!-- Will be populated by JavaScript -->
-    </div>
-
-    <!-- Footer -->
-    <footer class="popup-footer">
-      <span id="footer-version">v1.20.0</span>
-      <span class="footer-separator">·</span>
-      <a href="https://github.com/jeanlucaslima/ato" target="_blank" rel="noopener">GitHub</a>
-      <span class="footer-separator">·</span>
-      <span id="footer-shortcut">try ⌘+U</span>
+    <footer class="action-rail" aria-label="Tab actions">
+      <div class="selection-actions"><button class="btn-action" id="select-mode-btn" aria-pressed="false">Select</button><span id="selection-count">0 selected</span><button class="btn-action" id="move-selection-btn" disabled title="Select tabs to move to a new window">Move</button><button class="btn-action btn-danger" id="close-selection-btn" disabled title="Select tabs to review before closing">Close</button></div>
+      <div class="undo-row" id="undo-row"><span id="undo-message" role="status" aria-live="polite">Ready</span><button class="btn-action btn-undo" id="undo-duplicates-btn" disabled title="No close operation to undo">Undo</button></div>
     </footer>
+    <div class="popup-footer"><span id="footer-version"></span><a href="https://github.com/jeanlucaslima/ato">GitHub</a><span id="footer-shortcut"></span></div>
   </div>
-
   <script type="module" src="popup.js"></script>
 </body>
 </html>

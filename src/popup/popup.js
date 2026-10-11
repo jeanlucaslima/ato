@@ -136,7 +136,7 @@ const SEARCH_DEBOUNCE_MS = 150;
 // the chip mirrors that operator while the placeholder gives a human hint.
 const SEARCH_FIELD_PREFIX = { url: 'url', title: 'title' };
 const SEARCH_FIELD_PLACEHOLDER = { url: 'Search URLs', title: 'Search titles' };
-const DEFAULT_SEARCH_PLACEHOLDER = 'Search tabs';
+const DEFAULT_SEARCH_PLACEHOLDER = 'Find a tab';
 // Undo state
 let lastClosedCount = 0;        // Number of tabs closed (for undo)
 let lastOperationId = null;
@@ -534,7 +534,7 @@ function showUndoButton(context, message = '') {
 // Disable undo button
 function hideAllUndoButtons() {
   undoDuplicatesBtn.disabled = true;
-  undoRowEl.classList.add('hidden');
+  undoMessageEl.textContent = 'Ready';
   undoMessage = '';
 }
 
@@ -865,7 +865,10 @@ function render() {
   totalTabsEl.textContent = tabs.length;
   duplicateCountEl.textContent = duplicates.length;
   domainCountEl.textContent = domainGroups.length;
-  statsSummaryEl.textContent = `${tabs.length} tabs · ${duplicates.length} duplicates · ${domainGroups.length} domains`;
+  statsSummaryEl.textContent = `${tabs.length} tabs`;
+  document.querySelector('#working-surface').setAttribute('aria-busy', 'false');
+  document.querySelector('#browser-empty-state').classList.toggle('hidden', tabs.length > 0 || searching);
+  document.querySelector('#browser-empty-state').textContent = 'No tabs in scope';
   document.body.classList.toggle('has-duplicates', duplicates.length > 0);
 
   // Track playing media without duplicating audible tabs outside their normal list positions.
@@ -917,11 +920,12 @@ function render() {
   if (duplicates.length === 0) {
     if (duplicateReviewOpen) dispatch({ type: 'SET_DUPLICATE_REVIEW', open: false });
     document.body.classList.remove('duplicate-review-open');
-    duplicatesSummaryPrimaryEl.textContent = '00';
-    duplicatesSummarySecondaryEl.textContent = 'duplicates';
+    duplicatesSummaryPrimaryEl.textContent = 'No duplicates';
+    duplicatesSummarySecondaryEl.textContent = 'Nothing to clean up';
     // Show empty state
     duplicateListEl.style.display = 'none';
-    reviewDuplicatesBtn.classList.add('hidden');
+    reviewDuplicatesBtn.classList.remove('hidden');
+    reviewDuplicatesBtn.disabled = true;
     exitDuplicatesReviewBtn.classList.add('hidden');
     emptyStateEl.style.display = 'block';
     pinnedWarningEl.classList.add('hidden');
@@ -930,7 +934,8 @@ function render() {
     // Show duplicates
     duplicateListEl.style.display = duplicateReviewOpen ? 'flex' : 'none';
     document.body.classList.toggle('duplicate-review-open', duplicateReviewOpen);
-    reviewDuplicatesBtn.classList.toggle('hidden', duplicateReviewOpen);
+    reviewDuplicatesBtn.classList.remove('hidden');
+    reviewDuplicatesBtn.disabled = actionPending;
     exitDuplicatesReviewBtn.classList.toggle('hidden', !duplicateReviewOpen);
     emptyStateEl.style.display = 'none';
 
@@ -944,7 +949,7 @@ function render() {
 
     let groupedDuplicates = getDuplicateGroups(appState);
     duplicatesSummaryPrimaryEl.textContent = `${duplicates.length} duplicate${duplicates.length === 1 ? '' : 's'}`;
-    duplicatesSummarySecondaryEl.textContent = `${groupedDuplicates.length} group${groupedDuplicates.length === 1 ? '' : 's'}`;
+    duplicatesSummarySecondaryEl.textContent = `${duplicateInfo.actionableCount} removable · ${groupedDuplicates.length} sets`;
 
     // Render each grouped duplicate
     let duplicateIndex = 0;
@@ -1002,7 +1007,10 @@ function render() {
 
   document.body.classList.toggle('browse-domains', browseView === 'domains');
   document.body.classList.toggle('browse-tabs-view', browseView === 'tabs');
-  browseTabButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.view === browseView));
+  browseTabButtons.forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.view === browseView);
+    btn.setAttribute('aria-pressed', btn.dataset.view === browseView);
+  });
   exitDuplicatesReviewBtn.classList.toggle('hidden', !duplicateReviewOpen);
 
   // Restore scroll positions after DOM updates
