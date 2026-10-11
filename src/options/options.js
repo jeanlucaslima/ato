@@ -140,9 +140,7 @@ function initEventListeners() {
     const element = document.getElementById(key);
     if (!element) continue;
 
-    const eventType = type === 'checkbox' ? 'change' : 'input';
-
-    element.addEventListener(eventType, (e) => {
+    element.addEventListener('change', (e) => {
       const value = type === 'checkbox' ? e.target.checked : e.target.value;
       saveSetting(key, value);
 

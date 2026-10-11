@@ -10,7 +10,7 @@
   <div class="container">
     <!-- Header -->
     <header class="header">
-      <img src="../assets/icons/icon48.png" alt="ATO" class="header-icon">
+      <img src="../assets/icons/ato-logo.svg" alt="" class="header-icon">
       <div class="header-text">
         <h1 class="title">ATO</h1>
         <span class="subtitle">Settings</span>
@@ -56,7 +56,7 @@
 
       <!-- Cleanup Section -->
       <section class="settings-section">
-        <h2 class="section-title">Cleanup</h2>
+        <h2 class="section-title">Duplicate cleanup and safety</h2>
 
         <div class="setting-item">
           <div class="setting-info">
@@ -106,12 +106,12 @@
 
       <!-- Behavior Section -->
       <section class="settings-section">
-        <h2 class="section-title">Behavior</h2>
+        <h2 class="section-title">Scope and browsing</h2>
 
         <div class="setting-item">
           <div class="setting-info">
             <label class="setting-label" for="currentWindowOnly">Default scope</label>
-            <p class="setting-description">Sets the initial popup scope. You can still switch it in the popup.</p>
+            <p class="setting-description">Applies to browsing, search, and duplicate cleanup. Changing scope in the popup saves this preference.</p>
           </div>
           <select id="currentWindowOnly" class="setting-select">
             <option value="false">All windows</option>
@@ -121,15 +121,19 @@
 
         <div class="setting-item">
           <div class="setting-info">
-            <label class="setting-label" for="defaultBrowseView">Default browse view</label>
-            <p class="setting-description">Choose whether Tabs or Domains is shown first.</p>
+            <label class="setting-label" for="defaultBrowseView">First-use browsing view</label>
+            <p class="setting-description">After your first visit, ATO restores your last-used view and sorting. Search and selection are never saved.</p>
           </div>
           <select id="defaultBrowseView" class="setting-select">
             <option value="tabs">Tabs</option>
-            <option value="domains">Domains</option>
+            <option value="domains">Sites</option>
           </select>
         </div>
 
+      </section>
+
+      <section class="settings-section">
+        <h2 class="section-title">Search</h2>
         <div class="setting-item">
           <div class="setting-info">
             <label class="setting-label" for="defaultSearchMode">Default search mode</label>
@@ -142,6 +146,10 @@
           </select>
         </div>
 
+      </section>
+
+      <section class="settings-section">
+        <h2 class="section-title">Toolbar badge</h2>
         <div class="setting-item">
           <div class="setting-info">
             <label class="setting-label" for="badgeMode">Badge shows</label>
@@ -171,8 +179,19 @@
         </div>
       </section>
 
+      <section class="settings-section">
+        <h2 class="section-title">Keyboard shortcuts</h2>
+        <ul class="shortcut-list">
+          <li><kbd>Cmd/Ctrl + U</kbd> opens ATO with search focused.</li>
+          <li><kbd>↓ / ↑</kbd> or <kbd>j / k</kbd> navigate outside text fields; <kbd>Enter</kbd> activates a tab.</li>
+          <li><kbd>/</kbd> or <kbd>Cmd/Ctrl + F</kbd> focuses search. <kbd>Escape</kbd> returns to search, clears a query, or exits Select mode.</li>
+          <li><kbd>Cmd/Ctrl + click</kbd> selects; <kbd>Shift + click</kbd> adds a visible range. <kbd>Delete</kbd> reviews a selection or closes the keyboard-targeted tab.</li>
+          <li><kbd>Cmd/Ctrl + Z</kbd> undoes the latest close outside text fields.</li>
+        </ul>
+      </section>
+
       <section class="settings-section community-section">
-        <h2 class="section-title">Community</h2>
+        <h2 class="section-title">About and community</h2>
         <div class="community-card">
           <strong>ATO is open source.</strong>
           <p>View the source, report bugs, or suggest features.</p>
@@ -180,13 +199,13 @@
         </div>
         <div class="community-card">
           <strong>Enjoying ATO?</strong>
-          <p>A Chrome Web Store review helps more people discover it.</p>
-          <a class="community-link" href="https://chromewebstore.google.com/" target="_blank" rel="noopener">★ Rate ATO</a>
+          <p>Rate or review ATO on its Chrome Web Store listing. Your feedback helps other people discover it.</p>
+          <a class="community-link" href="https://chromewebstore.google.com/" target="_blank" rel="noopener">Find ATO on the Chrome Web Store ↗</a>
         </div>
       </section>
 
       <!-- Save Status -->
-      <div class="save-status" id="saveStatus">
+      <div class="save-status" id="saveStatus" role="status" aria-live="polite">
         <span class="save-icon">&#10003;</span>
         Settings saved
       </div>
