@@ -49,6 +49,20 @@ npm run dev
 
 After each rebuild, refresh the extension in `chrome://extensions`.
 
+### Amp Orbs
+
+Amp runs the executable `.agents/setup` when preparing a fresh orb without an
+exact cached snapshot. It checks the documented Node.js/npm prerequisites,
+installs missing system tools (including `zip`), installs dependencies from
+`package-lock.json`, and builds the unpacked extension in `dist/`.
+Subsequent orbs can reuse the prepared snapshot without reinstalling dependencies.
+When setup runs again on a stale snapshot, npm reuses its download cache.
+
+No resume script is needed: this project has no credentials, databases, or
+background services to reconnect. After editing source files, run `npm run build`
+as usual. This prepares build and test tooling; testing the actual extension
+still requires loading `dist/` in Chrome.
+
 ## Project Structure
 
 ```

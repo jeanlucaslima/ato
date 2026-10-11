@@ -32,3 +32,6 @@ Thumbs.db
 
 # Tailwind output (if built separately)
 tailwind.out.css
+
+# Orb portal metadata
+.amp/portals/*

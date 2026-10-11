@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+echo "Checking Node.js 18+, npm 9+, and release packaging tools..."
+packages=()
+if ! command -v node >/dev/null || ! node -e 'process.exit(Number(process.versions.node.split(".")[0]) >= 18 ? 0 : 1)'; then
+  packages+=(nodejs)
+fi
+if ! command -v npm >/dev/null || ! npm --version | awk -F. '{ exit ($1 >= 9 ? 0 : 1) }'; then
+  packages+=(npm)
+fi
+if ! command -v zip >/dev/null; then
+  packages+=(zip)
+fi
+if ((${#packages[@]})); then
+  started=$SECONDS
+  sudo apt-get update -qq
+  sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y "${packages[@]}"
+  echo "System prerequisites ready in $((SECONDS - started))s."
+fi
+node --version
+npm --version
+
+echo "Installing locked dependencies (including development tools)..."
+started=$SECONDS
+npm ci --include=dev --no-audit --no-fund
+echo "Dependencies ready in $((SECONDS - started))s."
+
+echo "Building the unpacked Chrome extension..."
+started=$SECONDS
+npm run build
+echo "Extension ready in dist/ in $((SECONDS - started))s."
