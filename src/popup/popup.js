@@ -1,10 +1,7 @@
 // ATO Popup Script
 // Displays duplicate tabs and handles user actions
 
-import {
-  normalizeUrl,
-  sortAudibleFirst
-} from '../engine/queries.js';
+import { normalizeUrl } from '../engine/queries.js';
 import { createBrowser, createSnapshotStore } from '../engine/browser.js';
 import { duplicateSummary } from '../engine/policy.js';
 import { applyFont } from '../shared/font-config.js';
@@ -20,6 +17,7 @@ import {
   bindTabListClicks
 } from './popup-list-events.js';
 import { getPopupElements } from './popup-dom.js';
+import { bindCloseReview } from './popup-review.js';
 import {
   createDomainSection,
   createGroupedDuplicateItem,
@@ -33,7 +31,6 @@ import {
   getDuplicateTabs,
   getDomainGroups,
   getLargeDomainGroups,
-  getPlayingTabs,
   getScopedTabs,
   getSearchResults,
   getSearchNavigationItems,
@@ -85,11 +82,6 @@ const {
   searchModeChipRemoveEl,
   searchFieldControlsEl,
   searchPrecisionControlsEl,
-  mediaContainerEl,
-  mediaHeaderEl,
-  mediaContentEl,
-  mediaSectionCountEl,
-  mediaListEl,
   duplicatesHeaderEl,
   duplicatesContentEl,
   duplicatesSectionCountEl,
@@ -127,7 +119,7 @@ let settings = { ...defaultSettings };
 
 // State
 let appState = createInitialPopupState();
-const browserStore = createSnapshotStore(createBrowser(), err => error('Browser reconciliation failed:', err));
+const browserStore = createSnapshotStore(createBrowser(), showBrowserError);
 let browserUnsubscribe = null;
 let highlightedOptionIndex = -1; // Track highlighted option in dropdown
 let searchDebounceTimer = null;
@@ -142,7 +134,23 @@ const DEFAULT_SEARCH_PLACEHOLDER = 'Find a tab';
 let lastClosedCount = 0;        // Number of tabs closed (for undo)
 let lastOperationId = null;
 let actionPending = false;
-let undoMessage = '';
+const selectModeBtn = document.getElementById('select-mode-btn');
+const moveSelectionBtn = document.getElementById('move-selection-btn');
+const closeSelectionBtn = document.getElementById('close-selection-btn');
+const reviewClose = bindCloseReview(document.getElementById('close-review'), {
+  getState: () => appState,
+  onConfirm: performAction
+});
+
+function selectTab(tabId, range = false) {
+  dispatch({ type: 'SET_SELECT_MODE', enabled: true });
+  dispatch({ type: range ? 'SELECT_RANGE' : 'TOGGLE_SELECTION', tabId });
+  loadAndRender();
+}
+
+function selectedTabs() {
+  return [...appState.selection.tabIds].map(id => getTab(appState, id)).filter(Boolean);
+}
 
 function dispatch(action) {
   appState = reducePopupState(appState, action);
@@ -266,10 +274,6 @@ function switchToHighlightedResult() {
   }
 }
 
-function getVisibleActionItems() {
-  return getStateNavigationItems(appState);
-}
-
 function restoreSelectedItem() {
   applyCursorToDom();
 }
@@ -347,12 +351,22 @@ function activateSelectedItem() {
     return;
   }
 
-  if (item.type === 'duplicate') return;
+  if (item.type === 'duplicate') {
+    domElementForItemId(item.id)?.querySelector('.duplicate-inspect')?.click();
+    return;
+  }
 
-  if (item.type === 'tab') switchToTab(item.tabId, item.windowId);
+  if (item.type === 'tab') {
+    if (appState.ui.selectMode) selectTab(item.tabId);
+    else switchToTab(item.tabId, item.windowId);
+  }
 }
 
 function closeSelectedItem() {
+  if (appState.selection.tabIds.size) {
+    reviewClose({ type: 'close' }, 'selection', selectedTabs());
+    return;
+  }
   const item = getCursorItem(appState);
   if (!item) return;
   if (item.type === 'view' || item.type === 'section' || item.type === 'domain' || item.type === 'action') return;
@@ -503,10 +517,6 @@ async function saveSectionStates() {
 
 // Apply current section states to the DOM
 function applySectionStates() {
-  // Playing Media section
-  mediaHeaderEl.setAttribute('aria-expanded', appState.expansion.sections.media);
-  mediaContentEl.classList.toggle('collapsed', !appState.expansion.sections.media);
-
   // Duplicates section
   duplicatesHeaderEl.setAttribute('aria-expanded', appState.expansion.sections.duplicates);
   duplicatesContentEl.classList.toggle('collapsed', !appState.expansion.sections.duplicates);
@@ -535,15 +545,8 @@ function toggleDomainSection(domain) {
 function showUndoButton(context, message = '') {
   undoDuplicatesBtn.disabled = false;
   undoRowEl.classList.remove('hidden');
-  undoMessage = message || undoMessageForContext(context, lastClosedCount);
-  undoMessageEl.textContent = undoMessage;
-}
-
-// Disable undo button
-function hideAllUndoButtons() {
-  undoDuplicatesBtn.disabled = true;
-  undoMessageEl.textContent = 'Ready';
-  undoMessage = '';
+  undoDuplicatesBtn.title = 'Undo the latest close operation';
+  undoMessageEl.textContent = message || undoMessageForContext(context, lastClosedCount);
 }
 
 function undoMessageForContext(context, count) {
@@ -564,18 +567,16 @@ async function sendCommand(command) {
 async function performAction(command, context, element = null) {
   if (actionPending) return;
   actionPending = true;
+  undoMessageEl.textContent = command.type === 'move' ? 'Moving tabs…' : 'Closing tabs…';
+  render();
   try {
     if (element) {
       element.classList.add('closing');
       await new Promise(resolve => setTimeout(resolve, 140));
     }
-    const result = await sendCommand({ ...command, scope: { ...appState.scope } });
+    const result = await sendCommand({ ...command, scope: command.scope || { ...appState.scope } });
     if (command.type === 'move') {
-      if (result.succeeded.length) {
-        lastClosedCount = 0;
-        lastOperationId = null;
-        hideAllUndoButtons();
-      }
+      undoMessageEl.textContent = `${result.succeeded.length} tabs moved to a new window`;
     } else if (result.succeeded.length) {
       lastClosedCount = result.succeeded.length;
       lastOperationId = result.operationId;
@@ -584,11 +585,12 @@ async function performAction(command, context, element = null) {
     }
     await refreshBrowserSnapshot();
     const status = `${result.succeeded.length} ${command.type === 'move' ? 'moved' : 'closed'} · ${result.skipped.length} skipped · ${result.failed.length} failed`;
-    if (result.failed.length || result.skipped.length) {
+    if (!result.succeeded.length || result.failed.length || result.skipped.length) {
       undoRowEl.classList.remove('hidden');
       undoMessageEl.textContent = status;
     }
     log('Tab engine result:', result);
+    dispatch({ type: 'CLEAR_SELECTION' });
   } catch (err) {
     error('Tab action failed:', err);
     undoRowEl.classList.remove('hidden');
@@ -603,6 +605,8 @@ async function performAction(command, context, element = null) {
 async function undoClose() {
   if (!lastOperationId || actionPending) return;
   actionPending = true;
+  undoDuplicatesBtn.disabled = true;
+  undoMessageEl.textContent = 'Restoring tabs…';
   try {
     const result = await sendCommand({ type: 'undo', operationId: lastOperationId });
     lastClosedCount = result.failed.length;
@@ -615,11 +619,12 @@ async function undoClose() {
     undoMessageEl.textContent = `Undo failed: ${err.message}`;
   } finally {
     actionPending = false;
+    loadAndRender();
   }
 }
 
 function closeTabsFromDomain(domain) {
-  return performAction({ type: 'close', domain }, 'domain');
+  return reviewClose({ type: 'close' }, 'domain', getDomainGroups(appState).find(group => group.domain === domain)?.tabs || []);
 }
 
 function moveTabsFromDomainToWindow(domain) {
@@ -654,7 +659,7 @@ function closeAllDuplicates() {
 }
 
 function closeAllSearchResults() {
-  return performAction({ type: 'close', targets: getSearchResults(appState).map(({ tab }) => tab) }, 'search');
+  return reviewClose({ type: 'close' }, 'search', getSearchResults(appState).map(({ tab }) => tab));
 }
 
 // Render domain filter
@@ -801,6 +806,14 @@ function render() {
   const searching = isSearchMode(appState.ui.machine);
   const duplicateReviewOpen = isDuplicateReviewMode(appState.ui.machine);
   const browseView = getBrowseView(appState.ui.machine);
+  document.body.classList.toggle('selection-mode', appState.ui.selectMode);
+  selectModeBtn.setAttribute('aria-pressed', appState.ui.selectMode);
+  selectModeBtn.textContent = appState.ui.selectMode ? 'Done' : 'Select';
+  selectModeBtn.disabled = actionPending || duplicateReviewOpen;
+  document.getElementById('selection-count').textContent = `${appState.selection.tabIds.size} selected`;
+  moveSelectionBtn.disabled = closeSelectionBtn.disabled = actionPending || !appState.selection.tabIds.size;
+  undoDuplicatesBtn.disabled = actionPending || !lastOperationId;
+  undoDuplicatesBtn.title = lastOperationId ? 'Undo the latest close operation' : 'No close operation to undo';
   // Save scroll positions before re-rendering
   const scrollPositions = {
     working: document.querySelector('#working-surface').scrollTop
@@ -878,6 +891,13 @@ function render() {
   // Enable/disable close all duplicates button
   closeAllBtn.disabled = duplicateInfo.actionableCount === 0 || actionPending;
   closeAllBtn.title = `${duplicates.length} duplicates · ${duplicateInfo.actionableCount} can be closed`;
+  closeAllBtn.textContent = actionPending ? 'Closing…' : `Clean up ${duplicateInfo.actionableCount}`;
+  const groupedSets = getDuplicateGroups(appState);
+  const protectedCount = groupedSets.reduce((count, group) => count + group.members.filter(member => member.reason).length, 0);
+  const duplicateMemberCount = groupedSets.reduce((count, group) => count + group.totalCount, 0);
+  const windows = new Set(groupedSets.flatMap(group => group.members.map(member => member.tab.windowId))).size;
+  document.getElementById('review-context').textContent = `Up to ${duplicateInfo.actionableCount} copies can close; ${duplicateMemberCount - duplicateInfo.actionableCount} remain (${protectedCount} protected). ${windows} window(s) · ${appState.scope.type === 'all' ? 'all windows' : 'this window'}. Changed targets may be skipped; survivors are checked again before closing.`;
+  document.getElementById('duplicate-disclosure').textContent = `${appState.scope.type === 'all' ? 'All windows' : 'This window'} · ${protectedCount} protected copies. Current tabs and configured pinned/group protections take priority. Search never filters cleanup.`;
 
   // Update sort button active states
   sortButtonsEl.querySelectorAll('.btn-toggle').forEach(btn => {
@@ -892,15 +912,14 @@ function render() {
 
   // Render duplicates section
   if (duplicates.length === 0) {
-    if (duplicateReviewOpen) dispatch({ type: 'SET_DUPLICATE_REVIEW', open: false });
-    document.body.classList.remove('duplicate-review-open');
+    document.body.classList.toggle('duplicate-review-open', duplicateReviewOpen);
     duplicatesSummaryPrimaryEl.textContent = 'No duplicates';
     duplicatesSummarySecondaryEl.textContent = 'Nothing to clean up';
     // Show empty state
     duplicateListEl.style.display = 'none';
     reviewDuplicatesBtn.classList.remove('hidden');
     reviewDuplicatesBtn.disabled = true;
-    exitDuplicatesReviewBtn.classList.add('hidden');
+    exitDuplicatesReviewBtn.classList.toggle('hidden', !duplicateReviewOpen);
     emptyStateEl.style.display = 'block';
     pinnedWarningEl.classList.add('hidden');
     browserWarningEl.classList.add('hidden');
@@ -924,6 +943,7 @@ function render() {
     let groupedDuplicates = getDuplicateGroups(appState);
     duplicatesSummaryPrimaryEl.textContent = `${duplicates.length} duplicate${duplicates.length === 1 ? '' : 's'}`;
     duplicatesSummarySecondaryEl.textContent = `${duplicateInfo.actionableCount} removable · ${groupedDuplicates.length} set${groupedDuplicates.length === 1 ? '' : 's'}`;
+    if (protectedCount) duplicatesSummarySecondaryEl.textContent += ` · ${protectedCount} protected`;
 
     // Render each grouped duplicate
     if (duplicateReviewOpen && !searching) reconcileList(duplicateListEl, groupedDuplicates.map((group, index) => createGroupedDuplicateItem(group, index)));
@@ -1109,8 +1129,10 @@ globalSearchInputEl.addEventListener('keydown', (e) => {
 // Keyboard shortcuts for search
 document.addEventListener('keydown', (e) => {
   if (e.defaultPrevented || e.isComposing) return;
+  if (document.querySelector('dialog[open]')) return;
+  if (e.key === 'Enter' && e.target.closest?.('button:not(.tab-main)')) return;
   const activeTag = document.activeElement?.tagName;
-  const isTextInput = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT' || document.activeElement?.isContentEditable;
+  const isTextInput = (activeTag === 'INPUT' && document.activeElement.type !== 'checkbox') || activeTag === 'TEXTAREA' || activeTag === 'SELECT' || document.activeElement?.isContentEditable;
 
   // Focus search with '/' key (when not in an input)
   if (e.key === '/' && !isTextInput) {
@@ -1152,7 +1174,6 @@ document.addEventListener('keydown', (e) => {
       e.preventDefault();
       clearSearch();
     }
-    globalSearchInputEl.blur();
     return;
   }
 
@@ -1233,6 +1254,13 @@ document.addEventListener('keydown', (e) => {
 
     if (e.key === 'Escape') {
       e.preventDefault();
+      if (appState.ui.selectMode) {
+        dispatch({ type: 'SET_SELECT_MODE', enabled: false });
+        loadAndRender();
+      } else if (appState.duplicateReviewOpen) {
+        dispatch({ type: 'SET_DUPLICATE_REVIEW', open: false });
+        loadAndRender();
+      }
       globalSearchInputEl.focus();
     }
   }
@@ -1242,10 +1270,24 @@ document.addEventListener('keydown', (e) => {
 // Handles clicks on tab items and close buttons without per-item handlers
 
 bindDuplicateGroupListClicks(duplicateListEl, { onCloseDuplicates: closeDuplicatesOfUrl });
-bindTabListClicks(allTabsListEl, { onCloseTab: closeTab, onSwitchTab: switchToTab });
-bindTabListClicks(mediaListEl, { onCloseTab: closeTab, onSwitchTab: switchToTab });
-bindTabListClicks(domainSectionsContainer, { onCloseTab: closeTab, onSwitchTab: switchToTab });
-bindTabListClicks(searchResultsListEl, { onCloseTab: closeTab, onSwitchTab: switchToTab });
+for (const list of [allTabsListEl, domainSectionsContainer, searchResultsListEl]) {
+  bindTabListClicks(list, { onCloseTab: closeTab, onSwitchTab: switchToTab, onSelectTab: selectTab, isSelecting: () => appState.ui.selectMode });
+}
+selectModeBtn.addEventListener('click', () => {
+  dispatch({ type: 'SET_SELECT_MODE', enabled: !appState.ui.selectMode });
+  loadAndRender();
+});
+closeSelectionBtn.addEventListener('click', () => reviewClose({ type: 'close' }, 'selection', selectedTabs()));
+moveSelectionBtn.addEventListener('click', () => performAction({ type: 'move', targets: selectedTabs() }, 'selection'));
+document.addEventListener('focusin', event => {
+  const row = event.target.closest('.tab-item[data-nav-id]');
+  if (row) {
+    dispatch({ type: 'SET_CURSOR', cursorId: row.dataset.navId, focusZone: 'content' });
+    document.querySelectorAll('.tab-item.selected, .tab-item.highlighted').forEach(item => item.classList.remove('selected', 'highlighted'));
+    row.classList.add('selected');
+    if (appState.search.query) row.classList.add('highlighted');
+  }
+});
 
 // Domain filter event listeners
 domainFilterInputEl.addEventListener('focus', () => {
@@ -1394,7 +1436,6 @@ domainSortButtonsEl.addEventListener('click', (e) => {
 });
 
 // Section toggle event listeners
-mediaHeaderEl.addEventListener('click', () => toggleSection('media'));
 duplicatesHeaderEl.addEventListener('click', () => toggleSection('duplicates'));
 allTabsHeaderEl.addEventListener('click', () => toggleSection('allTabs'));
 
@@ -1428,4 +1469,15 @@ function initFooter() {
     showUndoButton('tab');
   }
   loadAndRender();
-})();
+  globalSearchInputEl.focus();
+})().catch(showBrowserError);
+
+function showBrowserError(err) {
+  error('Browser state unavailable:', err);
+  document.getElementById('working-surface').setAttribute('aria-busy', 'false');
+  document.getElementById('browser-empty-state').classList.remove('hidden');
+  document.getElementById('browser-empty-state').textContent = 'Could not read browser tabs. Reopen ATO to retry.';
+  undoMessageEl.textContent = 'Browser data unavailable; displayed tabs may be out of date.';
+  duplicatesSummaryPrimaryEl.textContent = 'Unable to check tabs';
+  closeAllBtn.disabled = reviewDuplicatesBtn.disabled = true;
+}

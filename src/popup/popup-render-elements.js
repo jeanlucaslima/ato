@@ -81,29 +81,40 @@ export function createGroupedDuplicateItem(group, index = 0, matchResult = null)
 
   const titleText = representative.title || 'Untitled';
   info.appendChild(createHighlightedTextElement('tab-title', titleText, matchResult?.matches?.title));
-  info.appendChild(createHighlightedTextElement('tab-url', url, matchResult?.matches?.url));
-
-  const badge = document.createElement('span');
-  badge.className = 'duplicate-badge';
-  badge.textContent = `×${totalCount}`;
-  badge.title = `${totalCount} tabs with this URL`;
+  const actionableCount = group.actionableCount ?? duplicateTabs.length;
+  const protectedCount = group.members?.filter(member => member.reason).length || 0;
+  info.appendChild(createHighlightedTextElement('tab-url', `${totalCount} copies · ${actionableCount} removable · ${protectedCount} protected`));
 
   const closeBtn = document.createElement('button');
   closeBtn.className = 'tab-close';
   closeBtn.textContent = '×';
-  const actionableCount = group.actionableCount ?? duplicateTabs.length;
   closeBtn.title = `Close ${actionableCount} eligible duplicate(s) · ${duplicateTabs.length} duplicates total`;
+  closeBtn.setAttribute('aria-label', `Close ${actionableCount} eligible copies of ${titleText}`);
   closeBtn.disabled = actionableCount === 0;
 
-  item.appendChild(favicon);
-  item.appendChild(info);
-
-  if (duplicateTabs.some(t => t.audible)) {
-    item.appendChild(createMediaIcon());
-  }
-
-  item.appendChild(badge);
+  const inspect = document.createElement('button');
+  inspect.className = 'tab-main duplicate-inspect';
+  inspect.setAttribute('aria-expanded', 'false');
+  inspect.setAttribute('aria-label', `Inspect copies of ${titleText}`);
+  inspect.appendChild(favicon);
+  inspect.appendChild(info);
+  item.appendChild(inspect);
   item.appendChild(closeBtn);
+
+  const copies = document.createElement('div');
+  copies.className = 'duplicate-copies hidden';
+  for (const { tab, reason } of group.members || []) {
+    const copy = document.createElement('p');
+    copy.textContent = `${tab.title || 'Untitled'} · Window ${tab.windowId} · ${reason ? `Protected: ${reason}` : 'Eligible or retained survivor'}`;
+    copy.title = tab.url;
+    copies.appendChild(copy);
+  }
+  inspect.onclick = () => {
+    const expanded = inspect.getAttribute('aria-expanded') !== 'true';
+    inspect.setAttribute('aria-expanded', expanded);
+    copies.classList.toggle('hidden', !expanded);
+  };
+  item.appendChild(copies);
 
   return item;
 }
@@ -123,7 +134,8 @@ export function createTabItem(tab, duplicateCount = 0, index = 0, matchResult = 
 
   const titleText = tab.title || 'Untitled';
   info.appendChild(createHighlightedTextElement('tab-title', titleText, matchResult?.matches?.title));
-  const metadata = matchResult?.matches?.url ? tab.url : (extractDomain(tab.url) || tab.url || 'Loading…');
+  const domain = extractDomain(tab.url);
+  const metadata = matchResult?.matches?.url ? tab.url : (domain || (tab.url?.startsWith('data:') ? 'Local page' : tab.url) || 'Loading…');
   info.appendChild(createHighlightedTextElement('tab-url', metadata, matchResult?.matches?.url || matchResult?.matches?.domain));
 
   const checkbox = document.createElement('input');
@@ -279,6 +291,10 @@ export function reconcileList(list, items) {
   for (const item of items) {
     const key = item.dataset.navId || item.dataset.url || item.dataset.domain;
     const previous = existing.get(key);
+    if (previous?.querySelector('.duplicate-inspect')?.getAttribute('aria-expanded') === 'true') {
+      item.querySelector('.duplicate-inspect')?.setAttribute('aria-expanded', 'true');
+      item.querySelector('.duplicate-copies')?.classList.remove('hidden');
+    }
     const node = previous?.isEqualNode(item) ? previous : item;
     existing.delete(key);
     if (node === position) position = position.nextElementSibling;

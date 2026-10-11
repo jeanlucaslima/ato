@@ -91,6 +91,14 @@ body { height: 100%; overflow: hidden; }
 .search-results-header .section-title { margin-right: auto; }
 .review-header { justify-content: space-between; }
 .review-context { padding: 0 16px 12px; color: var(--secondary); font-size: 12px; line-height: 1.5; margin: 0; }
+.duplicate-group-item { flex-wrap: wrap; }
+.duplicate-copies { flex-basis: 100%; font-size: 12px; color: var(--secondary); line-height: 1.5; padding-left: 32px; }
+.duplicate-copies p { margin: 4px 0; overflow-wrap: anywhere; }
+dialog { color: var(--ink); background: var(--surface); border: 1px solid var(--divider); border-radius: 12px; padding: 20px; width: calc(100% - 32px); max-width: 388px; }
+dialog::backdrop { background: rgb(0 0 0 / .45); }
+dialog h2 { font-size: 16px; margin: 0 0 12px; }
+dialog p { font-size: 13px; line-height: 1.5; color: var(--secondary); }
+.review-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 .duplicate-review-panel { display: none; }
 body:not(.browse-domains) #domain-sections-container, body:not(.browse-domains) #domain-sort-bar { display: none; }
 .browse-domains .all-tabs-container { display: none; }

@@ -9,7 +9,7 @@ import {
   sortDomainGroups,
   sortAudibleFirst,
 } from '../engine/queries.js';
-import { scopedTabs, duplicateTargets, isBrowserUrl } from '../engine/policy.js';
+import { scopedTabs, duplicateTargets, isBrowserUrl, currentTab, protectionReason } from '../engine/policy.js';
 import {
   createInitialPopupMachineState,
   getBrowseView,
@@ -181,8 +181,10 @@ export function getDuplicateTabs(state) {
 }
 
 export function getDuplicateGroups(state) {
+  const currentId = currentTab(getTabs(state), state.browser.focusedWindowId)?.id;
   const groups = duplicateGroups(getScopedTabs(state), state.matchMode).map(({ url, tabs }) => ({
     url, tabs: tabs.slice(1), representative: tabs[1], totalCount: tabs.length,
+    members: tabs.map(tab => ({ tab, reason: protectionReason(tab, state, currentId) })),
     actionableCount: duplicateTargets(tabs, state, state.browser.focusedWindowId).length
   }));
 
@@ -467,7 +469,6 @@ export function reducePopupState(currentState, action) {
         type: action.open ? 'REVIEW_DUPLICATES' : 'EXIT_DUPLICATES_REVIEW'
       });
       state.duplicateReviewOpen = isDuplicateReviewMode(state.ui.machine);
-      if (state.duplicateReviewOpen) state.expansion.sections.duplicates = true;
       break;
     case 'TOGGLE_SECTION':
       state.expansion.sections[action.section] = !state.expansion.sections[action.section];
@@ -639,5 +640,6 @@ export function reducePopupState(currentState, action) {
       break;
   }
 
+  state.duplicateReviewOpen = isDuplicateReviewMode(state.ui.machine);
   return reconcileState(state, previousItems);
 }

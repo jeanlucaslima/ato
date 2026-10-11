@@ -26,7 +26,7 @@ export function bindDuplicateGroupListClicks(listEl, { onCloseDuplicates }) {
   });
 }
 
-export function bindTabListClicks(listEl, { onCloseTab, onSwitchTab }) {
+export function bindTabListClicks(listEl, { onCloseTab, onSwitchTab, onSelectTab, isSelecting = () => false }) {
   listEl.addEventListener('click', (event) => {
     const closeBtn = event.target.closest('.tab-close');
     const item = event.target.closest('.tab-item');
@@ -39,6 +39,11 @@ export function bindTabListClicks(listEl, { onCloseTab, onSwitchTab }) {
     if (closeBtn) {
       event.stopPropagation();
       onCloseTab(tabId, item.dataset.navId);
+      return;
+    }
+
+    if (onSelectTab && (isSelecting() || event.ctrlKey || event.metaKey || event.shiftKey || event.target.closest('.row-checkbox'))) {
+      onSelectTab(tabId, event.shiftKey);
       return;
     }
 

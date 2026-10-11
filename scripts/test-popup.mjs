@@ -24,7 +24,7 @@ try {
   run('open', 'chrome://extensions');
   const id = evaluate(`document.querySelector('extensions-manager').shadowRoot.querySelector('extensions-item-list').shadowRoot.querySelector('extensions-item').id`);
   run('open', `chrome-extension://${id}/popup/popup.html`);
-  run('set', 'viewport', '440', '780', '2');
+  run('set', 'viewport', '420', '620', '2');
   wait(`document.querySelector('#total-tabs').textContent !== '—'`);
   const fixture = evaluate(`(async () => {
     await chrome.storage.sync.set({ currentWindowOnly: false, protectPinned: true, keepTab: 'oldest' });
@@ -39,6 +39,35 @@ try {
   run('tab', 't1');
   wait(`document.querySelector('#duplicate-count').textContent === '2'`);
   capture('engine-default');
+
+  assert.equal(evaluate('document.activeElement.id'), 'global-search-input', 'popup autofocuses search');
+  run('click', '#select-mode-btn');
+  capture('select-empty');
+  run('click', `#all-tabs-list [data-tab-id="${fixture.ids[1]}"] .tab-main`);
+  assert.equal(evaluate(`document.querySelector('#selection-count').textContent`), '1 selected');
+  evaluate(`document.querySelector('#all-tabs-list [data-tab-id="${fixture.ids[3]}"] .tab-main').dispatchEvent(new MouseEvent('click', { bubbles: true, shiftKey: true }))`);
+  assert.equal(evaluate(`document.querySelector('#selection-count').textContent`), '3 selected', 'Shift follows displayed order');
+  capture('select-multiple');
+  run('click', '#close-selection-btn');
+  assert.equal(evaluate(`document.querySelector('#close-review').open`), true);
+  assert.equal(evaluate('document.activeElement.textContent'), 'Cancel', 'destructive review focuses cancel');
+  capture('close-review');
+  run('press', 'Escape');
+  run('click', '#select-mode-btn');
+  assert.equal(evaluate(`document.body.classList.contains('selection-mode')`), false);
+  evaluate(`document.querySelector('#all-tabs-list [data-tab-id="${fixture.ids[3]}"] .tab-main').dispatchEvent(new MouseEvent('click', { bubbles: true, ctrlKey: true }))`);
+  assert.equal(evaluate(`document.querySelector('#selection-count').textContent`), '1 selected', 'modifier click selects without activation');
+  run('click', '#select-mode-btn');
+
+  run('click', '[data-view="domains"]');
+  run('click', '#domain-sort-buttons [data-sort="recent"]');
+  run('reload');
+  wait(`document.querySelector('[data-view="domains"]').getAttribute('aria-pressed') === 'true'`);
+  assert.equal(evaluate(`document.querySelector('#domain-sort-buttons [data-sort="recent"]').classList.contains('active')`), true);
+  assert.equal(evaluate('document.activeElement.id'), 'global-search-input');
+  assert.equal(evaluate(`document.body.classList.contains('selection-mode')`), false);
+  capture('sites');
+  run('click', '[data-view="tabs"]');
 
   // Keyboard events deliberately run in one turn, before the render debounce fires.
   const selected = evaluate(`(() => {

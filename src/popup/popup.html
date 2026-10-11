@@ -82,8 +82,6 @@
       </section>
       <div class="domain-sections-sort-bar sort-bar hidden" id="domain-sort-bar"><span class="action-label">Sort sites</span><div class="btn-group" id="domain-sort-buttons"><button class="btn-toggle active" data-sort="name">A-Z</button><button class="btn-toggle" data-sort="count">Most</button><button class="btn-toggle" data-sort="recent">Recent</button></div></div>
       <div id="domain-sections-container" class="domain-sections-container"></div>
-
-      <div class="media-container" id="media-container" hidden><button id="media-header" aria-expanded="true">Playing media <span id="media-section-count">0</span></button><div id="media-content"><div id="media-list"></div></div></div>
     </main>
 
     <footer class="action-rail" aria-label="Tab actions">
@@ -92,6 +90,12 @@
     </footer>
     <div class="popup-footer"><span id="footer-version"></span><a href="https://github.com/jeanlucaslima/ato">GitHub</a><span id="footer-shortcut"></span></div>
   </div>
+  <dialog id="close-review" aria-labelledby="close-review-title" aria-describedby="close-review-summary close-review-safety">
+    <h2 id="close-review-title">Review close</h2>
+    <p id="close-review-summary" data-summary></p>
+    <p id="close-review-safety">Current and protected tabs stay open. Changed or uncertain targets may be skipped. Undo restores sessions when available, otherwise reopens URLs.</p>
+    <div class="review-dialog-actions"><button class="btn-action" data-cancel>Cancel</button><button class="btn-action btn-danger" data-confirm>Close eligible tabs</button></div>
+  </dialog>
   <script type="module" src="popup.js"></script>
 </body>
 </html>
