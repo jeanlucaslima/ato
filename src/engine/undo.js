@@ -15,6 +15,10 @@ export function createUndo(browser) {
   return {
     recentlyClosed,
     save,
+    async info() {
+      const record = (await storage.session.get(KEY))[KEY];
+      return record?.entries.length ? { operationId: record.id, count: record.entries.length } : null;
+    },
     async capture(tab, before) {
       const oldIds = new Set(before.map(session => session.tab?.sessionId));
       const newSessions = (await recentlyClosed()).filter(session =>
@@ -40,7 +44,8 @@ export function createUndo(browser) {
         try {
           if (entry.sessionId && available.has(entry.sessionId)) {
             const session = await sessions.restore(entry.sessionId);
-            if (session.tab) result.restored.push(session.tab.id);
+            if (!session.tab) throw new Error('Session did not restore a tab');
+            result.restored.push(session.tab.id);
           } else {
             const windows = await browser.api.windows.getAll();
             const windowId = windows.some(window => window.id === entry.windowId) ? entry.windowId : undefined;
@@ -51,6 +56,8 @@ export function createUndo(browser) {
         } catch (error) {
           result.failed.push({ url: entry.url, error: error.message });
           remaining.push(entry);
+          record.entries.push(entry);
+          await save(record);
         }
       }
       record.entries = remaining;

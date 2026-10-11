@@ -8,11 +8,16 @@ export function createFakeChrome(initialTabs = [], focusedWindowId = 1) {
   const tabs = new Map(initialTabs.map((tab, index) => [tab.id, { index, groupId: -1, ...tab }]));
   const sessions = [];
   const sessionStorage = {};
+  let lastFocusedWindowId = focusedWindowId;
   let nextId = Math.max(0, ...tabs.keys()) + 1;
   let nextSession = 1;
   const failures = new Set();
   const api = {
     state: tabs, failures, sessions,
+    loseFocus() {
+      focusedWindowId = -1;
+      api.windows.onFocusChanged.emit(-1);
+    },
     tabs: Object.fromEntries(['onCreated', 'onUpdated', 'onRemoved', 'onActivated', 'onMoved',
       'onAttached', 'onDetached', 'onReplaced'].map(name => [name, event()])),
     windows: Object.fromEntries(['onCreated', 'onRemoved', 'onFocusChanged'].map(name => [name, event()])),
@@ -27,7 +32,7 @@ export function createFakeChrome(initialTabs = [], focusedWindowId = 1) {
   };
   api.tabs.query = async query => [...tabs.values()].filter(tab =>
     (query.windowId == null || tab.windowId === query.windowId) &&
-    (!query.active || tab.active) && (!query.lastFocusedWindow || tab.windowId === focusedWindowId)
+    (!query.active || tab.active) && (!query.lastFocusedWindow || tab.windowId === lastFocusedWindowId)
   ).map(tab => ({ ...tab }));
   api.tabs.update = async (id, changes) => {
     const tab = await api.tabs.get(id);
@@ -63,9 +68,12 @@ export function createFakeChrome(initialTabs = [], focusedWindowId = 1) {
   api.windows.getAll = async () => [...new Set([...tabs.values()].map(tab => tab.windowId))]
     .map(id => ({ id, type: 'normal', focused: id === focusedWindowId,
       tabs: [...tabs.values()].filter(tab => tab.windowId === id).map(tab => ({ ...tab })) }));
-  api.windows.getLastFocused = async () => ({ id: focusedWindowId });
+  api.windows.getLastFocused = async () => ({ id: lastFocusedWindowId });
   api.windows.update = async (id, { focused }) => {
-    if (focused) focusedWindowId = id;
+    if (focused) {
+      focusedWindowId = id;
+      lastFocusedWindowId = id;
+    }
     api.windows.onFocusChanged.emit(id);
     return { id, focused };
   };

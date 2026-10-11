@@ -47,3 +47,58 @@ it('does not publish an old snapshot after tab removal during its read', async (
   expect(store.getSnapshot().tabs.map(tab => tab.id)).toEqual([1]);
   store.dispose();
 });
+
+it('ignores delayed old metadata reads and reconciles simultaneous updates', async () => {
+  const api = createFakeChrome(tabs);
+  const browser = createBrowser(api);
+  const store = createSnapshotStore(browser);
+  await store.refresh();
+  const originalGet = browser.getTab;
+  let release;
+  browser.getTab = async id => {
+    const old = await originalGet(id);
+    if (id === 2 && !release) await new Promise(resolve => { release = () => resolve(); });
+    return old;
+  };
+  await api.tabs.update(2, { title: 'Old' });
+  while (!release) await Promise.resolve();
+  await api.tabs.update(2, { title: 'New' });
+  await api.tabs.update(1, { audible: true });
+  await store.refresh();
+  release();
+  await store.refresh();
+  expect(store.getSnapshot().tabs.find(tab => tab.id === 2).title).toBe('New');
+  expect(store.getSnapshot().tabs.find(tab => tab.id === 1).audible).toBe(true);
+  store.dispose();
+});
+
+it('late/reordered events read live data and replacement cannot resurrect the removed identity', async () => {
+  const api = createFakeChrome(tabs);
+  const store = createSnapshotStore(createBrowser(api));
+  await store.refresh();
+  await api.tabs.update(2, { title: 'Latest' });
+  api.tabs.onUpdated.emit(2, { title: 'Stale' }, { ...tabs[1], title: 'Stale' });
+  await store.refresh();
+  expect(store.getSnapshot().tabs.find(tab => tab.id === 2).title).toBe('Latest');
+  api.state.delete(2);
+  api.state.set(8, { ...tabs[1], id: 8 });
+  api.tabs.onReplaced.emit(8, 2);
+  api.tabs.onCreated.emit(tabs[1]);
+  await store.refresh();
+  expect(store.getSnapshot().tabs.map(tab => tab.id)).toEqual([1, 8]);
+  store.dispose();
+});
+
+it('reconciles activation without relying on tab update events, retaining last focus when Chrome loses focus', async () => {
+  const api = createFakeChrome([...tabs, { id: 3, windowId: 1, url: 'https://new.test/' }]);
+  const store = createSnapshotStore(createBrowser(api));
+  await store.refresh();
+  api.state.get(1).active = false;
+  api.state.get(3).active = true;
+  api.tabs.onActivated.emit({ tabId: 3, windowId: 1 });
+  api.loseFocus();
+  await store.refresh();
+  expect(store.getSnapshot().focusedWindowId).toBe(1);
+  expect(store.getSnapshot().tabs.filter(tab => tab.active && tab.windowId === 1).map(tab => tab.id)).toEqual([3]);
+  store.dispose();
+});
