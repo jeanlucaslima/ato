@@ -85,9 +85,6 @@ const {
   duplicatesHeaderEl,
   duplicatesContentEl,
   duplicatesSectionCountEl,
-  allTabsHeaderEl,
-  allTabsContentEl,
-  allTabsSectionCountEl,
   domainSectionsContainer,
   domainSortBarEl,
   domainSortButtonsEl,
@@ -520,10 +517,6 @@ function applySectionStates() {
   // Duplicates section
   duplicatesHeaderEl.setAttribute('aria-expanded', appState.expansion.sections.duplicates);
   duplicatesContentEl.classList.toggle('collapsed', !appState.expansion.sections.duplicates);
-
-  // All Tabs section
-  allTabsHeaderEl.setAttribute('aria-expanded', appState.expansion.sections.allTabs);
-  allTabsContentEl.classList.toggle('collapsed', !appState.expansion.sections.allTabs);
 }
 
 // Toggle section visibility
@@ -572,7 +565,6 @@ async function performAction(command, context, element = null) {
   try {
     if (element) {
       element.classList.add('closing');
-      await new Promise(resolve => setTimeout(resolve, 140));
     }
     const result = await sendCommand({ ...command, scope: command.scope || { ...appState.scope } });
     if (command.type === 'move') {
@@ -641,7 +633,10 @@ function closeDuplicatesOfUrl(url) {
 }
 
 function switchToTab(tabId) {
-  sendCommand({ type: 'activate', tabId }).catch(err => error('Activation failed:', err));
+  sendCommand({ type: 'activate', tabId }).catch(err => {
+    error('Activation failed:', err);
+    undoMessageEl.textContent = `Could not activate tab: ${err.message}`;
+  });
 }
 
 function closeTab(tabId, navigationId = null) {
@@ -699,7 +694,8 @@ function renderDomainDropdownOptions(query = '') {
   }
 
   // Add "All Domains" option at the top
-  const allOption = document.createElement('div');
+  const allOption = document.createElement('button');
+  allOption.type = 'button';
   allOption.className = 'domain-filter-option' + (activeDomain === null ? ' selected' : '');
   allOption.dataset.index = '0';
   allOption.dataset.domain = '';
@@ -710,7 +706,8 @@ function renderDomainDropdownOptions(query = '') {
 
   // Add filtered domain options
   filteredDomains.forEach(({ domain, count }, index) => {
-    const option = document.createElement('div');
+    const option = document.createElement('button');
+    option.type = 'button';
     option.className = 'domain-filter-option' + (domain === activeDomain ? ' selected' : '');
     option.dataset.index = String(index + 1); // +1 because "All Domains" is index 0
     option.dataset.domain = domain;
@@ -852,7 +849,7 @@ function render() {
     // Render search results
     reconcileList(searchResultsListEl, sortedResults.map(({ tab, match }, index) => {
       const count = urlCounts.get(normalizeUrl(tab.url, appState.matchMode || 'exact')) || 0;
-      return createTabItem(tab, count, index, match, makeTabItemId('search', tab.id), { selected: appState.selection.tabIds.has(tab.id) });
+      return createTabItem(tab, count, index, match, makeTabItemId('search', tab.id), { selected: appState.selection.tabIds.has(tab.id), selectMode: appState.ui.selectMode });
     }));
   } else if (appState.search.query) {
     // Show empty state for search
@@ -954,14 +951,11 @@ function render() {
   document.body.classList.toggle('has-domain-filter', Boolean(appState.filters.domain));
   let visibleTabs = getVisibleTabs(appState);
 
-  // Update all tabs section count
-  allTabsSectionCountEl.textContent = visibleTabs.length;
-
   // Render all tabs as flat list (sortable)
   if (!searching && !duplicateReviewOpen && browseView === 'tabs') reconcileList(allTabsListEl, visibleTabs.map((tab, index) => {
     const count = urlCounts.get(normalizeUrl(tab.url, appState.matchMode || 'exact')) || 0;
     return createTabItem(tab, count, index, null, makeTabItemId('tabs', tab.id), {
-      selected: appState.selection.tabIds.has(tab.id), showRecency: appState.sort.tabs === 'age'
+      selected: appState.selection.tabIds.has(tab.id), showRecency: appState.sort.tabs === 'age', selectMode: appState.ui.selectMode
     });
   }));
 
@@ -988,7 +982,8 @@ function render() {
       onToggleDomain: toggleDomainSection,
       onMoveDomain: moveTabsFromDomainToWindow,
       onCloseDomain: closeTabsFromDomain,
-      selectedIds: appState.selection.tabIds
+      selectedIds: appState.selection.tabIds,
+      selectMode: appState.ui.selectMode
     });
     section.dataset.domain = domain;
     return section;
@@ -1374,15 +1369,22 @@ optionsBtn.addEventListener('click', () => {
 
 // Scope button - toggle detection scope
 scopeBtn.addEventListener('click', async () => {
-  settings.currentWindowOnly = appState.scope.type !== 'window';
-  await chrome.storage.sync.set({ currentWindowOnly: settings.currentWindowOnly });
-  if (settings.currentWindowOnly) {
-    await refreshBrowserSnapshot();
-  } else {
-    dispatch({ type: 'SET_SCOPE', scope: { type: 'all' } });
+  scopeBtn.disabled = true;
+  try {
+    settings.currentWindowOnly = appState.scope.type !== 'window';
+    await chrome.storage.sync.set({ currentWindowOnly: settings.currentWindowOnly });
+    if (settings.currentWindowOnly) {
+      await refreshBrowserSnapshot();
+    } else {
+      dispatch({ type: 'SET_SCOPE', scope: { type: 'all' } });
+    }
+    updateScopeButton();
+    loadAndRender();
+  } catch (err) {
+    showBrowserError(err);
+  } finally {
+    scopeBtn.disabled = false;
   }
-  updateScopeButton();
-  loadAndRender();
 });
 
 /**
@@ -1437,7 +1439,6 @@ domainSortButtonsEl.addEventListener('click', (e) => {
 
 // Section toggle event listeners
 duplicatesHeaderEl.addEventListener('click', () => toggleSection('duplicates'));
-allTabsHeaderEl.addEventListener('click', () => toggleSection('allTabs'));
 
 // Initialize footer
 function initFooter() {

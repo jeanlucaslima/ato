@@ -19,8 +19,7 @@ import {
 
 const DEFAULT_SECTION_EXPANSION = {
   media: true,
-  duplicates: false,
-  allTabs: true
+  duplicates: false
 };
 
 export function makeItemId(type, id = '') {
@@ -258,11 +257,8 @@ export function getVisibleNavigationItems(state) {
   }
 
   if (state.view.type === 'tabs') {
-    items.push({ id: makeItemId('section', 'allTabs'), type: 'section', section: 'allTabs' });
-    if (state.expansion.sections.allTabs) {
-      for (const tab of getVisibleTabs(state)) {
-        items.push({ id: makeTabItemId('tabs', tab.id), type: 'tab', tabId: tab.id, windowId: tab.windowId, section: 'allTabs', zone: 'tabs' });
-      }
+    for (const tab of getVisibleTabs(state)) {
+      items.push({ id: makeTabItemId('tabs', tab.id), type: 'tab', tabId: tab.id, windowId: tab.windowId, zone: 'tabs' });
     }
     return items;
   }

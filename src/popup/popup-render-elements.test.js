@@ -98,7 +98,7 @@ describe('popup render elements', () => {
     const favicon = createFaviconElement('chrome://favicon');
 
     expect(favicon.className).toBe('tab-favicon placeholder');
-    expect(favicon.src).toBe('');
+    expect(favicon.src).toMatch(/^data:image\/svg\+xml/);
   });
 
   it('creates a duplicate group row keyed by URL', () => {

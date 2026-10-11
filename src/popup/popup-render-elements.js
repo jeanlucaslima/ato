@@ -31,11 +31,12 @@ export function createFaviconElement(favIconUrl) {
     favicon.loading = 'lazy';
     favicon.onerror = () => {
       favicon.onerror = null;
-      favicon.removeAttribute('src');
+      favicon.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="20" height="20"/%3E';
       favicon.className = 'tab-favicon placeholder';
     };
     favicon.src = favIconUrl;
   } else {
+    favicon.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="20" height="20"/%3E';
     favicon.className = 'tab-favicon placeholder';
   }
 
@@ -119,7 +120,7 @@ export function createGroupedDuplicateItem(group, index = 0, matchResult = null)
   return item;
 }
 
-export function createTabItem(tab, duplicateCount = 0, index = 0, matchResult = null, navigationId = null, { selected = false, showRecency = false } = {}) {
+export function createTabItem(tab, duplicateCount = 0, index = 0, matchResult = null, navigationId = null, { selected = false, showRecency = false, selectMode = false } = {}) {
   const item = document.createElement('div');
   item.className = 'tab-item';
   addTabStatusClasses(item, tab);
@@ -149,7 +150,7 @@ export function createTabItem(tab, duplicateCount = 0, index = 0, matchResult = 
   const activate = document.createElement('button');
   activate.className = 'tab-main';
   activate.tabIndex = index === 0 ? 0 : -1;
-  activate.setAttribute('aria-label', `Activate ${titleText}`);
+  activate.setAttribute('aria-label', `${selectMode ? 'Select' : 'Activate'} ${titleText}`);
   activate.title = `${tab.url || 'Loading…'} · Window ${tab.windowId}`;
   activate.appendChild(favicon);
   activate.appendChild(info);
@@ -186,7 +187,8 @@ export function createDomainSection(domain, tabs, urlCounts, {
   onToggleDomain,
   onMoveDomain,
   onCloseDomain,
-  selectedIds = new Set()
+  selectedIds = new Set(),
+  selectMode = false
 }) {
   const section = document.createElement('div');
   section.className = 'domain-section';
@@ -222,6 +224,7 @@ export function createDomainSection(domain, tabs, urlCounts, {
   const content = document.createElement('div');
   content.className = 'section-content';
   content.id = `domain-content-${domain}`;
+  header.setAttribute('aria-controls', content.id);
   if (!isExpanded) content.classList.add('collapsed');
 
   const contentInner = document.createElement('div');
@@ -271,7 +274,7 @@ export function createDomainSection(domain, tabs, urlCounts, {
 
   sortAudibleFirst(tabs).forEach((tab, index) => {
     const dupCount = urlCounts.get(normalizeUrl(tab.url, matchMode)) || 0;
-    const item = createTabItem(tab, dupCount, index, null, makeTabItemId('domain', tab.id, domain), { selected: selectedIds.has(tab.id) });
+    const item = createTabItem(tab, dupCount, index, null, makeTabItemId('domain', tab.id, domain), { selected: selectedIds.has(tab.id), selectMode });
     tabList.appendChild(item);
   });
 
