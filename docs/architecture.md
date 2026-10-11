@@ -10,7 +10,7 @@ ATO keeps browser state, tab rules, mutations, and presentation separate. Chrome
 - `engine/actions.js`: plans and serial execution of activation, close, duplicate cleanup, move, and undo commands.
 - `engine/undo.js`: the latest close operation's short-lived restoration record.
 - `background/service-worker.js`: command host and raw duplicate/total-tab badge, using the same queries and snapshots as the popup.
-- `popup/`: rendering, keyboard focus, cursor IDs, selection, animation, and view transitions. It sends commands rather than mutating browser tabs directly.
+- `popup/`: rendering, keyboard focus, cursor IDs, selection, review, and view transitions. It sends commands rather than mutating browser tabs directly.
 
 ## Snapshots and events
 
@@ -61,4 +61,26 @@ Chrome has no atomic compare-and-remove API. An external change between the fina
 
 `npm test` uses a limited fake Chrome implementation plus existing query and popup-state tests. Coverage includes multi-window focus, normalized duplicates, survivor preferences/protections, stale identities, changes during execution, partial failures, event ordering/replacement, worker recovery, and operation-specific undo. `npm run build && npm run test:popup` adds real Chromium mutation and keyboard/DOM checks when `agent-browser` is installed; it uses disposable fixture tabs and a separate browser session.
 
-Search modes, aliases, ranking, highlighting, domain ordering, media indicators, themes, and Easter eggs remain unchanged. Full tab metadata (including `lastAccessed`) is preserved for future sorting. Next phases can redesign presentation, then add commands such as context-menu operations, without duplicating browser rules. On-device AI classification is a later optional feature, not part of this engine.
+## ATO 2.0 presentation
+
+The 420px-wide frame is capped at 620px or the available viewport height. Header, 46px search, duplicate instrument, browse navigation, and a compact action/status rail surround one scrolling working surface. Rows remain 64px tall when height is constrained; the popup reduces surrounding padding rather than squeezing text. Review occupies that same working surface instead of introducing competing nested scrolling. Search temporarily takes precedence without changing the saved browse view or duplicate scope.
+
+`shared/theme.css` owns light/dark material tokens, focus and reduced-motion rules; popup and Settings consume it. Existing Paper, Ivory, Graphite, Obsidian, legacy theme aliases and bundled fonts remain supported. The original logo source is unchanged. Row indicators use a single priority: audible, pinned, duplicate copies, discarded, native membership, then recency when relevant. The former separate media surface is consolidated into ordinary rows with the existing audible-first ordering.
+
+`popup-state.js` and `popup-machine.js` continue to own view/search transitions, stable cursor identities and reconciled selections. `popup-render-elements.js` builds semantic row buttons, checkboxes, site sections and inspectable duplicate copies; keyed reconciliation retains equal DOM nodes and focus. Only the active surface is rendered. `popup-list-events.js` delegates ordinary activation, explicit selection and modifier selection. Shift ranges use current visible order, not browser IDs. Scope changes clear selection; snapshot updates discard disappeared targets.
+
+View and per-area sort preferences are validated and stored as `browsePreferences` in `chrome.storage.local`; duplicate disclosure uses the existing local expansion record. Scope uses the existing `currentWindowOnly` sync setting. Queries, cursors, selection, Select mode and snapshots are not persisted. The Settings first-use view remains a fallback. Startup restores preferences and current browser data, then focuses search.
+
+`popup-review.js` owns a native, cancel-first bulk-close dialog. It captures requested identities and scope, estimates eligibility through engine policy, and sends the captured command only on confirmation. The engine still owns live validation, target choice and mutations. Duplicate cleanup sends `close-duplicates`, never a popup-generated close list. Counts distinguish raw redundancy, removable copies and protected members; review states uncertainty and affected windows. Search/site bulk actions explicitly describe their own targets. An explicitly requested single close retains engine opt-in semantics; it is not silently treated as protected bulk cleanup.
+
+The action rail is permanently mounted. Pending operations disable affected actions; feedback reports actual successes/skips/failures. Move does not discard the preceding close operation's Undo. Undo distinguishes session restoration from URL recreation and leaves failed entries retryable. A failed browser read withholds stale surfaces and disables browser-targeted actions until a successful snapshot refresh; it never claims the browser is clean. Recorded-operation Undo remains independently available.
+
+Search modes, aliases, ranking and highlighting remain in the engine unchanged. Sites now includes one-tab sites rather than only larger domains. No Groups view is shipped because the current contract lacks native group metadata; existing membership/protection remains intact. No new dependencies, permissions, tracking or remote services were introduced. The existing playful demo asset is retained; no separate Easter-egg implementation was present in the audited baseline popup/query code.
+
+### Verification and limits
+
+The audited 1.21.0 baseline passed 277 tests across 11 files, the production build and real Chromium popup tests. The 2.0.0 interface passes 279 tests across the same files, the build, expanded real-mutation popup checks, and `npm run test:ui`. That second browser suite exercises deterministic snapshots, review/selection/theme/error states, Settings persistence, 440px constrained height and 5/50/500/1,200-tab rendering. Injected partial and failed responses test truthful presentation, not Chrome's real failure mechanics. Screenshot capture is optional via `ATO_SCREENSHOT_DIR`.
+
+Large-collection checks render and search all fixture rows and synchronize keyboard focus. Observed synchronous sort/render work for 1,200 rows was approximately 33–83ms across orb runs; these are synthetic local measurements, not a cross-device performance guarantee. This did not justify a virtual-list framework. Browser tests open the actual extension popup document with equivalent viewport geometry, not the operating system's toolbar bubble. Physical display scaling, assistive-technology announcements and macOS modifier behavior still need device-level review; native semantics and keyboard behavior are checked in Chromium.
+
+Settings exposes GitHub and a review invitation using the repository's existing Chrome Web Store homepage URL, accurately labelled as a way to find ATO. A direct product listing was not present in the repository and was not fabricated. Supplying that verified URL is a useful follow-up, along with read-only native group metadata if a later phase deliberately extends the permissions/API contract. On-device AI classification and new group/context-menu operations remain future work, not advertised capabilities.
