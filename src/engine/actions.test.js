@@ -78,6 +78,10 @@ it('scopes cleanup and gives pinned/grouped/internal tabs precedence over keep p
     { keepTab: 'oldest', protectPinned: true, protectGroups: true });
   expect(result.succeeded).toEqual([1]);
   expect([...api.state.keys()]).toEqual([2, 3, 4, 5, 6]);
+  const all = await actions.run({ type: 'close-duplicates', scope: { type: 'all' } },
+    { currentWindowOnly: true, keepTab: 'oldest', protectPinned: true, protectGroups: true });
+  expect(all.succeeded).toEqual([4]);
+  expect([...api.state.keys()]).toEqual([2, 3, 5, 6]);
 });
 
 it.each(['oldest', 'newest'])('uses %s when no duplicate is protected or current', async keepTab => {

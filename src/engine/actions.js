@@ -19,7 +19,8 @@ export function createActions(browser) {
   async function plan(command, settings = {}) {
     if (!['close', 'close-duplicates', 'move'].includes(command.type)) throw new Error('Unknown tab command');
     const snapshot = await browser.readSnapshot();
-    const scope = command.scope || { type: 'all' };
+    const scope = command.scope || (settings.currentWindowOnly
+      ? { type: 'window', windowId: snapshot.focusedWindowId } : { type: 'all' });
     const tabs = scopedTabs(snapshot.tabs, scope);
     const currentId = currentTab(snapshot.tabs, snapshot.focusedWindowId)?.id;
     const skipped = [];

@@ -29,12 +29,16 @@ it('keeps badge and popup counts consistent across scope/focus changes and execu
   await vi.waitFor(() => expect(api.action.setBadgeText).toHaveBeenLastCalledWith({ text: '1' }));
   popup = reducePopupState(popup, { type: 'SET_SCOPE', scope: { type: 'window', windowId: 2 } });
   expect(getDuplicateTabs(popup)).toHaveLength(1);
+  await api.windows.update(1, { focused: true });
+  await vi.waitFor(() => expect(api.action.setBadgeText).toHaveBeenLastCalledWith({ text: '' }));
+  await api.windows.update(2, { focused: true });
+  await vi.waitFor(() => expect(api.action.setBadgeText).toHaveBeenLastCalledWith({ text: '1' }));
   const response = await new Promise(resolve => {
-    expect(messages[0]({ action: 'tabEngine', command: { type: 'close-duplicates',
-      scope: { type: 'window', windowId: 2 } } }, {}, resolve)).toBe(true);
+    expect(messages[0]({ action: 'tabEngine', command: { type: 'close-duplicates' } }, {}, resolve)).toBe(true);
   });
   expect(response.result.succeeded).toEqual([3]);
   expect(api.state.has(2)).toBe(true);
+  expect(api.state.has(1)).toBe(true);
   await vi.waitFor(() => expect(api.action.setBadgeText).toHaveBeenLastCalledWith({ text: '' }));
   await api.windows.update(1, { focused: true });
   await vi.waitFor(() => expect(api.action.setBadgeText).toHaveBeenLastCalledWith({ text: '' }));
