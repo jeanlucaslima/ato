@@ -1,7 +1,8 @@
 @import "../shared/theme.css";
 
-html { width: 420px; height: min(620px, 100vh); overflow: hidden; }
-body { height: 100%; overflow: hidden; }
+/* Chrome autosizes from the root: a viewport-relative root height collapses the toolbar bubble. */
+html { width: 420px; height: 620px; overflow: hidden; }
+body { height: min(620px, 100vh); overflow: hidden; }
 .container { height: 100%; display: flex; flex-direction: column; }
 .header { display: flex; align-items: center; gap: 10px; padding: 8px 16px 4px; flex: none; }
 .header-icon { width: 26px; height: 26px; }

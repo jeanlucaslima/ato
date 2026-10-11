@@ -106,7 +106,7 @@ npm test
 # Build for production
 npm run build
 
-# Optional real-Chromium popup/extension checks (requires agent-browser on PATH)
+# Optional real-Chromium toolbar-popup/extension checks (Node 22+, agent-browser on PATH)
 # Build first; runs in a disposable browser session, not your everyday Chrome profile
 npm run test:popup
 

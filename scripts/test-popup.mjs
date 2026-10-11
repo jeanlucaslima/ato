@@ -2,7 +2,7 @@
 import { execFileSync } from 'node:child_process';
 import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 
 const session = `ato-test-${process.pid}`;
 const args = ['--session', session, '--args',
@@ -20,10 +20,71 @@ function capture(name) {
   run('screenshot', resolve(process.env.ATO_SCREENSHOT_DIR, `${name}.png`));
 }
 
+// Inspect the toolbar bubble without imposing a viewport: a fixed-size tab masks autosizing bugs.
+async function checkActionPopup() {
+  const socket = new WebSocket(run('get', 'cdp-url').cdpUrl);
+  await new Promise((resolve, reject) => {
+    socket.addEventListener('open', resolve, { once: true });
+    socket.addEventListener('error', reject, { once: true });
+  });
+  let id = 0;
+  const pending = new Map();
+  socket.addEventListener('message', event => {
+    const message = JSON.parse(event.data);
+    const request = pending.get(message.id);
+    if (!request) return;
+    pending.delete(message.id);
+    clearTimeout(request.timer);
+    if (message.error) request.reject(new Error(message.error.message));
+    else request.resolve(message.result);
+  });
+  const call = (method, params = {}, sessionId) => new Promise((resolve, reject) => {
+    const requestId = ++id;
+    const timer = setTimeout(() => { pending.delete(requestId); reject(new Error(`CDP timeout: ${method}`)); }, 5000);
+    pending.set(requestId, { resolve, reject, timer });
+    socket.send(JSON.stringify({ id: requestId, method, params, sessionId }));
+  });
+  let popupSession;
+  try {
+    const previous = new Set((await call('Target.getTargets')).targetInfos.map(target => target.targetId));
+    evaluate('chrome.action.openPopup()');
+    const popup = (await call('Target.getTargets')).targetInfos.find(target => !previous.has(target.targetId) && target.url.endsWith('/popup/popup.html'));
+    assert.ok(popup, 'Chrome action must create an actual toolbar popup');
+    popupSession = (await call('Target.attachToTarget', { targetId: popup.targetId, flatten: true })).sessionId;
+    const measured = await call('Runtime.evaluate', {
+      expression: `new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve({
+        width: innerWidth, height: innerHeight, focus: document.activeElement.id,
+        contentWidth: document.documentElement.getBoundingClientRect().width,
+        railBottom: document.querySelector('.action-rail').getBoundingClientRect().bottom,
+        workingHeight: document.querySelector('.working-surface').clientHeight
+      }))))`, awaitPromise: true, returnByValue: true
+    }, popupSession);
+    const size = measured.result.value;
+    if (process.env.ATO_SCREENSHOT_DIR) {
+      // Toolbar targets do not support DPR/viewport overrides; capture their native surface.
+      const image = await call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false }, popupSession);
+      mkdirSync(process.env.ATO_SCREENSHOT_DIR, { recursive: true });
+      writeFileSync(resolve(process.env.ATO_SCREENSHOT_DIR, 'toolbar-popup.png'), Buffer.from(image.data, 'base64'));
+    }
+    console.log('Actual toolbar popup:', size);
+    assert.equal(size.contentWidth, 420);
+    assert.ok(size.width >= size.contentWidth, 'Chrome must not clip the popup horizontally');
+    assert.ok(size.height >= 350 && size.height <= 620, 'toolbar popup must not collapse during Chrome autosizing');
+    assert.ok(size.railBottom <= size.height, 'action rail must fit the actual popup viewport');
+    assert.ok(size.workingHeight >= 100, 'toolbar popup must retain a usable list');
+    assert.equal(size.focus, 'global-search-input');
+  } finally {
+    if (popupSession) await call('Runtime.evaluate', { expression: 'window.close()' }, popupSession);
+    socket.close();
+    run('tab', 't1');
+  }
+}
+
 try {
   run('open', 'chrome://extensions');
   const id = evaluate(`document.querySelector('extensions-manager').shadowRoot.querySelector('extensions-item-list').shadowRoot.querySelector('extensions-item').id`);
   run('open', `chrome-extension://${id}/popup/popup.html`);
+  await checkActionPopup();
   run('set', 'viewport', '420', '620', '2');
   wait(`document.querySelector('#total-tabs').textContent !== '—'`);
   const fixture = evaluate(`(async () => {
