@@ -24,3 +24,21 @@ it('does not leak into browse controls when the last search result disappears (#
   expect(getCursorItem(state)).toBeNull();
   expect(state.navigation.focusZone).toBe('search');
 });
+
+it('keyboard view activation updates the machine used by rendering (#48)', () => {
+  let state = createInitialPopupState();
+  state = reducePopupState(state, { type: 'SET_CURSOR', cursorId: 'view:domains' });
+  state = reducePopupState(state, { type: 'NAVIGATE_CHILD' });
+  expect(state.view.type).toBe('domains');
+  expect(state.ui.machine.mode).toBe('browsingDomains');
+});
+
+it('live policy updates preserve the current search interaction', () => {
+  let state = createInitialPopupState();
+  state = reducePopupState(state, { type: 'SET_SEARCH_QUERY', query: 'Needle' });
+  state = reducePopupState(state, { type: 'SET_SETTINGS', settings: {
+    matchMode: 'ignoreQuery', keepTab: 'newest', protectPinned: true, protectGroups: true
+  } });
+  expect(state.ui.machine.mode).toBe('searching');
+  expect(state.search.query).toBe('Needle');
+});

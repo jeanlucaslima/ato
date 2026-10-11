@@ -70,10 +70,13 @@ try {
   assert.ok(!remaining.includes(fixture.ids[2]), 'eligible duplicate closes');
   wait(`document.querySelector('#undo-message').textContent.includes('Closed 2')`);
   capture('engine-cleanup');
+  run('reload');
+  wait(`document.querySelector('#undo-message').textContent.includes('Closed 2')`);
   run('click', '#undo-duplicates-btn');
   run('tab', 't1');
   wait(`document.querySelector('#undo-message').textContent.includes('restored')`);
   assert.equal(evaluate(`chrome.tabs.query({ windowId: ${fixture.windowId} }).then(tabs => tabs.length)`), 4);
+  capture('engine-undo');
 
   // A standalone popup document is itself a tab. Focus the fixture window and invoke
   // the worker in the same evaluation to exercise the real currently-focused-tab case.
@@ -102,6 +105,35 @@ try {
   run('press', 'ArrowDown');
   assert.equal(evaluate('document.activeElement.id'), 'global-search-input');
   assert.equal(evaluate(`document.querySelectorAll('.tab-item.highlighted').length`), 0);
+  capture('engine-empty-search');
+
+  const deletionId = evaluate(`chrome.tabs.create({ active: false,
+    url: 'data:text/html,<title>Delete Fixture</title>Keyboard target' }).then(tab => tab.id)`);
+  run('tab', 't1');
+  run('fill', '#global-search-input', 'Delete Fixture');
+  run('press', 'ArrowDown');
+  wait(`document.querySelector('#search-results-list .highlighted')?.dataset.tabId === '${deletionId}'`);
+  run('press', 'Delete');
+  wait(`document.querySelector('#search-results-section-count').textContent === '0'`);
+  wait(`document.activeElement.id === 'global-search-input'`);
+  assert.equal(evaluate(`chrome.tabs.query({}).then(tabs => tabs.some(tab => tab.id === ${deletionId}))`), false);
+  const beforeTyping = evaluate('chrome.tabs.query({}).then(tabs => tabs.length)');
+  run('press', 'Backspace');
+  assert.equal(evaluate('chrome.tabs.query({}).then(tabs => tabs.length)'), beforeTyping, 'Backspace in input must never close a tab');
+
+  run('fill', '#global-search-input', 'Engine Other');
+  run('press', 'ArrowDown');
+  const activated = evaluate(`new Promise(resolve => {
+    const listener = info => { chrome.tabs.onActivated.removeListener(listener); resolve(info.tabId); };
+    chrome.tabs.onActivated.addListener(listener);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  })`);
+  assert.equal(activated, fixture.ids[3], 'Enter must activate the stable selected tab identity');
+  run('tab', 't1');
+  run('fill', '#global-search-input', 'Engine');
+  evaluate(`chrome.storage.sync.set({ matchMode: 'ignoreQuery', currentWindowOnly: true })`);
+  wait(`document.querySelector('#scope-label').textContent === 'This window'`);
+  assert.equal(evaluate(`document.body.classList.contains('search-active')`), true, 'policy changes preserve search interaction');
   console.log('PASS: real Chrome cleanup, operation undo, keyboard navigation, DOM cursor sync and debounce boundaries');
 } catch (error) {
   console.error(run('errors'));

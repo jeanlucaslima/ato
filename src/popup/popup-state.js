@@ -379,10 +379,12 @@ export function reducePopupState(currentState, action) {
       state.protectPinned = action.settings.protectPinned;
       state.protectGroups = action.settings.protectGroups;
       state.search.mode = action.settings.defaultSearchMode || state.search.mode;
-      state.ui.machine = transitionPopupMachine(state.ui.machine, {
-        type: 'SET_VIEW',
-        view: action.settings.defaultBrowseView
-      });
+      if (action.settings.defaultBrowseView) {
+        state.ui.machine = transitionPopupMachine(state.ui.machine, {
+          type: 'SET_VIEW',
+          view: action.settings.defaultBrowseView
+        });
+      }
       state.view.type = getBrowseView(state.ui.machine);
       break;
     case 'SET_BROWSER_SNAPSHOT':
@@ -567,7 +569,8 @@ export function reducePopupState(currentState, action) {
       } else if (item?.type === 'section') {
         state.expansion.sections[item.section] = true;
       } else if (item?.type === 'view') {
-        state.view.type = item.view;
+        state.ui.machine = transitionPopupMachine(state.ui.machine, { type: 'SET_VIEW', view: item.view });
+        state.view.type = getBrowseView(state.ui.machine);
       }
       break;
     }

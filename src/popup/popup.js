@@ -111,7 +111,7 @@ const {
 } = getPopupElements();
 
 // Settings (loaded from chrome.storage.sync)
-let settings = {
+const defaultSettings = {
   theme: 'graphite',
   fontFamily: 'titillium',
   protectPinned: true,
@@ -122,6 +122,7 @@ let settings = {
   defaultBrowseView: 'tabs',
   defaultSearchMode: 'contains'
 };
+let settings = { ...defaultSettings };
 
 // State
 let appState = createInitialPopupState();
@@ -300,7 +301,12 @@ function applyCursorToDom() {
     .forEach(item => item.classList.remove('selected', 'highlighted'));
 
   const element = domElementForItemId(appState.navigation.cursorId);
-  if (!element) return;
+  if (!element) {
+    if (appState.navigation.focusZone === 'search' && document.activeElement === document.body) {
+      globalSearchInputEl.focus();
+    }
+    return;
+  }
   element.classList.add('selected');
   if (element.classList.contains('tab-item') && appState.search.query) {
     element.classList.add('highlighted');
@@ -460,17 +466,7 @@ function applyTheme(theme) {
  */
 async function loadSettings() {
   try {
-    const result = await chrome.storage.sync.get({
-      theme: 'graphite',
-      fontFamily: 'titillium',
-      protectPinned: true,
-      protectGroups: false,
-      keepTab: 'oldest',
-      matchMode: 'exact',
-      currentWindowOnly: false,
-      defaultBrowseView: 'tabs',
-      defaultSearchMode: 'contains'
-    });
+    const result = await chrome.storage.sync.get(defaultSettings);
     settings = result;
     updateStoreSettings();
     updateSearchPrecisionControls();
@@ -1054,9 +1050,25 @@ function attachChromeEventListeners() {
     applyBrowserSnapshot(snapshot);
     loadAndRender();
   });
+  const onSettingsChanged = (changes, area) => {
+    if (area !== 'sync') return;
+    for (const key of Object.keys(settings)) {
+      if (changes[key]) settings[key] = changes[key].newValue ?? defaultSettings[key];
+    }
+    dispatch({ type: 'SET_SETTINGS', settings: { ...settings,
+      defaultBrowseView: changes.defaultBrowseView ? settings.defaultBrowseView : undefined,
+      defaultSearchMode: changes.defaultSearchMode ? settings.defaultSearchMode : undefined } });
+    applyTheme(settings.theme);
+    applyFont(settings.fontFamily);
+    updateSearchPrecisionControls();
+    applyBrowserSnapshot(browserStore.getSnapshot());
+    loadAndRender();
+  };
+  chrome.storage.onChanged.addListener(onSettingsChanged);
   window.addEventListener('pagehide', () => {
     browserUnsubscribe?.();
     browserStore.dispose();
+    chrome.storage.onChanged.removeListener(onSettingsChanged);
     clearTimeout(searchDebounceTimer);
   });
 }
@@ -1434,5 +1446,11 @@ function initFooter() {
   await refreshBrowserSnapshot();
   updateScopeButton();
   initFooter();
+  const undo = await sendCommand({ type: 'undo-info' }).catch(() => null);
+  if (undo) {
+    lastOperationId = undo.operationId;
+    lastClosedCount = undo.count;
+    showUndoButton('tab');
+  }
   loadAndRender();
 })();
