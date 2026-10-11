@@ -166,8 +166,8 @@ try {
   console.log('PASS: real Chrome cleanup, operation undo, keyboard navigation, DOM cursor sync and debounce boundaries');
 } catch (error) {
   console.error(run('errors'));
-  console.error(evaluate(`(async () => ({ stats: document.querySelector('#stats-summary')?.textContent,
-    tabs: await chrome.tabs.query({}).then(tabs => tabs.map(({id, windowId, url, active}) => ({id, windowId, url, active}))) }))()`));
+  console.error(evaluate(`(async () => ({ page: location.href, stats: document.querySelector('#stats-summary')?.textContent,
+    tabs: globalThis.chrome?.tabs ? await chrome.tabs.query({}).then(tabs => tabs.map(({id, windowId, url, active}) => ({id, windowId, url, active}))) : [] }))()`));
   throw error;
 } finally {
   execFileSync('agent-browser', ['--session', session, 'close'], { stdio: 'ignore' });

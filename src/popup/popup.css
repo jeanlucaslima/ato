@@ -105,6 +105,7 @@ body:not(.browse-domains) #domain-sections-container, body:not(.browse-domains) 
 .search-active .browse-tabs, .search-active .all-tabs-container, .search-active #domain-sections-container, .search-active #domain-sort-bar, .search-active .duplicate-review-panel { display: none; }
 .duplicate-review-open:not(.search-active) .all-tabs-container, .duplicate-review-open:not(.search-active) #domain-sections-container, .duplicate-review-open:not(.search-active) #domain-sort-bar { display: none; }
 .duplicate-review-open:not(.search-active) .duplicate-review-panel { display: block; }
+.browser-unavailable .working-surface > :not(#browser-empty-state) { display: none !important; }
 .row-checkbox { display: none; width: 16px; height: 16px; margin: 0; accent-color: var(--focus); flex: none; }
 .selection-mode .row-checkbox { display: block; }
 .selection-mode .tab-close { display: none; }

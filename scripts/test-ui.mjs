@@ -184,8 +184,12 @@ try {
   run('click', '#scope-btn');
   wait(`document.querySelector('#duplicates-summary-primary').textContent === 'Unable to check tabs'`);
   assert.equal(evaluate(`document.querySelector('#review-duplicates-btn').disabled`), true);
+  assert.equal(evaluate(`document.querySelector('#duplicates-summary-secondary').textContent`), 'Browser data unavailable');
+  assert.equal(evaluate(`getComputedStyle(document.querySelector('#search-results-container')).display`), 'none', 'stale results are withheld');
   capture('browser-error');
   evaluate(`chrome.windows.getAll = window.__readSnapshot`);
+  await snapshot(sample);
+  wait(`!document.body.classList.contains('browser-unavailable')`);
   console.log('Synthetic UI render timings:', JSON.stringify(timings));
 
   run('open', `chrome-extension://${id}/options/options.html`);

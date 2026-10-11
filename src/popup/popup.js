@@ -118,6 +118,7 @@ let settings = { ...defaultSettings };
 let appState = createInitialPopupState();
 const browserStore = createSnapshotStore(createBrowser(), showBrowserError);
 let browserUnsubscribe = null;
+let browserDataUnavailable = false;
 let highlightedOptionIndex = -1; // Track highlighted option in dropdown
 let searchDebounceTimer = null;
 const SEARCH_DEBOUNCE_MS = 150;
@@ -558,7 +559,7 @@ async function sendCommand(command) {
 
 // Presentation owns animation and feedback, never browser mutation policy.
 async function performAction(command, context, element = null) {
-  if (actionPending) return;
+  if (actionPending || browserDataUnavailable) return;
   actionPending = true;
   undoMessageEl.textContent = command.type === 'move' ? 'Moving tabs…' : 'Closing tabs…';
   render();
@@ -633,6 +634,7 @@ function closeDuplicatesOfUrl(url) {
 }
 
 function switchToTab(tabId) {
+  if (browserDataUnavailable) return;
   sendCommand({ type: 'activate', tabId }).catch(err => {
     error('Activation failed:', err);
     undoMessageEl.textContent = `Could not activate tab: ${err.message}`;
@@ -803,12 +805,13 @@ function render() {
   const searching = isSearchMode(appState.ui.machine);
   const duplicateReviewOpen = isDuplicateReviewMode(appState.ui.machine);
   const browseView = getBrowseView(appState.ui.machine);
+  document.body.classList.toggle('browser-unavailable', browserDataUnavailable);
   document.body.classList.toggle('selection-mode', appState.ui.selectMode);
   selectModeBtn.setAttribute('aria-pressed', appState.ui.selectMode);
   selectModeBtn.textContent = appState.ui.selectMode ? 'Done' : 'Select';
-  selectModeBtn.disabled = actionPending || duplicateReviewOpen;
+  selectModeBtn.disabled = browserDataUnavailable || actionPending || duplicateReviewOpen;
   document.getElementById('selection-count').textContent = `${appState.selection.tabIds.size} selected`;
-  moveSelectionBtn.disabled = closeSelectionBtn.disabled = actionPending || !appState.selection.tabIds.size;
+  moveSelectionBtn.disabled = closeSelectionBtn.disabled = browserDataUnavailable || actionPending || !appState.selection.tabIds.size;
   undoDuplicatesBtn.disabled = actionPending || !lastOperationId;
   undoDuplicatesBtn.title = lastOperationId ? 'Undo the latest close operation' : 'No close operation to undo';
   // Save scroll positions before re-rendering
@@ -873,10 +876,10 @@ function render() {
   totalTabsEl.textContent = tabs.length;
   duplicateCountEl.textContent = duplicates.length;
   domainCountEl.textContent = domainGroups.length;
-  statsSummaryEl.textContent = `${tabs.length} tabs`;
+  statsSummaryEl.textContent = browserDataUnavailable ? 'Tabs unavailable' : `${tabs.length} tabs`;
   document.querySelector('#working-surface').setAttribute('aria-busy', 'false');
-  document.querySelector('#browser-empty-state').classList.toggle('hidden', tabs.length > 0 || searching);
-  document.querySelector('#browser-empty-state').textContent = 'No tabs in scope';
+  document.querySelector('#browser-empty-state').classList.toggle('hidden', !browserDataUnavailable && (tabs.length > 0 || searching));
+  document.querySelector('#browser-empty-state').textContent = browserDataUnavailable ? 'Could not read browser tabs. Reopen ATO to retry.' : 'No tabs in scope';
   document.body.classList.toggle('has-duplicates', duplicates.length > 0);
 
   // The badge and section report raw redundancy; action labels report eligible cleanup.
@@ -997,6 +1000,12 @@ function render() {
   });
   exitDuplicatesReviewBtn.classList.toggle('hidden', !duplicateReviewOpen);
 
+  if (browserDataUnavailable) {
+    duplicatesSummaryPrimaryEl.textContent = 'Unable to check tabs';
+    duplicatesSummarySecondaryEl.textContent = 'Browser data unavailable';
+    closeAllBtn.disabled = reviewDuplicatesBtn.disabled = true;
+  }
+
   // Restore scroll positions after DOM updates
   requestAnimationFrame(() => {
     document.querySelector('#working-surface').scrollTop = scrollPositions.working;
@@ -1037,6 +1046,8 @@ function applyBrowserSnapshot({ tabs, focusedWindowId }) {
 
 function attachChromeEventListeners() {
   browserUnsubscribe = browserStore.subscribe(snapshot => {
+    if (browserDataUnavailable) undoMessageEl.textContent = 'Browser data refreshed';
+    browserDataUnavailable = false;
     applyBrowserSnapshot(snapshot);
     loadAndRender();
   });
@@ -1128,6 +1139,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && e.target.closest?.('button:not(.tab-main)')) return;
   const activeTag = document.activeElement?.tagName;
   const isTextInput = (activeTag === 'INPUT' && document.activeElement.type !== 'checkbox') || activeTag === 'TEXTAREA' || activeTag === 'SELECT' || document.activeElement?.isContentEditable;
+  if (browserDataUnavailable && ['ArrowDown', 'ArrowUp', 'Enter'].includes(e.key)) return;
 
   // Focus search with '/' key (when not in an input)
   if (e.key === '/' && !isTextInput) {
@@ -1184,6 +1196,7 @@ document.addEventListener('keydown', (e) => {
       undoClose();
       return;
     }
+    if (browserDataUnavailable && e.key !== 'Escape') return;
 
     if (e.key === 'j' || e.key === 'ArrowDown') {
       e.preventDefault();
@@ -1475,10 +1488,7 @@ function initFooter() {
 
 function showBrowserError(err) {
   error('Browser state unavailable:', err);
-  document.getElementById('working-surface').setAttribute('aria-busy', 'false');
-  document.getElementById('browser-empty-state').classList.remove('hidden');
-  document.getElementById('browser-empty-state').textContent = 'Could not read browser tabs. Reopen ATO to retry.';
-  undoMessageEl.textContent = 'Browser data unavailable; displayed tabs may be out of date.';
-  duplicatesSummaryPrimaryEl.textContent = 'Unable to check tabs';
-  closeAllBtn.disabled = reviewDuplicatesBtn.disabled = true;
+  browserDataUnavailable = true;
+  undoMessageEl.textContent = 'Browser data unavailable; actions paused until refresh.';
+  render();
 }
