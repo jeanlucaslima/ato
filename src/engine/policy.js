@@ -35,3 +35,14 @@ export function duplicateTargets(tabs, settings = {}, focusedWindowId = null) {
     return sorted.filter(tab => !survivorIds.has(tab.id));
   });
 }
+
+/** Raw redundancy and actionable cleanup are deliberately separate metrics. */
+export function duplicateSummary(tabs, settings = {}, focusedWindowId = null) {
+  const members = duplicateGroups(tabs, settings.matchMode).flatMap(group => group.tabs);
+  return {
+    actionableCount: duplicateTargets(tabs, settings, focusedWindowId).length,
+    pinned: settings.protectPinned ? members.filter(tab => tab.pinned).length : 0,
+    grouped: settings.protectGroups ? members.filter(tab => tab.groupId != null && tab.groupId !== -1).length : 0,
+    internal: members.filter(tab => isBrowserUrl(tab.url)).length
+  };
+}

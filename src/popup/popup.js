@@ -4,7 +4,9 @@
 import {
   normalizeUrl,
   sortAudibleFirst
-} from '../shared/tab-utils.js';
+} from '../engine/queries.js';
+import { createBrowser, createSnapshotStore } from '../engine/browser.js';
+import { duplicateSummary } from '../engine/policy.js';
 import { applyFont } from '../shared/font-config.js';
 import { initLogger, log, error } from '../shared/logger.js';
 import {
@@ -25,7 +27,6 @@ import {
 } from './popup-render-elements.js';
 import {
   createInitialPopupState,
-  filterCloseableTabs,
   getCursorItem,
   getDuplicateGroups,
   getDuplicateTabs,
@@ -37,18 +38,13 @@ import {
   getSearchNavigationItems,
   getSearchKeyboardNavigationAction,
   getTab,
-  getTabsForDomain,
-  getTabsToCloseForAllDuplicates,
-  getTabsToCloseForDuplicateUrl,
   getUrlCounts,
   getVisibleNavigationItems as getStateNavigationItems,
   getVisibleTabs,
   isDomainExpanded,
-  isBrowserUrl,
   makeItemId,
   makeTabItemId,
   reducePopupState,
-  selectTabIds,
   serializeExpansion
 } from './popup-state.js';
 
@@ -129,6 +125,8 @@ let settings = {
 
 // State
 let appState = createInitialPopupState();
+const browserStore = createSnapshotStore(createBrowser(), err => error('Browser reconciliation failed:', err));
+let browserUnsubscribe = null;
 let highlightedOptionIndex = -1; // Track highlighted option in dropdown
 let searchDebounceTimer = null;
 const SEARCH_DEBOUNCE_MS = 150;
@@ -140,11 +138,9 @@ const SEARCH_FIELD_PLACEHOLDER = { url: 'Search URLs', title: 'Search titles' };
 const DEFAULT_SEARCH_PLACEHOLDER = 'Search tabs';
 // Undo state
 let lastClosedCount = 0;        // Number of tabs closed (for undo)
-let undoContext = null;         // 'duplicates', 'domain', or specific domain name
+let lastOperationId = null;
+let actionPending = false;
 let undoMessage = '';
-let pinnedDuplicatesSkipped = 0; // Track count of pinned duplicates skipped
-let groupedDuplicatesSkipped = 0; // Track count of grouped duplicates skipped
-let browserTabsSkipped = 0;     // Track count of browser tabs (chrome://, edge://) skipped
 let hasRenderedOnce = false;    // Stagger slide-in only plays on the first render
 
 function dispatch(action) {
@@ -191,10 +187,10 @@ function handleSearchInput(e) {
   // Show/hide clear button (also visible when a mode is active with no term)
   globalSearchClearEl.classList.toggle('hidden', !query && appState.search.field === 'all');
 
-  // Debounce the search
+  // Query identity changes immediately; only rendering is debounced.
+  dispatch({ type: 'SET_SEARCH_QUERY', query });
   clearTimeout(searchDebounceTimer);
   searchDebounceTimer = setTimeout(() => {
-    dispatch({ type: 'SET_SEARCH_QUERY', query });
     loadAndRender();
   }, SEARCH_DEBOUNCE_MS);
 }
@@ -244,6 +240,7 @@ function applySearchModeChange() {
  * Clears the search and resets results (including any active field mode).
  */
 function clearSearch() {
+  clearTimeout(searchDebounceTimer);
   globalSearchInputEl.value = '';
   globalSearchClearEl.classList.add('hidden');
   searchResultsCountEl.classList.add('hidden');
@@ -553,300 +550,107 @@ function undoMessageForContext(context, count) {
   return `Closed ${count} tab${count === 1 ? '' : 's'}`;
 }
 
-// Undo the last close action
-async function undoClose() {
-  if (lastClosedCount === 0) {
-    log('⚠️ No tabs to restore');
-    return;
-  }
-
-  log(`🔄 Sending undo request for ${lastClosedCount} tabs to background...`);
-
-  // Send message to background service worker to restore tabs
-  // (popup may close when tabs are restored, so background handles it)
-  chrome.runtime.sendMessage({
-    action: 'undoCloseTabs',
-    count: lastClosedCount
-  });
-
-  // Clear undo state
-  lastClosedCount = 0;
-  undoContext = null;
-
-  // Hide undo buttons
-  hideAllUndoButtons();
+async function sendCommand(command) {
+  const response = await chrome.runtime.sendMessage({ action: 'tabEngine', command });
+  if (!response || response.error) throw new Error(response?.error || 'No response from tab engine');
+  return response.result;
 }
 
-/**
- * Closes all tabs from a specific domain (except the active tab).
- * Used by domain section "Close all from domain" buttons.
- *
- * @async
- * @param {string} domain - The domain to close tabs from
- * @returns {Promise<void>}
- */
-async function closeTabsFromDomain(domain) {
+// Presentation owns animation and feedback, never browser mutation policy.
+async function performAction(command, context, element = null) {
+  if (actionPending) return;
+  actionPending = true;
   try {
-    const domainTabs = getTabsForDomain(appState, domain);
-    const tabsToClose = selectTabIds(filterCloseableTabs(appState, domainTabs));
-
-    if (tabsToClose.length > 0) {
-      const closedCount = tabsToClose.length;
-      await chrome.tabs.remove(tabsToClose);
-      tabsToClose.forEach(tabId => dispatch({ type: 'TAB_REMOVED', tabId }));
-      log(`✅ Closed ${closedCount} tabs from ${domain}`);
-
-      // Store count for undo
-      lastClosedCount = closedCount;
-      undoContext = domain;
-
-      // Refresh the list first (domain section may disappear)
-      await loadAndRender();
-
-      // Show undo button in action bar (domain section may no longer exist)
-      showUndoButton('domain');
-      return; // Already refreshed
-    }
-
-    // Refresh the list
-    await refreshBrowserSnapshot();
-    await loadAndRender();
-  } catch (err) {
-    error('❌ Error closing domain tabs:', err);
-  }
-}
-
-/**
- * Moves all tabs from a specific domain to a new window.
- *
- * @async
- * @param {string} domain - The domain to move tabs from
- * @returns {Promise<void>}
- */
-async function moveTabsFromDomainToWindow(domain) {
-  try {
-    const domainTabs = getTabsForDomain(appState, domain);
-
-    if (domainTabs.length === 0) return;
-
-    // Create new window with first tab
-    const newWindow = await chrome.windows.create({
-      tabId: domainTabs[0].id
-    });
-
-    // Move remaining tabs to new window
-    if (domainTabs.length > 1) {
-      const remainingTabIds = domainTabs.slice(1).map(t => t.id);
-      await chrome.tabs.move(remainingTabIds, {
-        windowId: newWindow.id,
-        index: -1
-      });
-    }
-
-    log(`✅ Moved ${domainTabs.length} tabs from ${domain} to new window`);
-
-    await refreshBrowserSnapshot();
-    await loadAndRender();
-  } catch (err) {
-    error('❌ Error moving domain tabs:', err);
-  }
-}
-
-async function moveSearchResultsToWindow() {
-  try {
-    const tabsToMove = getSearchResults(appState).map(({ tab }) => tab);
-    if (tabsToMove.length === 0) return;
-
-    const newWindow = await chrome.windows.create({ tabId: tabsToMove[0].id });
-    if (tabsToMove.length > 1) {
-      await chrome.tabs.move(tabsToMove.slice(1).map(tab => tab.id), {
-        windowId: newWindow.id,
-        index: -1
-      });
-    }
-
-    lastClosedCount = 0;
-    undoContext = null;
-    hideAllUndoButtons();
-    log(`✅ Moved ${tabsToMove.length} search-result tabs to new window`);
-    await refreshBrowserSnapshot();
-    await loadAndRender();
-  } catch (err) {
-    error('❌ Error moving search results:', err);
-  }
-}
-
-/**
- * Closes all duplicate tabs of a specific URL, keeping one original.
- *
- * @async
- * @param {string} url - The URL to close duplicates of
- * @returns {Promise<void>}
- */
-async function closeDuplicatesOfUrl(url) {
-  try {
-    const tabsWithUrl = getTabsToCloseForDuplicateUrl(appState, url);
-    if (tabsWithUrl.length === 0) return;
-
-    const tabIdsToClose = selectTabIds(tabsWithUrl);
-
-    if (tabIdsToClose.length > 0) {
-      // Animate the row
-      const rowEl = document.querySelector(`[data-url="${CSS.escape(url)}"]`);
-      if (rowEl) {
-        rowEl.classList.add('closing');
-        await new Promise(resolve => setTimeout(resolve, 140));
-      }
-
-      await chrome.tabs.remove(tabIdsToClose);
-      tabIdsToClose.forEach(tabId => dispatch({ type: 'TAB_REMOVED', tabId }));
-      log(`✅ Closed ${tabIdsToClose.length} duplicates of ${url}`);
-      lastClosedCount = tabIdsToClose.length;
-      undoContext = 'duplicates';
-      showUndoButton('duplicates', `Closed ${tabIdsToClose.length} duplicate tab${tabIdsToClose.length === 1 ? '' : 's'}`);
-    }
-
-    // Show browser warning if tabs were skipped
-    if (browserTabsSkipped > 0) {
-      browserSkipCountEl.textContent = browserTabsSkipped;
-      browserWarningEl.classList.remove('hidden');
-    }
-
-    await loadAndRender();
-  } catch (err) {
-    error('❌ Error closing duplicates:', err);
-  }
-}
-
-// Switch to a tab
-function switchToTab(tabId, windowId) {
-  chrome.tabs.update(tabId, { active: true }, () => {
-    chrome.windows.update(windowId, { focused: true });
-  });
-}
-
-// Close a single tab with animation
-async function closeTab(tabId, navigationId = null) {
-  try {
-    const tab = getTab(appState, tabId);
-    if (!tab) return;
-
-    if (isBrowserUrl(tab.url)) {
-      // Show warning - browser tabs can't be closed by extensions
-      browserTabsSkipped = 1;
-      browserSkipCountEl.textContent = '1';
-      browserWarningEl.classList.remove('hidden');
-
-      // Auto-hide warning after 3 seconds
-      setTimeout(() => {
-        browserWarningEl.classList.add('hidden');
-        browserTabsSkipped = 0;
-      }, 3000);
-
-      log(`⚠️ Cannot close browser tab: ${tab.url}`);
-      return;
-    }
-
-    // Find the tab-item element in DOM and animate it
-    const tabItem = navigationId
-      ? document.querySelector(`[data-nav-id="${CSS.escape(navigationId)}"]`)
-      : document.querySelector(`[data-tab-id="${tabId}"]`);
-
-    if (tabItem) {
-      // Add closing class to trigger animation
-      tabItem.classList.add('closing');
-
+    if (element) {
+      element.classList.add('closing');
       await new Promise(resolve => setTimeout(resolve, 140));
     }
-
-    // Now remove the tab from Chrome
-    await chrome.tabs.remove(tabId);
-    dispatch({ type: 'TAB_REMOVED', tabId });
-    log(`✅ Closed tab ${tabId}`);
-    lastClosedCount = 1;
-    undoContext = 'tab';
-    showUndoButton('tab');
-
-    // Refresh the list
-    await loadAndRender();
+    const result = await sendCommand({ ...command, scope: { ...appState.scope } });
+    if (command.type === 'move') {
+      if (result.succeeded.length) {
+        lastClosedCount = 0;
+        lastOperationId = null;
+        hideAllUndoButtons();
+      }
+    } else if (result.succeeded.length) {
+      lastClosedCount = result.succeeded.length;
+      lastOperationId = result.operationId;
+      showUndoButton(context);
+      undoDuplicatesBtn.disabled = !lastOperationId;
+    }
+    await refreshBrowserSnapshot();
+    const status = `${result.succeeded.length} ${command.type === 'move' ? 'moved' : 'closed'} · ${result.skipped.length} skipped · ${result.failed.length} failed`;
+    if (result.failed.length || result.skipped.length) {
+      undoRowEl.classList.remove('hidden');
+      undoMessageEl.textContent = status;
+    }
+    log('Tab engine result:', result);
   } catch (err) {
-    error('❌ Error closing tab:', err);
+    error('Tab action failed:', err);
+    undoRowEl.classList.remove('hidden');
+    undoMessageEl.textContent = `Action failed: ${err.message}`;
+  } finally {
+    element?.classList.remove('closing');
+    actionPending = false;
+    loadAndRender();
   }
 }
 
-/**
- * Closes all duplicate tabs, keeping one instance of each URL.
- * Preserves the active tab if it's a duplicate (closes other instances instead).
- * Stores closed count for undo functionality.
- *
- * @async
- * @returns {Promise<void>}
- */
-async function closeAllDuplicates() {
+async function undoClose() {
+  if (!lastOperationId || actionPending) return;
+  actionPending = true;
   try {
-    const tabs = getScopedTabs(appState);
-    const duplicates = getDuplicateTabs(appState);
-
-    if (duplicates.length === 0) {
-      return;
-    }
-    const tabsToClose = getTabsToCloseForAllDuplicates(appState);
-    pinnedDuplicatesSkipped = settings.protectPinned ? duplicates.filter(tab => tab.pinned).length : 0;
-    groupedDuplicatesSkipped = settings.protectGroups ? duplicates.filter(tab => tab.groupId !== -1 && tab.groupId !== undefined).length : 0;
-    browserTabsSkipped = duplicates.filter(tab => isBrowserUrl(tab.url)).length;
-
-    // Get tab IDs to close
-    const tabIdsToClose = tabsToClose.map(tab => tab.id);
-
-    if (tabIdsToClose.length > 0) {
-      const closedCount = tabIdsToClose.length;
-      await chrome.tabs.remove(tabIdsToClose);
-      tabIdsToClose.forEach(tabId => dispatch({ type: 'TAB_REMOVED', tabId }));
-      log(`✅ Closed ${closedCount} duplicate tabs`);
-
-      // Store count for undo
-      lastClosedCount = closedCount;
-      undoContext = 'duplicates';
-
-      // Show undo button
-      showUndoButton('duplicates');
-    }
-
-    // Refresh the list
-    await loadAndRender();
+    const result = await sendCommand({ type: 'undo', operationId: lastOperationId });
+    lastClosedCount = result.failed.length;
+    undoDuplicatesBtn.disabled = !result.failed.length;
+    undoMessageEl.textContent = `${result.restored.length} restored · ${result.recreated.length} reopened by URL · ${result.failed.length} failed`;
+    if (!result.failed.length) lastOperationId = null;
+    await refreshBrowserSnapshot();
   } catch (err) {
-    error('❌ Error closing duplicates:', err);
+    error('Undo failed:', err);
+    undoMessageEl.textContent = `Undo failed: ${err.message}`;
+  } finally {
+    actionPending = false;
   }
 }
 
-/**
- * Closes all tabs currently shown in the search results.
- * Honors protectPinned / protectGroups, never closes the active tab,
- * and skips browser-internal URLs that Chrome won't let extensions close.
- */
-async function closeAllSearchResults() {
-  try {
-    const tabsToClose = filterCloseableTabs(appState, getSearchResults(appState).map(({ tab }) => tab));
+function closeTabsFromDomain(domain) {
+  return performAction({ type: 'close', domain }, 'domain');
+}
 
-    const tabIdsToClose = tabsToClose.map(tab => tab.id);
-    if (tabIdsToClose.length === 0) {
-      await loadAndRender();
-      return;
-    }
+function moveTabsFromDomainToWindow(domain) {
+  return performAction({ type: 'move', domain }, 'domain');
+}
 
-    const closedCount = tabIdsToClose.length;
-    await chrome.tabs.remove(tabIdsToClose);
-    tabIdsToClose.forEach(tabId => dispatch({ type: 'TAB_REMOVED', tabId }));
-    log(`✅ Closed ${closedCount} search-result tabs`);
+function moveSearchResultsToWindow() {
+  return performAction({ type: 'move', targets: getSearchResults(appState).map(({ tab }) => tab) }, 'search');
+}
 
-    lastClosedCount = closedCount;
-    undoContext = 'search';
-    showUndoButton('search');
+function closeDuplicatesOfUrl(url) {
+  const row = duplicateListEl.querySelector(`[data-url="${CSS.escape(url)}"]`);
+  return performAction({ type: 'close-duplicates', url }, 'duplicates', row);
+}
 
-    await loadAndRender();
-  } catch (err) {
-    error('❌ Error closing search results:', err);
-  }
+function switchToTab(tabId) {
+  sendCommand({ type: 'activate', tabId }).catch(err => error('Activation failed:', err));
+}
+
+function closeTab(tabId, navigationId = null) {
+  const tab = getTab(appState, tabId);
+  if (!tab) return;
+  const row = navigationId
+    ? document.querySelector(`[data-nav-id="${CSS.escape(navigationId)}"]`)
+    : document.querySelector(`[data-tab-id="${tabId}"]`);
+  // Explicit single-tab close retains its existing opt-in semantics (including current/pinned tabs).
+  return performAction({ type: 'close', targets: [tab], single: true }, 'tab', row);
+}
+
+function closeAllDuplicates() {
+  return performAction({ type: 'close-duplicates' }, 'duplicates');
+}
+
+function closeAllSearchResults() {
+  return performAction({ type: 'close', targets: getSearchResults(appState).map(({ tab }) => tab) }, 'search');
 }
 
 // Render domain filter
@@ -989,6 +793,7 @@ function hideDomainDropdown() {
 function render() {
   const tabs = getScopedTabs(appState);
   const duplicates = getDuplicateTabs(appState);
+  const duplicateInfo = duplicateSummary(tabs, settings, appState.browser.focusedWindowId);
   const searching = isSearchMode(appState.ui.machine);
   const duplicateReviewOpen = isDuplicateReviewMode(appState.ui.machine);
   const browseView = getBrowseView(appState.ui.machine);
@@ -1087,14 +892,15 @@ function render() {
     delete browseTabsEl.dataset.mediaCount;
   }
 
-  // Update section counts using the primary duplicate metric: redundant tabs that can be closed.
+  // The badge and section report raw redundancy; action labels report eligible cleanup.
   duplicatesSectionCountEl.textContent = duplicates.length;
 
   // Render domain filter
   renderDomainFilter();
 
   // Enable/disable close all duplicates button
-  closeAllBtn.disabled = duplicates.length === 0;
+  closeAllBtn.disabled = duplicateInfo.actionableCount === 0 || actionPending;
+  closeAllBtn.title = `${duplicates.length} duplicates · ${duplicateInfo.actionableCount} can be closed`;
 
   // Update sort button active states
   sortButtonsEl.querySelectorAll('.btn-toggle').forEach(btn => {
@@ -1124,9 +930,6 @@ function render() {
     emptyStateEl.style.display = 'block';
     pinnedWarningEl.classList.add('hidden');
     browserWarningEl.classList.add('hidden');
-    pinnedDuplicatesSkipped = 0;
-    groupedDuplicatesSkipped = 0;
-    browserTabsSkipped = 0;
   } else {
     // Show duplicates
     duplicateListEl.style.display = duplicateReviewOpen ? 'flex' : 'none';
@@ -1135,36 +938,13 @@ function render() {
     exitDuplicatesReviewBtn.classList.toggle('hidden', !duplicateReviewOpen);
     emptyStateEl.style.display = 'none';
 
-    // Show warning if there are protected tabs (pinned or grouped) in duplicate groups
-    const hasSkippedTabs = pinnedDuplicatesSkipped > 0 || groupedDuplicatesSkipped > 0;
-    if (hasSkippedTabs) {
-      // Count all protected tabs that are part of duplicate URLs
-      const duplicateNormalizedUrlsForWarning = new Set(duplicates.map(tab => normalizeUrl(tab.url, settings.matchMode)));
-      const allTabsInDuplicateGroups = tabs.filter(tab => duplicateNormalizedUrlsForWarning.has(normalizeUrl(tab.url, settings.matchMode)));
-      const pinnedCount = settings.protectPinned ? allTabsInDuplicateGroups.filter(tab => tab.pinned).length : 0;
-      const groupedCount = settings.protectGroups ? allTabsInDuplicateGroups.filter(tab => tab.groupId !== -1 && tab.groupId !== undefined).length : 0;
-
-      if (pinnedCount > 0 || groupedCount > 0) {
-        // Build warning message
-        const parts = [];
-        if (pinnedCount > 0) parts.push(`${pinnedCount} pinned`);
-        if (groupedCount > 0) parts.push(`${groupedCount} grouped`);
-        pinnedSkipCountEl.textContent = parts.join(', ');
-        pinnedWarningEl.classList.remove('hidden');
-      } else {
-        pinnedWarningEl.classList.add('hidden');
-      }
-    } else {
-      pinnedWarningEl.classList.add('hidden');
-    }
-
-    // Show warning if browser tabs were skipped
-    if (browserTabsSkipped > 0) {
-      browserSkipCountEl.textContent = browserTabsSkipped;
-      browserWarningEl.classList.remove('hidden');
-    } else {
-      browserWarningEl.classList.add('hidden');
-    }
+    const parts = [];
+    if (duplicateInfo.pinned) parts.push(`${duplicateInfo.pinned} pinned`);
+    if (duplicateInfo.grouped) parts.push(`${duplicateInfo.grouped} grouped`);
+    pinnedSkipCountEl.textContent = parts.join(', ');
+    pinnedWarningEl.classList.toggle('hidden', !parts.length);
+    browserSkipCountEl.textContent = duplicateInfo.internal;
+    browserWarningEl.classList.toggle('hidden', !duplicateInfo.internal);
 
     let groupedDuplicates = getDuplicateGroups(appState);
     duplicatesSummaryPrimaryEl.textContent = `${duplicates.length} duplicate${duplicates.length === 1 ? '' : 's'}`;
@@ -1259,79 +1039,25 @@ async function loadAndRender() {
 }
 
 async function refreshBrowserSnapshot() {
-  // Full snapshots are intentionally limited to popup initialization, enabling
-  // current-window scope, and multi-step tab/window mutations. Chrome events
-  // normally reconcile incremental changes, but these paths can emit several
-  // tab/window events in transient order, so an authoritative resync is safer.
-  const [tabs, activeTabs] = await Promise.all([
-    chrome.tabs.query({}),
-    chrome.tabs.query({ active: true, currentWindow: true })
-  ]);
-  const focusedWindowId = activeTabs[0]?.windowId ?? null;
-  const scopeWindowId = focusedWindowId ?? appState.browser.focusedWindowId;
-
-  dispatch({
-    type: 'SET_BROWSER_SNAPSHOT',
-    tabs,
-    focusedWindowId
-  });
-
-  dispatch({
-    type: 'SET_SCOPE',
-    scope: settings.currentWindowOnly
-      ? { type: 'window', windowId: scopeWindowId }
-      : { type: 'all' }
-  });
+  applyBrowserSnapshot(await browserStore.refresh());
 }
 
-async function reconcileTabFromChrome(tabId, eventType = 'TAB_UPDATED') {
-  try {
-    const tab = await chrome.tabs.get(tabId);
-    dispatch({ type: eventType, tab });
-    loadAndRender();
-  } catch (err) {
-    dispatch({ type: 'TAB_REMOVED', tabId });
-    loadAndRender();
-  }
+function applyBrowserSnapshot({ tabs, focusedWindowId }) {
+  dispatch({ type: 'SET_BROWSER_SNAPSHOT', tabs, focusedWindowId });
+  dispatch({ type: 'SET_SCOPE', scope: settings.currentWindowOnly
+    ? { type: 'window', windowId: focusedWindowId } : { type: 'all' } });
+  updateScopeButton();
 }
 
 function attachChromeEventListeners() {
-  chrome.tabs.onCreated?.addListener((tab) => {
-    dispatch({ type: 'TAB_CREATED', tab });
+  browserUnsubscribe = browserStore.subscribe(snapshot => {
+    applyBrowserSnapshot(snapshot);
     loadAndRender();
   });
-
-  chrome.tabs.onUpdated?.addListener((tabId, changeInfo, tab) => {
-    dispatch({ type: 'TAB_UPDATED', tab: { ...(getTab(appState, tabId) || {}), ...tab, ...changeInfo, id: tabId } });
-    loadAndRender();
-  });
-
-  chrome.tabs.onRemoved?.addListener((tabId) => {
-    dispatch({ type: 'TAB_REMOVED', tabId });
-    loadAndRender();
-  });
-
-  chrome.tabs.onMoved?.addListener((tabId) => {
-    reconcileTabFromChrome(tabId, 'TAB_MOVED');
-  });
-
-  chrome.tabs.onAttached?.addListener((tabId) => {
-    reconcileTabFromChrome(tabId, 'TAB_ATTACHED');
-  });
-
-  chrome.tabs.onDetached?.addListener((tabId) => {
-    dispatch({ type: 'TAB_DETACHED', tabId });
-    loadAndRender();
-  });
-
-  chrome.tabs.onReplaced?.addListener((addedTabId, removedTabId) => {
-    dispatch({ type: 'TAB_REMOVED', tabId: removedTabId });
-    reconcileTabFromChrome(addedTabId, 'TAB_REPLACED');
-  });
-
-  chrome.windows.onFocusChanged?.addListener((windowId) => {
-    dispatch({ type: 'WINDOW_FOCUS_CHANGED', windowId });
-    loadAndRender();
+  window.addEventListener('pagehide', () => {
+    browserUnsubscribe?.();
+    browserStore.dispose();
+    clearTimeout(searchDebounceTimer);
   });
 }
 
@@ -1395,8 +1121,9 @@ globalSearchInputEl.addEventListener('keydown', (e) => {
 
 // Keyboard shortcuts for search
 document.addEventListener('keydown', (e) => {
+  if (e.defaultPrevented || e.isComposing) return;
   const activeTag = document.activeElement?.tagName;
-  const isTextInput = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT';
+  const isTextInput = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT' || document.activeElement?.isContentEditable;
 
   // Focus search with '/' key (when not in an input)
   if (e.key === '/' && !isTextInput) {
@@ -1414,8 +1141,8 @@ document.addEventListener('keydown', (e) => {
 
   if (document.activeElement === globalSearchInputEl && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
     e.preventDefault();
-
-    globalSearchInputEl.blur();
+    clearTimeout(searchDebounceTimer);
+    render();
 
     if (appState.search.query.trim()) {
       const items = getSearchNavigationItems(appState);
@@ -1427,6 +1154,7 @@ document.addEventListener('keydown', (e) => {
       dispatch({ type: e.key === 'ArrowDown' ? 'NAVIGATE_NEXT' : 'NAVIGATE_PREVIOUS' });
     }
 
+    globalSearchInputEl.blur();
     applyCursorToDom();
     return;
   }
@@ -1702,9 +1430,9 @@ function initFooter() {
   await initLogger();
   await loadSettings();
   await loadSectionStates();
+  attachChromeEventListeners();
   await refreshBrowserSnapshot();
   updateScopeButton();
   initFooter();
-  attachChromeEventListeners();
   loadAndRender();
 })();

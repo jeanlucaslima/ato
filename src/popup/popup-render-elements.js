@@ -4,7 +4,7 @@ import {
   isLoadableFavicon,
   normalizeUrl,
   sortAudibleFirst
-} from '../shared/tab-utils.js';
+} from '../engine/queries.js';
 import { makeTabItemId } from './popup-state.js';
 
 export function createMediaIcon() {
@@ -90,7 +90,9 @@ export function createGroupedDuplicateItem(group, index = 0, matchResult = null)
   const closeBtn = document.createElement('button');
   closeBtn.className = 'tab-close';
   closeBtn.textContent = '×';
-  closeBtn.title = `Close ${duplicateTabs.length} duplicate(s)`;
+  const actionableCount = group.actionableCount ?? duplicateTabs.length;
+  closeBtn.title = `Close ${actionableCount} eligible duplicate(s) · ${duplicateTabs.length} duplicates total`;
+  closeBtn.disabled = actionableCount === 0;
 
   item.appendChild(favicon);
   item.appendChild(info);
