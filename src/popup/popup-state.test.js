@@ -143,13 +143,10 @@ describe('popup search and navigation', () => {
     state = reducePopupState(state, { type: 'SET_SEARCH_QUERY', query: 'Alpha' });
     state = reducePopupState(state, { type: 'NAVIGATE_NEXT' });
 
-    expect(getCursorItem(state)?.id).toBe(makeItemId('view', 'tabs'));
-
-    state = reducePopupState(state, { type: 'NAVIGATE_NEXT' });
-    expect(getCursorItem(state)?.id).toBe(makeItemId('view', 'domains'));
-
-    state = reducePopupState(state, { type: 'NAVIGATE_NEXT' });
     expect(getCursorItem(state)?.id).toBe(makeTabItemId('search', 1));
+
+    state = reducePopupState(state, { type: 'NAVIGATE_NEXT' });
+    expect(getCursorItem(state)?.id).toBe(makeTabItemId('search', 3));
 
     state = reducePopupState(state, { type: 'CLEAR_SEARCH', defaultMode: 'contains' });
     expect(state.search.query).toBe('');

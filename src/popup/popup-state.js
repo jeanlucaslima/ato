@@ -1,11 +1,16 @@
 import {
   extractDomain,
+  duplicateGroups,
+  countDuplicatesByUrl,
+  groupTabsByDomain,
   findDuplicates,
   normalizeUrl,
   searchTab,
   sortAudibleFirst,
   sortTabs
-} from '../shared/tab-utils.js';
+} from '../engine/queries.js';
+import { currentTab, scopedTabs, duplicateTargets, protectionReason, isBrowserUrl } from '../engine/policy.js';
+export { isBrowserUrl } from '../engine/policy.js';
 import {
   createInitialPopupMachineState,
   getBrowseView,
@@ -164,23 +169,15 @@ export function getTab(state, tabId) {
 }
 
 export function getScopedTabs(state) {
-  const tabs = getTabs(state);
-  if (state.scope.type !== 'window') return tabs;
-  return tabs.filter(tab => tab.windowId === state.scope.windowId);
+  return scopedTabs(getTabs(state), state.scope);
 }
 
 export function getActiveTab(state) {
-  return getScopedTabs(state).find(tab => tab.active) || getTabs(state).find(tab => tab.active) || null;
+  return currentTab(getTabs(state), state.browser.focusedWindowId);
 }
 
 export function getUrlCounts(state) {
-  const counts = new Map();
-  for (const tab of getScopedTabs(state)) {
-    if (!tab.url) continue;
-    const url = normalizeUrl(tab.url, state.matchMode || 'exact');
-    counts.set(url, (counts.get(url) || 0) + 1);
-  }
-  return counts;
+  return countDuplicatesByUrl(getScopedTabs(state), state.matchMode || 'exact');
 }
 
 export function getDuplicateTabs(state) {
@@ -188,19 +185,9 @@ export function getDuplicateTabs(state) {
 }
 
 export function getDuplicateGroups(state) {
-  const duplicatesByUrl = new Map();
-  for (const tab of getDuplicateTabs(state)) {
-    const normalizedTabUrl = normalizeUrl(tab.url, state.matchMode || 'exact');
-    if (!duplicatesByUrl.has(normalizedTabUrl)) duplicatesByUrl.set(normalizedTabUrl, []);
-    duplicatesByUrl.get(normalizedTabUrl).push(tab);
-  }
-
-  const urlCounts = getUrlCounts(state);
-  const groups = Array.from(duplicatesByUrl.entries()).map(([url, tabs]) => ({
-    url,
-    tabs,
-    representative: tabs[0],
-    totalCount: urlCounts.get(url) || tabs.length + 1
+  const groups = duplicateGroups(getScopedTabs(state), state.matchMode).map(({ url, tabs }) => ({
+    url, tabs: tabs.slice(1), representative: tabs[1], totalCount: tabs.length,
+    actionableCount: duplicateTargets(tabs, state, state.browser.focusedWindowId).length
   }));
 
   if (state.sort.duplicate === 'title') {
@@ -213,18 +200,7 @@ export function getDuplicateGroups(state) {
 }
 
 export function getDomainGroups(state) {
-  const groups = new Map();
-  for (const tab of getScopedTabs(state)) {
-    if (!tab.url) continue;
-    const domain = extractDomain(tab.url);
-    if (!domain) continue;
-    if (!groups.has(domain)) groups.set(domain, []);
-    groups.get(domain).push(tab);
-  }
-
-  return Array.from(groups.entries())
-    .map(([domain, tabs]) => ({ domain, tabs, count: tabs.length }))
-    .sort((a, b) => b.count - a.count);
+  return groupTabsByDomain(getScopedTabs(state));
 }
 
 export function getVisibleTabs(state) {
@@ -307,6 +283,7 @@ export function getVisibleNavigationItems(state) {
   ];
 
   if (state.search.query.trim()) {
+    items.length = 0;
     for (const { tab } of getSearchResults(state)) {
       items.push({ id: makeTabItemId('search', tab.id), type: 'tab', tabId: tab.id, windowId: tab.windowId, zone: 'search' });
     }
@@ -395,54 +372,20 @@ export function getTabsForDuplicateUrl(state, url) {
 }
 
 export function getTabsToCloseForDuplicateUrl(state, url) {
-  return chooseDuplicateTabsToClose(state, getTabsForDuplicateUrl(state, url));
+  return duplicateTargets(getTabsForDuplicateUrl(state, url), state, state.browser.focusedWindowId);
 }
 
 export function getTabsToCloseForAllDuplicates(state) {
-  const byUrl = new Map();
-  for (const tab of getScopedTabs(state)) {
-    if (!tab.url) continue;
-    const url = normalizeUrl(tab.url, state.matchMode || 'exact');
-    if (!byUrl.has(url)) byUrl.set(url, []);
-    byUrl.get(url).push(tab);
-  }
-
-  return Array.from(byUrl.values()).flatMap(tabs => chooseDuplicateTabsToClose(state, tabs));
+  return duplicateTargets(getScopedTabs(state), state, state.browser.focusedWindowId);
 }
 
 export function filterCloseableTabs(state, tabs, { protectActive = true } = {}) {
   const activeTabId = getActiveTab(state)?.id;
-  return tabs.filter(tab => {
-    if (!tab) return false;
-    if (protectActive && tab.id === activeTabId) return false;
-    if (state.protectPinned && tab.pinned) return false;
-    if (state.protectGroups && tab.groupId !== -1 && tab.groupId !== undefined) return false;
-    if (isBrowserUrl(tab.url)) return false;
-    return true;
-  });
+  return tabs.filter(tab => tab && !protectionReason(tab, state, protectActive ? activeTabId : null));
 }
 
 export function selectTabIds(tabs) {
   return tabs.map(tab => tab.id).filter(id => Number.isFinite(id));
-}
-
-export function isBrowserUrl(url) {
-  return Boolean(url) && (url.startsWith('chrome://') || url.startsWith('edge://'));
-}
-
-function chooseDuplicateTabsToClose(state, tabsWithUrl) {
-  if (tabsWithUrl.length <= 1) return [];
-
-  const activeTabId = getActiveTab(state)?.id;
-  const sorted = [...tabsWithUrl].sort((a, b) =>
-    state.keepTab === 'newest' ? b.id - a.id : a.id - b.id
-  );
-
-  const initial = sorted.some(tab => tab.id === activeTabId)
-    ? sorted.filter(tab => tab.id !== activeTabId)
-    : sorted.slice(1);
-
-  return filterCloseableTabs(state, initial, { protectActive: false });
 }
 
 function reconcileState(state, previousItems = []) {
@@ -467,7 +410,8 @@ function reconcileState(state, previousItems = []) {
     }
   }
 
-  const items = getVisibleNavigationItems(state);
+  const searching = Boolean(state.search.query.trim());
+  const items = searching ? getSearchNavigationItems(state) : getVisibleNavigationItems(state);
   if (state.navigation.cursorId == null) {
     return state;
   }
@@ -479,6 +423,7 @@ function reconcileState(state, previousItems = []) {
 
   if (items.length === 0) {
     state.navigation.cursorId = null;
+    state.navigation.focusZone = 'search';
     return state;
   }
 
