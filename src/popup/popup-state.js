@@ -19,7 +19,7 @@ import {
 
 const DEFAULT_SECTION_EXPANSION = {
   media: true,
-  duplicates: true,
+  duplicates: false,
   allTabs: true
 };
 
@@ -109,7 +109,8 @@ export function createInitialPopupState({
       type: defaultBrowseView === 'domains' ? 'domains' : 'tabs'
     },
     ui: {
-      machine: createInitialPopupMachineState({ defaultBrowseView })
+      machine: createInitialPopupMachineState({ defaultBrowseView }),
+      selectMode: false
     },
     search: {
       query: '',
@@ -209,7 +210,7 @@ export function getPlayingTabs(state) {
 
 export function getLargeDomainGroups(state) {
   const groups = getDomainGroups(state)
-    .filter(group => group.tabs.filter(tab => tab.url && !isBrowserUrl(tab.url)).length >= 3)
+    .filter(group => group.tabs.some(tab => tab.url && !isBrowserUrl(tab.url)))
     .map(group => ({
       ...group,
       tabs: group.tabs.filter(tab => tab.url && !isBrowserUrl(tab.url))
@@ -240,20 +241,10 @@ export function getVisibleNavigationItems(state) {
     return items;
   }
 
-  const playingTabs = getPlayingTabs(state);
-  if (playingTabs.length > 0) {
-    items.push({ id: makeItemId('section', 'media'), type: 'section', section: 'media' });
-    if (state.expansion.sections.media) {
-      for (const tab of playingTabs) {
-        items.push({ id: makeTabItemId('media', tab.id), type: 'tab', tabId: tab.id, windowId: tab.windowId, section: 'media', zone: 'media' });
-      }
-    }
-  }
-
   const duplicateTabs = getDuplicateTabs(state);
   if (duplicateTabs.length > 0) {
     items.push({ id: makeItemId('section', 'duplicates'), type: 'section', section: 'duplicates' });
-    if (state.expansion.sections.duplicates && state.duplicateReviewOpen) {
+    if (state.duplicateReviewOpen) {
       for (const group of getDuplicateGroups(state)) {
         items.push({ id: makeItemId('duplicate', group.url), type: 'duplicate', url: group.url });
       }
@@ -373,6 +364,26 @@ export function reducePopupState(currentState, action) {
   const state = cloneState(currentState);
 
   switch (action.type) {
+    case 'RESTORE_PREFERENCES':
+      if (['tabs', 'domains'].includes(action.preferences?.view)) {
+        state.ui.machine = transitionPopupMachine(state.ui.machine, { type: 'SET_VIEW', view: action.preferences.view });
+        state.view.type = getBrowseView(state.ui.machine);
+      }
+      for (const [key, allowed] of Object.entries({
+        tabs: ['default', 'title', 'title-desc', 'domain', 'age', 'duplicates'],
+        duplicate: ['default', 'title', 'domain'], domainSection: ['name', 'count', 'recent'],
+        ageDirection: ['old', 'new'], domainNameDirection: ['az', 'za'], domainCountDirection: ['most', 'few']
+      })) {
+        if (allowed.includes(action.preferences?.sort?.[key])) state.sort[key] = action.preferences.sort[key];
+      }
+      break;
+    case 'SET_SELECT_MODE':
+      state.ui.selectMode = Boolean(action.enabled);
+      if (!state.ui.selectMode) {
+        state.selection.tabIds.clear();
+        state.selection.anchorTabId = null;
+      }
+      break;
     case 'SET_SETTINGS':
       state.matchMode = action.settings.matchMode;
       state.keepTab = action.settings.keepTab;
@@ -410,6 +421,10 @@ export function reducePopupState(currentState, action) {
       break;
     }
     case 'SET_SCOPE':
+      if (state.scope.type !== action.scope.type || (action.scope.type === 'window' && state.scope.windowId !== action.scope.windowId)) {
+        state.selection.tabIds.clear();
+        state.selection.anchorTabId = null;
+      }
       state.scope = action.scope.type === 'window' && isValidWindowId(action.scope.windowId)
         ? { type: 'window', windowId: action.scope.windowId }
         : { type: 'all', windowId: null };
@@ -583,6 +598,18 @@ export function reducePopupState(currentState, action) {
         state.selection.anchorTabId = tabId;
       }
       if (state.selection.tabIds.size === 0) state.selection.anchorTabId = null;
+      break;
+    }
+    case 'SELECT_RANGE': {
+      const ids = getVisibleNavigationItems(state).filter(item => item.type === 'tab').map(item => item.tabId);
+      const target = ids.indexOf(Number(action.tabId));
+      const anchor = ids.indexOf(state.selection.anchorTabId);
+      if (target >= 0) {
+        for (const id of ids.slice(Math.min(anchor < 0 ? target : anchor, target), Math.max(anchor < 0 ? target : anchor, target) + 1)) {
+          state.selection.tabIds.add(id);
+        }
+        if (anchor < 0) state.selection.anchorTabId = Number(action.tabId);
+      }
       break;
     }
     case 'CLEAR_SELECTION':

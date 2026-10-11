@@ -270,7 +270,7 @@ describe('popup domains', () => {
 
   it('expands, collapses, and navigates child to parent from state', () => {
     let state = withTabs(domainTabs, { view: 'domains' });
-    expect(getLargeDomainGroups(state).map(group => group.domain)).toEqual(['a.test']);
+    expect(getLargeDomainGroups(state).map(group => group.domain)).toEqual(['a.test', 'b.test']);
     expect(isDomainExpanded(state, 'a.test')).toBe(true);
 
     state = reducePopupState(state, { type: 'COLLAPSE_DOMAIN', domain: 'a.test' });
@@ -311,7 +311,7 @@ describe('popup domains', () => {
 
     state = reducePopupState(state, { type: 'SET_BROWSER_SNAPSHOT', tabs: domainTabs, focusedWindowId: 1 });
 
-    expect(getLargeDomainGroups(state).map(group => group.domain)).toEqual(['a.test']);
+    expect(getLargeDomainGroups(state).map(group => group.domain)).toEqual(['a.test', 'b.test']);
     expect(isDomainExpanded(state, 'a.test')).toBe(false);
     expect(getVisibleNavigationItems(state).some(item => item.id === makeTabItemId('domain', 1, 'a.test'))).toBe(false);
   });
@@ -331,7 +331,7 @@ describe('popup domains', () => {
 });
 
 describe('popup navigation identity', () => {
-  it('assigns unique item IDs when an audible tab also appears in All Tabs', () => {
+  it('keeps audible tabs in their ordinary list without invisible media navigation', () => {
     let state = withTabs([
       { id: 1, windowId: 1, title: 'Alpha', url: 'https://a.test/one', active: true, audible: true },
       { id: 2, windowId: 1, title: 'Beta', url: 'https://b.test/two' }
@@ -340,17 +340,16 @@ describe('popup navigation identity', () => {
     const tabItems = getVisibleNavigationItems(state).filter(item => item.type === 'tab' && item.tabId === 1);
 
     expect(tabItems.map(item => item.id)).toEqual([
-      makeTabItemId('media', 1),
       makeTabItemId('tabs', 1)
     ]);
     expect(new Set(tabItems.map(item => item.tabId))).toEqual(new Set([1]));
     expectUniqueNavigationIds(state);
 
-    state = reducePopupState(state, { type: 'SET_CURSOR', cursorId: makeTabItemId('media', 1) });
-    expect(getCursorItem(state)).toMatchObject({ id: makeTabItemId('media', 1), tabId: 1, zone: 'media' });
+    state = reducePopupState(state, { type: 'SET_CURSOR', cursorId: makeTabItemId('tabs', 1) });
+    expect(getCursorItem(state)).toMatchObject({ id: makeTabItemId('tabs', 1), tabId: 1, zone: 'tabs' });
 
     state = reducePopupState(state, { type: 'NAVIGATE_NEXT' });
-    expect(getCursorItem(state)).toMatchObject({ id: makeItemId('section', 'allTabs') });
+    expect(getCursorItem(state)).toMatchObject({ id: makeTabItemId('tabs', 2) });
   });
 
   it('assigns unique item IDs for search and domain tab contexts', () => {
@@ -378,6 +377,35 @@ describe('popup navigation identity', () => {
 });
 
 describe('popup selection and chrome events', () => {
+  it('selects a range in visible sorted order and handles a filtered-out anchor', () => {
+    let state = withTabs(tabs);
+    state = reducePopupState(state, { type: 'SET_SORT', area: 'tabs', sort: 'title' });
+    state = reducePopupState(state, { type: 'TOGGLE_SELECTION', tabId: 3 });
+    state = reducePopupState(state, { type: 'SELECT_RANGE', tabId: 4 });
+    expect([...state.selection.tabIds]).toEqual([3, 2, 4]);
+    state = reducePopupState(state, { type: 'SET_SEARCH_QUERY', query: 'Beta' });
+    state = reducePopupState(state, { type: 'SELECT_RANGE', tabId: 2 });
+    expect([...state.selection.tabIds]).toEqual([3, 2, 4]);
+    state = reducePopupState(state, { type: 'SET_SELECT_MODE', enabled: false });
+    expect(state.selection.tabIds.size).toBe(0);
+  });
+
+  it('restores browsing preferences without restoring transient interaction', () => {
+    let state = createInitialPopupState();
+    state = reducePopupState(state, { type: 'RESTORE_PREFERENCES', preferences: {
+      view: 'domains', sort: { domainSection: 'recent', tabs: 'title', ageDirection: 'new' },
+      query: 'stale', selectMode: true, selectedIds: [1]
+    } });
+    expect(state.view.type).toBe('domains');
+    expect(state.sort).toMatchObject({ domainSection: 'recent', tabs: 'title', ageDirection: 'new' });
+    expect(state.search.query).toBe('');
+    expect(state.ui.selectMode).toBe(false);
+    expect(state.selection.tabIds.size).toBe(0);
+    state = reducePopupState(state, { type: 'SET_SEARCH_QUERY', query: 'Beta' });
+    state = reducePopupState(state, { type: 'CLEAR_SEARCH' });
+    expect(state.view.type).toBe('domains');
+  });
+
   it('removes externally deleted selected tabs', () => {
     let state = withTabs(tabs);
     state = reducePopupState(state, { type: 'TOGGLE_SELECTION', tabId: 2 });

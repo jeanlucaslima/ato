@@ -1,5 +1,6 @@
 import {
   formatTimeAgo,
+  extractDomain,
   highlightMatches,
   isLoadableFavicon,
   normalizeUrl,
@@ -107,7 +108,7 @@ export function createGroupedDuplicateItem(group, index = 0, matchResult = null)
   return item;
 }
 
-export function createTabItem(tab, duplicateCount = 0, index = 0, matchResult = null, navigationId = null) {
+export function createTabItem(tab, duplicateCount = 0, index = 0, matchResult = null, navigationId = null, { selected = false, showRecency = false } = {}) {
   const item = document.createElement('div');
   item.className = 'tab-item';
   addTabStatusClasses(item, tab);
@@ -122,34 +123,46 @@ export function createTabItem(tab, duplicateCount = 0, index = 0, matchResult = 
 
   const titleText = tab.title || 'Untitled';
   info.appendChild(createHighlightedTextElement('tab-title', titleText, matchResult?.matches?.title));
-  info.appendChild(createHighlightedTextElement('tab-url', tab.url || '', matchResult?.matches?.url));
+  const metadata = matchResult?.matches?.url ? tab.url : (extractDomain(tab.url) || tab.url || 'Loading…');
+  info.appendChild(createHighlightedTextElement('tab-url', metadata, matchResult?.matches?.url || matchResult?.matches?.domain));
+
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  checkbox.className = 'row-checkbox';
+  checkbox.checked = selected;
+  checkbox.setAttribute('aria-label', `Select ${titleText}`);
+  item.classList.add(...(selected ? ['bulk-selected'] : []));
+  item.appendChild(checkbox);
+
+  const activate = document.createElement('button');
+  activate.className = 'tab-main';
+  activate.tabIndex = index === 0 ? 0 : -1;
+  activate.setAttribute('aria-label', `Activate ${titleText}`);
+  activate.title = `${tab.url || 'Loading…'} · Window ${tab.windowId}`;
+  activate.appendChild(favicon);
+  activate.appendChild(info);
 
   const closeBtn = document.createElement('button');
   closeBtn.className = 'tab-close';
   closeBtn.textContent = '×';
   closeBtn.title = 'Close this tab';
+  closeBtn.setAttribute('aria-label', `Close ${titleText}`);
 
-  item.appendChild(favicon);
-  item.appendChild(info);
-
+  // One indicator, in priority order: audible, pinned, copies, discarded, native membership, recency.
   if (tab.audible) {
-    item.appendChild(createMediaIcon());
+    activate.appendChild(createMediaIcon());
+  } else {
+    const indicator = document.createElement('span');
+    indicator.className = 'tab-indicator';
+    if (tab.pinned) indicator.textContent = 'Pinned';
+    else if (duplicateCount > 1) { indicator.textContent = `×${duplicateCount}`; indicator.className = 'duplicate-badge'; }
+    else if (tab.discarded) indicator.textContent = 'Sleeping';
+    else if (tab.groupId != null && tab.groupId !== -1) indicator.textContent = 'Grouped';
+    else if (showRecency) indicator.textContent = formatTimeAgo(tab.lastAccessed);
+    if (indicator.textContent) activate.appendChild(indicator);
   }
 
-  const age = document.createElement('span');
-  age.className = 'tab-age';
-  age.textContent = formatTimeAgo(tab.lastAccessed);
-  age.title = tab.lastAccessed ? new Date(tab.lastAccessed).toLocaleString() : 'Unknown';
-  item.appendChild(age);
-
-  if (duplicateCount > 1) {
-    const badge = document.createElement('span');
-    badge.className = 'duplicate-badge';
-    badge.textContent = `×${duplicateCount}`;
-    badge.title = `${duplicateCount} tabs with this URL`;
-    item.appendChild(badge);
-  }
-
+  item.appendChild(activate);
   item.appendChild(closeBtn);
 
   return item;
@@ -160,7 +173,8 @@ export function createDomainSection(domain, tabs, urlCounts, {
   matchMode,
   onToggleDomain,
   onMoveDomain,
-  onCloseDomain
+  onCloseDomain,
+  selectedIds = new Set()
 }) {
   const section = document.createElement('div');
   section.className = 'domain-section';
@@ -245,7 +259,7 @@ export function createDomainSection(domain, tabs, urlCounts, {
 
   sortAudibleFirst(tabs).forEach((tab, index) => {
     const dupCount = urlCounts.get(normalizeUrl(tab.url, matchMode)) || 0;
-    const item = createTabItem(tab, dupCount, index, null, makeTabItemId('domain', tab.id, domain));
+    const item = createTabItem(tab, dupCount, index, null, makeTabItemId('domain', tab.id, domain), { selected: selectedIds.has(tab.id) });
     tabList.appendChild(item);
   });
 
@@ -256,4 +270,27 @@ export function createDomainSection(domain, tabs, urlCounts, {
   section.appendChild(content);
 
   return section;
+}
+
+/** Keep unchanged rows and their DOM focus while updating the visible list by stable identity. */
+export function reconcileList(list, items) {
+  const existing = new Map([...list.children].map(node => [node.dataset.navId || node.dataset.url || node.dataset.domain, node]));
+  let position = list.firstElementChild;
+  for (const item of items) {
+    const key = item.dataset.navId || item.dataset.url || item.dataset.domain;
+    const previous = existing.get(key);
+    const node = previous?.isEqualNode(item) ? previous : item;
+    existing.delete(key);
+    if (node === position) position = position.nextElementSibling;
+    else list.insertBefore(node, position);
+    if (previous && previous !== node) {
+      if (previous.contains(document.activeElement)) {
+        const selector = document.activeElement.classList.contains('row-checkbox') ? '.row-checkbox' : '.tab-main';
+        node.querySelector(selector)?.focus({ preventScroll: true });
+      }
+      previous.remove();
+      if (position === previous) position = node.nextElementSibling;
+    }
+  }
+  for (const node of existing.values()) node.remove();
 }
