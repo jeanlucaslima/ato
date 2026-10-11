@@ -1,6 +1,6 @@
 {
   "name": "ato",
-  "version": "1.21.0",
+  "version": "2.0.0",
   "description": "Advanced Tab Organizer - Kill duplicate tabs instantly",
   "author": "Jean Lucas Lima",
   "private": true,
@@ -14,6 +14,7 @@
     "preview:popup": "vite preview --host 127.0.0.1 --port 4180",
     "test": "vitest run",
     "test:popup": "node scripts/test-popup.mjs",
+    "test:ui": "node scripts/test-ui.mjs",
     "test:watch": "vitest"
   },
   "devDependencies": {
