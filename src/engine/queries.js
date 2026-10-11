@@ -214,12 +214,13 @@ export function formatTimeAgo(timestamp) {
  * @param {'default'|'title'|'title-desc'|'domain'|'age'|'duplicates'} sortBy - Sort option
  * @param {Map<string, number>} urlCounts - Map of URL to duplicate count (for 'duplicates' sort)
  * @param {'old'|'new'} [ageSortDirection='old'] - Direction for age sort ('old' = oldest first)
+ * @param {string} [matchMode='exact'] - URL normalization used by urlCounts
  * @returns {Tab[]} New sorted array
  * @example
  * const tabs = [{ title: 'Zebra' }, { title: 'Apple' }];
  * sortTabs(tabs, 'title', new Map()); // Returns [{ title: 'Apple' }, { title: 'Zebra' }]
  */
-export function sortTabs(tabs, sortBy, urlCounts, ageSortDirection = 'old') {
+export function sortTabs(tabs, sortBy, urlCounts, ageSortDirection = 'old', matchMode = 'exact') {
   const sorted = [...tabs];
 
   switch (sortBy) {
@@ -241,8 +242,8 @@ export function sortTabs(tabs, sortBy, urlCounts, ageSortDirection = 'old') {
       });
     case 'duplicates':
       return sorted.sort((a, b) => {
-        const countA = urlCounts.get(a.url) || 0;
-        const countB = urlCounts.get(b.url) || 0;
+        const countA = urlCounts.get(normalizeUrl(a.url, matchMode)) || 0;
+        const countB = urlCounts.get(normalizeUrl(b.url, matchMode)) || 0;
         return countB - countA;
       });
     default:
