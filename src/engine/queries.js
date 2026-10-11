@@ -266,6 +266,43 @@ export function sortAudibleFirst(tabs) {
   return [...tabs].sort((a, b) => (b.audible ? 1 : 0) - (a.audible ? 1 : 0));
 }
 
+/** Ranked results retain stable tab IDs and highlighting data, without presentation state. */
+export function queryTabs(tabs, { query = '', field = 'all', mode = 'fuzzy' } = {}) {
+  if (!query.trim()) return [];
+  const scopedQuery = field !== 'all' ? `${field}:${query}` : query;
+  return tabs.map(tab => ({ tab, match: searchTab(scopedQuery, tab, mode === 'fuzzy' ? null : mode) }))
+    .filter(result => result.match)
+    .sort((a, b) => b.match.score - a.match.score);
+}
+
+/** Browse filtering and sorting; audible-first layering preserves the existing product order. */
+export function browseTabs(tabs, { domain = null, sort = 'default', ageDirection = 'old', matchMode = 'exact' } = {}) {
+  const visible = tabs.filter(tab => tab.url && !isBrowserUrl(tab.url) &&
+    (!domain || extractDomain(tab.url) === domain));
+  return sortAudibleFirst(sortTabs(visible, sort, countDuplicatesByUrl(tabs, matchMode), ageDirection, matchMode));
+}
+
+/** ATO preserves Chrome/Edge internal pages during cleanup and hides them in browse lists. */
+export function isBrowserUrl(url) {
+  return Boolean(url) && (url.startsWith('chrome://') || url.startsWith('edge://'));
+}
+
+/** Domain ordering uses Chrome lastAccessed when available (no persistent access history). */
+export function sortDomainGroups(groups, { domainSection = 'name', domainNameDirection = 'az',
+  domainCountDirection = 'most' } = {}) {
+  return [...groups].sort((a, b) => {
+    const nameOrder = a.domain.replace(/^www\./, '').localeCompare(b.domain.replace(/^www\./, ''));
+    if (domainSection === 'count') {
+      return (domainCountDirection === 'most' ? b.tabs.length - a.tabs.length : a.tabs.length - b.tabs.length) || nameOrder;
+    }
+    if (domainSection === 'recent') {
+      const recent = group => group.tabs.reduce((max, tab) => Math.max(max, tab.lastAccessed || 0), 0);
+      return recent(b) - recent(a) || nameOrder;
+    }
+    return domainNameDirection === 'az' ? nameOrder : -nameOrder;
+  });
+}
+
 // =============================================================================
 // Fuzzy Search Utilities
 // =============================================================================

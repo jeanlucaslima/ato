@@ -4,13 +4,12 @@ import {
   countDuplicatesByUrl,
   groupTabsByDomain,
   findDuplicates,
-  normalizeUrl,
-  searchTab,
+  queryTabs,
+  browseTabs,
+  sortDomainGroups,
   sortAudibleFirst,
-  sortTabs
 } from '../engine/queries.js';
-import { currentTab, scopedTabs, duplicateTargets, protectionReason, isBrowserUrl } from '../engine/policy.js';
-export { isBrowserUrl } from '../engine/policy.js';
+import { scopedTabs, duplicateTargets, isBrowserUrl } from '../engine/policy.js';
 import {
   createInitialPopupMachineState,
   getBrowseView,
@@ -172,10 +171,6 @@ export function getScopedTabs(state) {
   return scopedTabs(getTabs(state), state.scope);
 }
 
-export function getActiveTab(state) {
-  return currentTab(getTabs(state), state.browser.focusedWindowId);
-}
-
 export function getUrlCounts(state) {
   return countDuplicatesByUrl(getScopedTabs(state), state.matchMode || 'exact');
 }
@@ -204,14 +199,8 @@ export function getDomainGroups(state) {
 }
 
 export function getVisibleTabs(state) {
-  const urlCounts = getUrlCounts(state);
-  let visibleTabs = getScopedTabs(state).filter(tab => tab.url && !isBrowserUrl(tab.url));
-
-  if (state.filters.domain) {
-    visibleTabs = visibleTabs.filter(tab => extractDomain(tab.url) === state.filters.domain);
-  }
-
-  return sortAudibleFirst(sortTabs(visibleTabs, state.sort.tabs, urlCounts, state.sort.ageDirection));
+  return browseTabs(getScopedTabs(state), { domain: state.filters.domain,
+    sort: state.sort.tabs, ageDirection: state.sort.ageDirection, matchMode: state.matchMode });
 }
 
 export function getPlayingTabs(state) {
@@ -226,50 +215,11 @@ export function getLargeDomainGroups(state) {
       tabs: group.tabs.filter(tab => tab.url && !isBrowserUrl(tab.url))
     }));
 
-  groups.sort((a, b) => {
-    const domainA = a.domain.replace(/^www\./, '');
-    const domainB = b.domain.replace(/^www\./, '');
-    switch (state.sort.domainSection) {
-      case 'name':
-        return state.sort.domainNameDirection === 'az'
-          ? domainA.localeCompare(domainB)
-          : domainB.localeCompare(domainA);
-      case 'count': {
-        const diff = state.sort.domainCountDirection === 'most'
-          ? b.tabs.length - a.tabs.length
-          : a.tabs.length - b.tabs.length;
-        return diff || domainA.localeCompare(domainB);
-      }
-      case 'recent': {
-        const recentA = a.tabs.reduce((max, tab) => Math.max(max, tab.lastAccessed || 0), 0);
-        const recentB = b.tabs.reduce((max, tab) => Math.max(max, tab.lastAccessed || 0), 0);
-        return recentB - recentA || domainA.localeCompare(domainB);
-      }
-      default:
-        return domainA.localeCompare(domainB);
-    }
-  });
-
-  return groups;
-}
-
-export function effectiveSearchQuery(state) {
-  const query = state.search.query;
-  if (state.search.field !== 'all' && query.trim()) {
-    return `${state.search.field}:${query}`;
-  }
-  return query;
+  return sortDomainGroups(groups, state.sort);
 }
 
 export function getSearchResults(state) {
-  if (!state.search.query.trim()) return [];
-
-  const forcedMode = state.search.mode === 'fuzzy' ? null : state.search.mode;
-  const query = effectiveSearchQuery(state);
-  return getScopedTabs(state)
-    .map(tab => ({ tab, match: searchTab(query, tab, forcedMode) }))
-    .filter(result => result.match)
-    .sort((a, b) => b.match.score - a.match.score);
+  return queryTabs(getScopedTabs(state), state.search);
 }
 
 export function getSearchResultTabIds(state) {
@@ -362,30 +312,8 @@ export function isDomainExpanded(state, domain) {
   return state.expansion.domainIds.has(domain) || !state.expansion.collapsedDomainIds.has(domain);
 }
 
-export function getTabsForDomain(state, domain) {
-  return getScopedTabs(state).filter(tab => extractDomain(tab.url) === domain);
-}
-
-export function getTabsForDuplicateUrl(state, url) {
-  const normalizedUrl = normalizeUrl(url, state.matchMode || 'exact');
-  return getScopedTabs(state).filter(tab => normalizeUrl(tab.url, state.matchMode || 'exact') === normalizedUrl);
-}
-
-export function getTabsToCloseForDuplicateUrl(state, url) {
-  return duplicateTargets(getTabsForDuplicateUrl(state, url), state, state.browser.focusedWindowId);
-}
-
 export function getTabsToCloseForAllDuplicates(state) {
   return duplicateTargets(getScopedTabs(state), state, state.browser.focusedWindowId);
-}
-
-export function filterCloseableTabs(state, tabs, { protectActive = true } = {}) {
-  const activeTabId = getActiveTab(state)?.id;
-  return tabs.filter(tab => tab && !protectionReason(tab, state, protectActive ? activeTabId : null));
-}
-
-export function selectTabIds(tabs) {
-  return tabs.map(tab => tab.id).filter(id => Number.isFinite(id));
 }
 
 function reconcileState(state, previousItems = []) {

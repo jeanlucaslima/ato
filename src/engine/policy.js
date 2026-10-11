@@ -1,4 +1,6 @@
 import { duplicateGroups } from './queries.js';
+import { isBrowserUrl } from './queries.js';
+export { isBrowserUrl } from './queries.js';
 
 /** Return tabs in an explicit window scope, or all windows. */
 export function scopedTabs(tabs, scope = { type: 'all' }) {
@@ -8,11 +10,6 @@ export function scopedTabs(tabs, scope = { type: 'all' }) {
 /** Active means active in the focused (or last-focused) browser window only. */
 export function currentTab(tabs, focusedWindowId) {
   return tabs.find(tab => tab.windowId === focusedWindowId && tab.active) || null;
-}
-
-/** Preserve the existing internal-page policy; this is ATO policy, not an API restriction. */
-export function isBrowserUrl(url) {
-  return Boolean(url) && (url.startsWith('chrome://') || url.startsWith('edge://'));
 }
 
 /** Return the reason a tab cannot be batch-closed, or null. */
