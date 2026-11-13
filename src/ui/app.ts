@@ -5,6 +5,7 @@
 import type { Action, Effect } from './actions';
 import type { BrowserPort } from './browser';
 import { deriveModel } from './derive';
+import { resolveKey } from './keys';
 import type { ItemKey } from './model';
 import { morph } from './morph';
 import { renderPopup } from './popup';
@@ -191,58 +192,33 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
   };
 
   const onKeydown = (event: KeyboardEvent) => {
+    if (event.isComposing) return;
     const typing = (event.target as HTMLElement).matches?.('input[name="q"]') ?? false;
-    const mod = event.metaKey || event.ctrlKey;
-    const send = (action: Action) => {
-      event.preventDefault();
-      dispatch(action);
-    };
-
-    if (event.key === 'ArrowDown') return send({ type: 'moveCursor', delta: 1 });
-    if (event.key === 'ArrowUp') return send({ type: 'moveCursor', delta: -1 });
-    if (event.key === 'Enter' && (state.ui.cursor || state.ui.reviewOpen)) return send({ type: 'cursorKey', key: 'enter' });
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      if (state.ui.query) return dispatch({ type: 'clearQuery' });
-      if (state.ui.selection) return dispatch({ type: 'exitSelect' });
-      if (state.ui.reviewOpen) return dispatch({ type: 'closeReview' });
-      if (typing) return root?.focus();
-      return searchInput()?.focus();
-    }
-    if (mod && event.key === 'Backspace' && typing && state.ui.query) return send({ type: 'closeResults' });
-    if (mod && event.key.toLowerCase() === 'f') {
-      event.preventDefault();
-      return searchInput()?.focus();
-    }
-    if (typing) return;
-
-    if (mod && event.key.toLowerCase() === 'z') return send({ type: 'undo' });
-    if (mod || event.altKey) return;
-    switch (event.key) {
-      case '/':
-        event.preventDefault();
-        return searchInput()?.focus();
-      case 'j':
-        return send({ type: 'moveCursor', delta: 1 });
-      case 'k':
-        return send({ type: 'moveCursor', delta: -1 });
-      case ' ':
-        return send({ type: 'cursorKey', key: 'space' });
-      case 'ArrowRight':
-        return send({ type: 'cursorKey', key: 'right' });
-      case 'ArrowLeft':
-        return send({ type: 'cursorKey', key: 'left' });
-      case 'Backspace':
-      case 'Delete':
-        return send({ type: 'cursorKey', key: 'delete' });
-      case 'u':
-        return send({ type: 'cursorKey', key: 'unload' });
-      case 'd':
-        return send({ type: 'openReview' });
-      case 'x':
-        return send({ type: 'toggleSelectMode' });
-      case 's':
-        return send({ type: 'setView', view: state.ui.view === 'sites' ? 'tabs' : 'sites' });
+    const { ui } = state;
+    const command = resolveKey(event, {
+      typing,
+      hasQuery: ui.query.length > 0,
+      selecting: ui.selection !== undefined,
+      reviewOpen: ui.reviewOpen,
+      helpOpen: ui.helpOpen,
+      hasCursor: ui.cursor !== undefined,
+    });
+    if (!command) return;
+    event.preventDefault();
+    switch (command.kind) {
+      case 'action':
+        return dispatch(command.action);
+      case 'blurSearch':
+        return root?.focus();
+      case 'focusSearch': {
+        const input = searchInput();
+        if (!input) return;
+        input.focus();
+        if (command.text) {
+          input.value += command.text;
+          dispatch({ type: 'query', text: input.value });
+        }
+      }
     }
   };
 

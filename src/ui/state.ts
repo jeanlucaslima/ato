@@ -18,6 +18,8 @@ export interface UiState {
   query: string;
   searchFocused: boolean;
   reviewOpen: boolean;
+  /** Keyboard shortcuts panel. */
+  helpOpen: boolean;
   expanded: ReadonlySet<string>;
   cursor?: ItemKey;
   /** Present while in Select mode. */
@@ -45,6 +47,7 @@ export function initialUi(overrides: Partial<UiState> = {}): UiState {
     query: '',
     searchFocused: true,
     reviewOpen: false,
+    helpOpen: false,
     expanded: new Set(),
     overrides: new Map(),
     closing: new Set(),

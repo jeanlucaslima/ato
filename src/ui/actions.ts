@@ -32,7 +32,13 @@ export type Action =
   | { type: 'unloadSelected' }
   | { type: 'moveSelected' }
   | { type: 'setCursor'; key: ItemKey }
-  | { type: 'moveCursor'; delta: 1 | -1 }
+  | { type: 'moveCursor'; delta: number }
+  | { type: 'cursorTo'; where: 'first' | 'last' }
+  /** Select mode: move the cursor and add the row it lands on (Shift+↑↓). */
+  | { type: 'extendSelection'; delta: 1 | -1 }
+  | { type: 'selectAll' }
+  | { type: 'toggleView' }
+  | { type: 'toggleHelp' }
   /** Enter / Space / Delete / U / ←→ on whatever the cursor is on. */
   | { type: 'cursorKey'; key: 'enter' | 'space' | 'delete' | 'unload' | 'left' | 'right' }
   | { type: 'openSettings' };

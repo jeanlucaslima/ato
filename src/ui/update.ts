@@ -154,8 +154,12 @@ export function update(state: AppState, action: Action): Result {
       return [setUi(state, { query: '', cursor: undefined }), []];
     case 'searchFocus':
       return [setUi(state, { searchFocused: action.focused }), []];
-    case 'setView':
-      return [setUi(state, { view: action.view, query: '', reviewOpen: false, cursor: undefined }), []];
+    case 'setView': {
+      // Keep the cursor on the same tab if it's visible in the other view.
+      const moved = setUi(state, { view: action.view, query: '', reviewOpen: false });
+      const order = navOrder(deriveModel(moved));
+      return [setUi(moved, { cursor: ui.cursor && order.includes(ui.cursor) ? ui.cursor : undefined }), []];
+    }
     case 'cycleSort':
       return [ui.view === 'sites' ? setUi(state, { siteSort: next(SITE_SORTS, ui.siteSort) }) : setUi(state, { tabSort: next(TAB_SORTS, ui.tabSort) }), []];
     case 'cycleScope':
@@ -257,6 +261,31 @@ export function update(state: AppState, action: Action): Result {
       const target = at === -1 ? (action.delta > 0 ? 0 : order.length - 1) : Math.min(order.length - 1, Math.max(0, at + action.delta));
       return [setUi(state, { cursor: order[target] }), []];
     }
+    case 'cursorTo': {
+      const order = navOrder(deriveModel(state));
+      return [setUi(state, { cursor: action.where === 'first' ? order[0] : order[order.length - 1] }), []];
+    }
+    case 'extendSelection': {
+      if (!ui.selection) return [state, []];
+      const order = navOrder(deriveModel(state));
+      const at = ui.cursor ? order.indexOf(ui.cursor) : -1;
+      const target = order[Math.min(order.length - 1, Math.max(0, at + action.delta))];
+      const selection = new Set(ui.selection);
+      for (const key of [ui.cursor, target]) {
+        const id = tabIdOf(key);
+        if (id !== null && key?.startsWith('tab:')) selection.add(id);
+      }
+      return [setUi(state, { selection, cursor: target }), []];
+    }
+    case 'selectAll': {
+      if (!ui.selection) return [state, []];
+      const ids = navOrder(deriveModel(state)).flatMap((k) => (k.startsWith('tab:') ? [Number(k.slice(4))] : []));
+      return [setUi(state, { selection: new Set(ids) }), []];
+    }
+    case 'toggleView':
+      return update(state, { type: 'setView', view: ui.view === 'sites' ? 'tabs' : 'sites' });
+    case 'toggleHelp':
+      return [setUi(state, { helpOpen: !ui.helpOpen }), []];
     case 'cursorKey':
       return onCursorKey(state, action.key);
     case 'openSettings': {

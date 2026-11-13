@@ -67,6 +67,39 @@ describe('update', () => {
     expect([...(s.ui.selection ?? [])].sort()).toEqual([1, 2, 3, 4].map(id).sort());
   });
 
+  it('jumps to the first and last rows', () => {
+    const order = navOrder(deriveModel(start()));
+    expect(run(start(), [{ type: 'cursorTo', where: 'last' }])[0].ui.cursor).toBe(order.at(-1));
+    expect(run(start(), [{ type: 'moveCursor', delta: 99 }])[0].ui.cursor).toBe(order[0]); // first press lands on the list
+    expect(run(start({ cursor: order[0] }), [{ type: 'moveCursor', delta: 99 }])[0].ui.cursor).toBe(order.at(-1));
+    expect(run(start({ cursor: order[3] }), [{ type: 'moveCursor', delta: -99 }])[0].ui.cursor).toBe(order[0]);
+  });
+
+  it('extends and fills the selection from the keyboard', () => {
+    const order = navOrder(deriveModel(start()));
+    const id = (i: number) => Number(order[i]!.split(':')[1]);
+    const [s] = run(start({ cursor: order[0] }), [
+      { type: 'toggleSelectMode' },
+      { type: 'extendSelection', delta: 1 },
+      { type: 'extendSelection', delta: 1 },
+    ]);
+    expect([...(s.ui.selection ?? [])].sort()).toEqual([0, 1, 2].map(id).sort());
+    expect(s.ui.cursor).toBe(order[2]);
+    const [all] = run(s, [{ type: 'selectAll' }]);
+    expect(all.ui.selection?.size).toBe(order.length);
+  });
+
+  it('keeps the cursor on the same tab when switching views if it is still visible', () => {
+    const order = navOrder(deriveModel(start()));
+    const [sites] = run(start({ cursor: order[0] }), [{ type: 'toggleView' }]);
+    expect(sites.ui.view).toBe('sites');
+    expect(sites.ui.cursor).toBeUndefined(); // its site is collapsed
+    const domain = 'github.com';
+    const tabId = TABS.find((t) => t.url.includes(domain))!.id;
+    const [kept] = run(start({ view: 'sites', expanded: new Set([domain]), cursor: `tab:${tabId}` }), [{ type: 'toggleView' }]);
+    expect(kept.ui.cursor).toBe(`tab:${tabId}`);
+  });
+
   it('never closes an active or protected tab from review, whatever the user flips', () => {
     const flippable = TABS.map((t) => t.id);
     fc.assert(
