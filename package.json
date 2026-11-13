@@ -16,6 +16,8 @@
   },
   "devDependencies": {
     "@types/chrome": "^0.0.268",
+    "fast-check": "^4.10.2",
+    "happy-dom": "^21.0.4",
     "sharp": "^0.33.5",
     "typescript": "^5.5.4",
     "vite": "^5.4.0",
