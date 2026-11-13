@@ -119,6 +119,9 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
   render();
   if (!state.snapshot) refresh();
   if (options.autofocus) searchInput()?.focus();
+  // The focus ring reflects real focus, not whatever the initial state claimed.
+  const focused = document.activeElement !== null && document.activeElement === searchInput();
+  if (state.ui.searchFocused !== focused) dispatch({ type: 'searchFocus', focused });
 
   function searchInput(): HTMLInputElement | null {
     return root?.querySelector<HTMLInputElement>('input[name="q"]') ?? null;
