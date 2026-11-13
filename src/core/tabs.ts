@@ -1,9 +1,12 @@
 import type { Tab } from './types';
 
-/** Hostname of a URL, or `''` when it has none (e.g. `about:blank`, invalid). */
+/**
+ * Site of a URL: its hostname without a leading `www.`, so `www.youtube.com`
+ * and `youtube.com` group together. `''` when there is none (`about:blank`, invalid).
+ */
 export function domainOf(url: string): string {
   try {
-    return new URL(url).hostname;
+    return new URL(url).hostname.replace(/^www\./, '');
   } catch {
     return '';
   }

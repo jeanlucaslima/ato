@@ -22,7 +22,7 @@ function toRow(tab: Tab, snapshot: Snapshot, copies: Map<string, number>, ui: Ui
   return {
     id: tab.id,
     title: tab.title || tab.url || 'Untitled',
-    detail: domain.replace(/^www\./, '') || tab.url,
+    detail: domain || tab.url,
     domain,
     favIconUrl: tab.favIconUrl,
     current: tab.active && tab.windowId === snapshot.focusedWindowId,
