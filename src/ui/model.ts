@@ -52,6 +52,8 @@ export interface DuplicateCopy {
   /** Human location, e.g. `"Window 1 · tab 4"`. */
   location: string;
   verdict: CopyVerdict;
+  /** Protected (current, pinned, grouped): always kept, can't be flipped. */
+  locked: boolean;
 }
 
 export interface DuplicateSet {
@@ -89,7 +91,7 @@ export interface PopupModel {
   cursor?: ItemKey;
   /** Present while in Select mode; holds the selected tab ids. */
   selection?: ReadonlySet<number>;
-  toast?: { message: string; undo: boolean };
+  toast?: { id: number; message: string; undo: boolean };
 }
 
 export function loadingModel(): PopupModel {

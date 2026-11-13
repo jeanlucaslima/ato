@@ -10,14 +10,22 @@ function hintsFor(m: PopupModel): Hint[] {
     case 'loading':
       return [];
     case 'tabs':
-      return [['↑↓', 'move'], ['↵', 'go'], ['⌫', 'close'], ['U', 'unload'], ['?', 'keys']];
+      return [['↑↓', 'move'], ['↵', 'go'], ['⌫', 'close'], ['U', 'unload'], ['X', 'select']];
     case 'sites':
-      return [['←→', 'fold'], ['⌫', 'close site'], ['U', 'unload site']];
+      return [['←→', 'fold'], ['⌫', 'close site'], ['U', 'unload site'], ['S', 'tabs']];
     case 'search':
       return [['↑↓', 'move'], ['↵', 'go'], ['⌘⌫', 'close all'], ['Esc', 'clear']];
     case 'review':
-      return [['↵', `close ${closeCount(m.screen.sets)}`], ['Space', 'flip keep/close'], ['Esc', 'back']];
+      return [['↵', `close ${closeCount(m.screen.sets)}`], ['Space', 'keep/close'], ['Esc', 'back']];
   }
+}
+
+/**
+ * The scrolling list. Its key changes with the screen, so switching screens
+ * swaps in a fresh element (and its enter animation) instead of morphing rows.
+ */
+function list(screen: string, attrs: Record<string, string>, ...children: Child[]): HTMLElement {
+  return h('div', { class: 'list', 'data-key': `list:${screen}`, ...attrs }, ...children);
 }
 
 /** Header + list for the active screen. */
@@ -26,21 +34,19 @@ function body(m: PopupModel): Child[] {
   const sel = m.selection;
   switch (s.kind) {
     case 'loading':
-      return [
-        viewBar(m),
-        h('div', { class: 'list', 'aria-busy': 'true' }, h('p', { class: 'empty' }, 'Reading tabs…')),
-      ];
+      return [viewBar(m), list('loading', { 'aria-busy': 'true' }, h('p', { class: 'empty' }, 'Reading tabs…'))];
     case 'tabs':
       return [
         viewBar(m),
-        h(
-          'div',
-          { class: 'list', role: 'list' },
+        list(
+          'tabs',
+          { role: 'list', 'aria-label': 'Tabs' },
           s.rows.map((r) => tabRow(r, { cursor: m.cursor === `tab:${r.id}`, selected: sel ? sel.has(r.id) : undefined })),
+          s.rows.length === 0 && h('p', { class: 'empty' }, 'No tabs in this window.'),
         ),
       ];
     case 'sites':
-      return [viewBar(m), h('div', { class: 'list' }, s.groups.map((g) => siteGroup(g, m.cursor)))];
+      return [viewBar(m), list('sites', { 'aria-label': 'Sites' }, s.groups.map((g) => siteGroup(g, m.cursor, sel)))];
     case 'search': {
       const n = s.results.length;
       return [
@@ -49,12 +55,12 @@ function body(m: PopupModel): Child[] {
           'div',
           { class: 'head head--results' },
           h('h2', null, plural(n, 'match', 'matches'), n > 0 && h('span', null, ` · ${plural(s.windowCount, 'window')}`)),
-          n > 0 && h('button', { class: 'btn', type: 'button' }, `Unload ${n}`),
-          n > 0 && h('button', { class: 'btn btn--danger', type: 'button' }, `Close ${n}`),
+          n > 0 && h('button', { class: 'btn', type: 'button', 'data-action': 'unload-results' }, `Unload ${n}`),
+          n > 0 && h('button', { class: 'btn btn--danger', type: 'button', 'data-action': 'close-results' }, `Close ${n}`),
         ),
-        h(
-          'div',
-          { class: 'list', role: 'list', 'aria-label': 'Search results' },
+        list(
+          'search',
+          { role: 'list', 'aria-label': 'Search results' },
           s.results.map((r) => tabRow(r, { cursor: m.cursor === `tab:${r.id}` })),
           n === 0
             ? h('p', { class: 'empty' }, `No tabs match “${s.query}”.`)
@@ -63,7 +69,15 @@ function body(m: PopupModel): Child[] {
       ];
     }
     case 'review':
-      return [reviewPolicy(s), h('div', { class: 'list' }, reviewSets(s, m.cursor))];
+      return [
+        reviewPolicy(s),
+        list(
+          'review',
+          { 'aria-label': 'Duplicate sets' },
+          reviewSets(s, m.cursor),
+          s.sets.length === 0 && h('p', { class: 'empty' }, 'No duplicates left.'),
+        ),
+      ];
   }
 }
 
@@ -72,11 +86,11 @@ export function renderPopup(m: PopupModel): HTMLElement {
   const { kind } = m.screen;
   return h(
     'div',
-    { class: 'popup' },
+    { class: 'popup', tabindex: -1, 'data-screen': kind },
     m.screen.kind === 'review' ? reviewHeader(m.screen) : searchBar(m),
     kind !== 'review' && kind !== 'search' && duplicateStrip(m),
     body(m),
-    m.toast && toast(m.toast.message, m.toast.undo),
+    m.toast && toast(m.toast),
     m.selection ? selectionBar(m.selection.size) : hintFooter(hintsFor(m)),
   );
 }

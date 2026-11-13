@@ -1,4 +1,5 @@
 import { cls, h } from './dom';
+import { plural } from './format';
 import { icon } from './icons';
 import type { DuplicateCopy, DuplicateSet, ItemKey, Screen } from './model';
 
@@ -14,9 +15,9 @@ export function reviewHeader(screen: ReviewScreen): HTMLElement {
   return h(
     'div',
     { class: 'head head--review' },
-    h('button', { class: 'btn btn--ghost', type: 'button' }, icon('back', 12), 'Back'),
-    h('h2', null, 'Duplicates ', h('span', null, `· ${screen.sets.length} sets`)),
-    h('button', { class: 'btn btn--solid-danger', type: 'button', disabled: n === 0 }, `Close ${n}`, h('kbd', { class: 'k' }, '↵')),
+    h('button', { class: 'btn btn--ghost', type: 'button', 'data-action': 'close-review' }, icon('back', 12), 'Back'),
+    h('h2', null, 'Duplicates ', h('span', null, `· ${plural(screen.sets.length, 'set')}`)),
+    h('button', { class: 'btn btn--solid-danger', type: 'button', disabled: n === 0, 'data-action': 'confirm-review' }, `Close ${n}`, h('kbd', { class: 'k' }, '↵')),
   );
 }
 
@@ -36,17 +37,32 @@ export function reviewPolicy(screen: ReviewScreen): HTMLElement {
   );
 }
 
+const REASON_LABEL: Record<string, string> = {
+  current: 'current tab',
+  pinned: 'pinned',
+  grouped: 'in a group',
+  oldest: 'oldest',
+  newest: 'newest',
+  chosen: 'your choice',
+};
+
 function copyRow(copy: DuplicateCopy, cursor: ItemKey | undefined): HTMLElement {
   const keep = copy.verdict.action === 'keep';
   const why =
     copy.verdict.action === 'keep'
-      ? h('span', { class: cls('why', copy.verdict.reason === 'current' && 'why--current') }, copy.verdict.reason)
+      ? h('span', { class: cls('why', copy.verdict.reason === 'current' && 'why--current') }, REASON_LABEL[copy.verdict.reason] ?? copy.verdict.reason)
       : h('span', { class: 'why' }, copy.verdict.age);
   return h(
-    'div',
+    'button',
     {
+      type: 'button',
       class: cls('copy', keep ? 'copy--keep' : 'copy--close', cursor === `copy:${copy.tabId}` && 'is-cursor'),
       'data-key': `copy:${copy.tabId}`,
+      'data-action': 'flip',
+      'data-id': copy.tabId,
+      disabled: copy.locked,
+      title: copy.locked ? 'Protected — always kept' : keep ? 'Close this copy instead' : 'Keep this copy',
+      tabindex: -1,
     },
     h('span', { class: 'verdict' }, keep ? 'Keep' : 'Close'),
     h('span', { class: 'where' }, copy.location),

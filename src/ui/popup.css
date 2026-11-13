@@ -1,5 +1,6 @@
 /* Popup components. Chrome caps action popups at 800×600; the frame is fixed
    (a viewport-relative root collapses the toolbar bubble — see 2.0.1). */
+.popup:focus { outline: none; }
 .popup { width: 400px; height: 600px; display: flex; flex-direction: column; overflow: hidden; position: relative; background: var(--canvas); }
 
 .k { font-family: var(--mono); font-size: 11px; color: var(--key); }
@@ -88,15 +89,21 @@ mark.hl { background: var(--match); color: var(--ink); border-radius: 2px; }
 .note, .empty { margin: 0; padding: 14px; font-size: 12px; line-height: 1.5; color: var(--ink-3); }
 .empty { padding: 40px 24px; text-align: center; font-size: 13px; }
 
-/* Sites */
+/* Sites — the body is always rendered; collapsed = zero-height grid row (animatable). */
 .site { border-bottom: 1px solid var(--line-soft); }
 .site-row { display: flex; align-items: center; gap: 8px; height: 48px; padding-right: 8px; }
 .site-row.is-cursor { background: var(--focus-fill); box-shadow: inset 3px 0 var(--focus); }
 .site-toggle { flex: 1; min-width: 0; height: 100%; display: flex; align-items: center; gap: 12px; padding: 0 0 0 14px; border: 0; background: transparent; text-align: left; }
-.site-toggle > svg { flex: none; color: var(--ink-3); }
+.site-toggle .caret { display: grid; flex: none; color: var(--ink-3); }
+.site.is-open .caret { transform: rotate(90deg); }
 .site-toggle .name { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .site-row .count { font-family: var(--mono); font-size: 12px; color: var(--ink-2); padding-right: 4px; }
-.site-actions { display: flex; gap: 4px; }
+.site-actions { display: none; gap: 4px; }
+.site.is-open .site-actions { display: flex; }
+.site.is-open .site-row .count { display: none; }
+.site-body { display: grid; grid-template-rows: 0fr; }
+.site.is-open .site-body { grid-template-rows: 1fr; }
+.site-body-inner { min-height: 0; overflow: hidden; }
 .site .row { height: 44px; }
 .site .row-main { padding-left: 70px; } /* aligns titles with the site name */
 
@@ -107,8 +114,9 @@ mark.hl { background: var(--match); color: var(--ink); border-radius: 2px; }
 .set-title { display: flex; align-items: baseline; gap: 8px; margin: 0 0 8px; font-size: 13px; font-weight: 600; }
 .set-title span:first-child { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .set-title .k { color: var(--ink-3); font-weight: 400; }
-.copy { display: flex; align-items: center; gap: 10px; height: 32px; padding: 0 8px; border-radius: 6px; font-size: 12px; color: var(--ink-2); }
+.copy { width: 100%; border: 0; text-align: left; font: inherit; cursor: pointer; display: flex; align-items: center; gap: 10px; height: 32px; padding: 0 8px; border-radius: 6px; font-size: 12px; color: var(--ink-2); }
 .copy + .copy { margin-top: 2px; }
+.copy:disabled { cursor: default; opacity: 1; }
 .copy.is-cursor { outline: 2px solid var(--focus); outline-offset: -2px; }
 .copy .where { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .copy .why { color: var(--ink-3); }

@@ -24,10 +24,10 @@ export function searchBar(m: PopupModel): HTMLElement {
         spellcheck: 'false',
       }),
       query
-        ? h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Clear search' }, icon('close', 12))
+        ? h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Clear search', 'data-action': 'clear-query' }, icon('close', 12))
         : h('kbd', { class: 'k k--box' }, '/'),
     ),
-    h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Settings' }, icon('gear', 18)),
+    h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Settings', 'data-action': 'settings' }, icon('gear', 18)),
   );
 }
 
@@ -45,23 +45,16 @@ export function searchTips(mode: SearchMode): HTMLElement {
 
 export function duplicateStrip(m: PopupModel): HTMLElement {
   const { extra, sets } = m.duplicates;
-  if (m.screen.kind === 'loading') {
-    return h('div', { class: 'strip strip--idle', role: 'status' }, h('span', { class: 'dot' }), h('span', { class: 'txt' }, 'Checking for duplicates…'));
-  }
-  if (extra === 0) {
-    return h(
-      'div',
-      { class: 'strip strip--clean', role: 'status' },
-      h('span', { class: 'dot', 'aria-hidden': 'true' }),
-      h('span', { class: 'txt' }, h('strong', null, 'No duplicates'), ` · ${plural(m.tabCount, 'tab')} in ${plural(m.windowCount, 'window')}`),
-    );
-  }
+  const state = m.screen.kind === 'loading' ? 'idle' : extra === 0 ? 'clean' : 'dupes';
   return h(
     'div',
-    { class: 'strip', role: 'status' },
+    { class: cls('strip', state === 'clean' && 'strip--clean', state === 'idle' && 'strip--idle'), role: 'status' },
     h('span', { class: 'dot', 'aria-hidden': 'true' }),
-    h('span', { class: 'txt' }, h('strong', null, plural(extra, 'duplicate')), ` · ${plural(sets, 'set')}`),
-    h('button', { class: 'btn', type: 'button' }, 'Review', h('kbd', { class: 'k k--box' }, 'D')),
+    state === 'idle' && h('span', { class: 'txt' }, 'Checking for duplicates…'),
+    state === 'clean' &&
+      h('span', { class: 'txt' }, h('strong', null, 'No duplicates'), ` · ${plural(m.tabCount, 'tab')} in ${plural(m.windowCount, 'window')}`),
+    state === 'dupes' && h('span', { class: 'txt' }, h('strong', null, plural(extra, 'duplicate')), ` · ${plural(sets, 'set')}`),
+    state === 'dupes' && h('button', { class: 'btn', type: 'button', 'data-action': 'open-review' }, 'Review', h('kbd', { class: 'k k--box' }, 'D')),
   );
 }
 
@@ -69,8 +62,8 @@ const TAB_SORT: Record<TabSort, string> = { recent: 'Recent', oldest: 'Oldest', 
 const SITE_SORT: Record<SiteSort, string> = { most: 'Most tabs', name: 'A–Z', recent: 'Recent' };
 const SCOPE: Record<Scope, string> = { all: 'All windows', current: 'This window' };
 
-function menuButton(label: string): HTMLElement {
-  return h('button', { class: 'menu-btn', type: 'button', 'aria-haspopup': 'menu' }, label, icon('chevron', 10));
+function cycleButton(label: string, action: string, title: string): HTMLElement {
+  return h('button', { class: 'menu-btn', type: 'button', 'data-action': action, title }, label, icon('chevron', 10));
 }
 
 export function viewBar(m: PopupModel): HTMLElement {
@@ -82,13 +75,14 @@ export function viewBar(m: PopupModel): HTMLElement {
     { class: 'bar' },
     h(
       'div',
-      { class: 'seg', role: 'group', 'aria-label': 'View' },
-      h('button', { type: 'button', 'aria-pressed': String(!sites) }, 'Tabs', counted && h('span', { class: 'n' }, m.tabCount)),
-      h('button', { type: 'button', 'aria-pressed': String(sites) }, 'Sites', counted && h('span', { class: 'n' }, m.siteCount)),
+      { class: cls('seg', sites && 'seg--second'), role: 'group', 'aria-label': 'View' },
+      h('span', { class: 'seg-thumb', 'aria-hidden': 'true' }),
+      h('button', { type: 'button', 'aria-pressed': String(!sites), 'data-action': 'view', 'data-view': 'tabs' }, 'Tabs', counted && h('span', { class: 'n' }, m.tabCount)),
+      h('button', { type: 'button', 'aria-pressed': String(sites), 'data-action': 'view', 'data-view': 'sites' }, 'Sites', counted && h('span', { class: 'n' }, m.siteCount)),
     ),
     h('span', { class: 'spacer' }),
-    sortLabel && menuButton(sortLabel),
-    menuButton(SCOPE[m.scope]),
+    sortLabel && cycleButton(sortLabel, 'cycle-sort', 'Change sort order'),
+    cycleButton(SCOPE[m.scope], 'cycle-scope', 'Switch between all windows and this window'),
   );
 }
 
@@ -107,20 +101,21 @@ export function selectionBar(count: number): HTMLElement {
   const none = count === 0;
   return h(
     'div',
-    { class: 'actionbar', role: 'toolbar', 'aria-label': 'Selection actions' },
-    h('span', { class: 'count' }, `${count} selected`),
-    h('button', { class: 'btn', type: 'button', disabled: none }, 'Move'),
-    h('button', { class: 'btn', type: 'button', disabled: none }, 'Unload'),
-    h('button', { class: 'btn btn--danger', type: 'button', disabled: none }, 'Close'),
-    h('button', { class: 'btn btn--ghost', type: 'button' }, 'Done'),
+    { class: 'actionbar', role: 'toolbar', 'aria-label': 'Selection actions', 'data-key': 'actionbar' },
+    h('span', { class: 'count' }, none ? 'Select tabs' : `${count} selected`),
+    h('button', { class: 'btn', type: 'button', disabled: none, 'data-action': 'move-selected' }, 'Move'),
+    h('button', { class: 'btn', type: 'button', disabled: none, 'data-action': 'unload-selected' }, 'Unload'),
+    h('button', { class: 'btn btn--danger', type: 'button', disabled: none, 'data-action': 'close-selected' }, 'Close'),
+    h('button', { class: 'btn btn--ghost', type: 'button', 'data-action': 'exit-select' }, 'Done'),
   );
 }
 
-export function toast(message: string, undo: boolean): HTMLElement {
+export function toast(t: NonNullable<PopupModel['toast']>): HTMLElement {
   return h(
     'div',
-    { class: 'toast', role: 'status', 'aria-live': 'polite' },
-    h('span', { class: 'txt' }, message),
-    undo && h('button', { class: 'btn', type: 'button' }, 'Undo', h('kbd', { class: 'k' }, '⌘Z')),
+    // A new key per toast replays the enter animation.
+    { class: 'toast', role: 'status', 'aria-live': 'polite', 'data-key': `toast:${t.id}` },
+    h('span', { class: 'txt' }, t.message),
+    t.undo && h('button', { class: 'btn', type: 'button', 'data-action': 'undo' }, 'Undo', h('kbd', { class: 'k' }, '⌘Z')),
   );
 }

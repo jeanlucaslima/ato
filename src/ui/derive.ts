@@ -1,5 +1,5 @@
 /** Browser snapshot + UI state → the PopupModel the renderer draws. */
-import { applyOverrides, planDuplicates, tabsToClose, type DuplicateSet as PlanSet } from '../core/duplicates';
+import { applyOverrides, planDuplicates, protection, tabsToClose, type DuplicateSet as PlanSet } from '../core/duplicates';
 import { parseQuery, searchTabs } from '../core/search';
 import { countCopies, domainOf, duplicateKey, formatAge } from '../core/tabs';
 import type { Snapshot, Tab } from '../core/types';
@@ -74,7 +74,7 @@ function siteGroups(tabs: Tab[], rows: Map<number, TabRow>, ui: UiState): SiteGr
   }));
 }
 
-function reviewSets(plan: PlanSet[], snapshot: Snapshot): DuplicateSet[] {
+function reviewSets(plan: PlanSet[], snapshot: Snapshot, ui: UiState): DuplicateSet[] {
   const windows = [...new Set(snapshot.tabs.map((t) => t.windowId))].sort((a, b) => a - b);
   const where = (t: Tab) => `Window ${windows.indexOf(t.windowId) + 1} · tab ${t.index + 1}`;
   return plan.map((set) => {
@@ -85,6 +85,7 @@ function reviewSets(plan: PlanSet[], snapshot: Snapshot): DuplicateSet[] {
       copies: set.copies.map(({ tab, decision }) => ({
         tabId: tab.id,
         location: where(tab),
+        locked: protection(tab, ui.policy) !== null,
         verdict:
           decision.action === 'keep'
             ? { action: 'keep' as const, reason: decision.reason }
@@ -119,11 +120,11 @@ export function deriveModel({ snapshot, ui }: AppState): PopupModel {
     searchFocused: ui.searchFocused,
     cursor: ui.cursor,
     selection: ui.selection,
-    toast: ui.toast && { message: ui.toast.message, undo: Boolean(ui.toast.undo?.length) },
+    toast: ui.toast && { id: ui.toast.id, message: ui.toast.message, undo: Boolean(ui.toast.undo?.length) },
   };
 
   if (ui.reviewOpen) {
-    return { ...base, screen: { kind: 'review', keep: ui.policy.keep, protectGroups: ui.policy.protectGroups, sets: reviewSets(plan, snapshot) } };
+    return { ...base, screen: { kind: 'review', keep: ui.policy.keep, protectGroups: ui.policy.protectGroups, sets: reviewSets(plan, snapshot, ui) } };
   }
 
   if (ui.query.trim()) {
