@@ -100,6 +100,61 @@ describe('update', () => {
     expect(kept.ui.cursor).toBe(`tab:${tabId}`);
   });
 
+  it('puts the cursor on the first search hit and restores the browse cursor on clear', () => {
+    const order = navOrder(deriveModel(start()));
+    const [searching] = run(start({ cursor: order[4] }), [{ type: 'query', text: 'h' }, { type: 'query', text: 'hacker' }]);
+    expect(searching.ui.cursor).toBe(navOrder(deriveModel(searching))[0]);
+    const [back] = run(searching, [{ type: 'clearQuery' }]);
+    expect(back.ui.cursor).toBe(order[4]);
+  });
+
+  it('hands the cursor to a neighbour when its tab is closed elsewhere', () => {
+    const order = navOrder(deriveModel(start()));
+    const gone = Number(order[2]!.split(':')[1]);
+    const snapshot = { ...SNAPSHOT, tabs: SNAPSHOT.tabs.filter((t) => t.id !== gone) };
+    const [s] = run(start({ cursor: order[2] }), [{ type: 'snapshot', snapshot }]);
+    expect(s.ui.cursor).toBe(order[3]);
+  });
+
+  it('keeps the cursor on something visible, whatever happens (#48)', () => {
+    const ids = TABS.map((t) => t.id);
+    const domains = ['github.com', 'news.ycombinator.com', 'mail.proton.me'];
+    const actionArb: fc.Arbitrary<Action> = fc.oneof(
+      fc.constantFrom<Action>(
+        { type: 'moveCursor', delta: 1 },
+        { type: 'moveCursor', delta: -1 },
+        { type: 'moveCursor', delta: 8 },
+        { type: 'cursorTo', where: 'last' },
+        { type: 'toggleView' },
+        { type: 'cycleSort' },
+        { type: 'cycleScope' },
+        { type: 'openReview' },
+        { type: 'closeReview' },
+        { type: 'clearQuery' },
+        { type: 'toggleSelectMode' },
+        { type: 'extendSelection', delta: 1 },
+        { type: 'cursorKey', key: 'left' },
+        { type: 'cursorKey', key: 'right' },
+        { type: 'cursorKey', key: 'delete' },
+      ),
+      fc.constantFrom('h', 'chrome', 'zzz', '').map((text): Action => ({ type: 'query', text })),
+      fc.constantFrom(...domains).map((domain): Action => ({ type: 'toggleSite', domain })),
+      fc.constantFrom(...ids).map((tabId): Action => ({ type: 'flip', tabId })),
+      fc.subarray(ids).map((gone): Action => ({ type: 'snapshot', snapshot: { ...SNAPSHOT, tabs: SNAPSHOT.tabs.filter((t) => !gone.includes(t.id)) } })),
+    );
+    fc.assert(
+      fc.property(fc.array(actionArb, { maxLength: 30 }), (actions) => {
+        let state = start();
+        for (const action of actions) {
+          [state] = update(state, action);
+          const cursor = state.ui.cursor;
+          if (cursor !== undefined && !navOrder(deriveModel(state)).includes(cursor)) return false;
+        }
+        return true;
+      }),
+    );
+  });
+
   it('never closes an active or protected tab from review, whatever the user flips', () => {
     const flippable = TABS.map((t) => t.id);
     fc.assert(

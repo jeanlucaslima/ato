@@ -22,6 +22,8 @@ export interface UiState {
   helpOpen: boolean;
   expanded: ReadonlySet<string>;
   cursor?: ItemKey;
+  /** Browse cursor to restore when search is cleared. */
+  searchReturn?: ItemKey;
   /** Present while in Select mode. */
   selection?: ReadonlySet<number>;
   /** Keep/close choices made in duplicate review, by tab id. */

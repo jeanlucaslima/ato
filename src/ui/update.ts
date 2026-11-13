@@ -49,6 +49,13 @@ function cursorAfter(order: ItemKey[], removed: ReadonlySet<number>, cursor: Ite
   return order.slice(at + 1).find(survives) ?? order.slice(0, at).reverse().find(survives);
 }
 
+/** Drop a cursor that no longer points at anything visible; in search, fall back to the first hit. */
+function withValidCursor(state: AppState): AppState {
+  const order = navOrder(deriveModel(state));
+  if (state.ui.cursor && order.includes(state.ui.cursor)) return state;
+  return setUi(state, { cursor: state.ui.query.trim() ? order[0] : undefined });
+}
+
 function withToast(state: AppState, message: string, undo?: readonly Tab[]): Result {
   const toast: Toast = { id: (state.ui.toast?.id ?? 0) + 1, message, undo };
   return [{ ...state, ui: { ...state.ui, toast } }, [{ kind: 'expireToast', id: toast.id }]];
@@ -140,18 +147,35 @@ function onCursorKey(state: AppState, key: Extract<Action, { type: 'cursorKey' }
   return [state, []];
 }
 
+/**
+ * Apply an action. Afterwards the cursor is always unset or on a visible item,
+ * whatever the action did (re-render, sort, close, view change — see #48).
+ */
 export function update(state: AppState, action: Action): Result {
+  const [next, effects] = step(state, action);
+  return [withValidCursor(next), effects];
+}
+
+function step(state: AppState, action: Action): Result {
   const { ui } = state;
   switch (action.type) {
     case 'snapshot': {
       const ids = new Set(action.snapshot.tabs.map((t) => t.id));
       const selection = ui.selection && new Set([...ui.selection].filter((id) => ids.has(id)));
-      return [{ snapshot: action.snapshot, ui: { ...ui, selection } }, []];
+      // A tab under the cursor that vanished hands the cursor to its neighbour.
+      const removed = new Set((state.snapshot?.tabs ?? []).map((t) => t.id).filter((id) => !ids.has(id)));
+      const cursor = cursorAfter(navOrder(deriveModel(state)), removed, ui.cursor);
+      const next: AppState = { snapshot: action.snapshot, ui: { ...ui, selection, cursor } };
+      return [withValidCursor(next), []];
     }
-    case 'query':
-      return [setUi(state, { query: action.text, reviewOpen: false, cursor: undefined }), []];
+    case 'query': {
+      // Entering search remembers where browsing was; the first result is ready for Enter.
+      const searchReturn = ui.query ? ui.searchReturn : ui.cursor;
+      const next = setUi(state, { query: action.text, reviewOpen: false, searchReturn, cursor: undefined });
+      return [setUi(next, { cursor: action.text.trim() ? navOrder(deriveModel(next))[0] : searchReturn }), []];
+    }
     case 'clearQuery':
-      return [setUi(state, { query: '', cursor: undefined }), []];
+      return [withValidCursor(setUi(state, { query: '', cursor: ui.searchReturn, searchReturn: undefined })), []];
     case 'searchFocus':
       return [setUi(state, { searchFocused: action.focused }), []];
     case 'setView': {
