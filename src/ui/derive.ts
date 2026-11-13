@@ -105,7 +105,7 @@ export function displayUrl(url: string, ranges: readonly Range[]): { text: strin
 }
 
 export function deriveModel({ snapshot, ui }: AppState): PopupModel {
-  if (!snapshot) return { ...loadingModel(), searchFocused: ui.searchFocused, scope: ui.scope };
+  if (!snapshot) return { ...loadingModel(), searchFocused: ui.searchFocused, helpOpen: ui.helpOpen, scope: ui.scope };
 
   const tabs = scopedTabs(snapshot, ui);
   const copies = countCopies(tabs);
@@ -118,6 +118,7 @@ export function deriveModel({ snapshot, ui }: AppState): PopupModel {
     duplicates: { extra: tabsToClose(planDuplicates(tabs, ui.policy)).length, sets: plan.length },
     scope: ui.scope,
     searchFocused: ui.searchFocused,
+    helpOpen: ui.helpOpen,
     cursor: ui.cursor,
     selection: ui.selection,
     toast: ui.toast && { id: ui.toast.id, message: ui.toast.message, undo: Boolean(ui.toast.undo?.length) },

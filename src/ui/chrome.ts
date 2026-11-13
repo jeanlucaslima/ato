@@ -93,7 +93,7 @@ export function hintFooter(hints: readonly Hint[]): HTMLElement {
     'div',
     { class: 'foot' },
     hints.map(([key, label]) => h('span', null, h('kbd', { class: 'k' }, key), ` ${label}`)),
-    h('span', { class: 'brand' }, 'ATO'),
+    h('button', { class: 'foot-help', type: 'button', 'data-action': 'toggle-help', title: 'Keyboard shortcuts' }, h('kbd', { class: 'k' }, '?'), ' keys'),
   );
 }
 

@@ -1,5 +1,6 @@
 import { duplicateStrip, hintFooter, searchBar, searchTips, selectionBar, toast, viewBar, type Hint } from './chrome';
 import { h, type Child } from './dom';
+import { helpPanel } from './help';
 import { plural } from './format';
 import type { PopupModel } from './model';
 import { closeCount, reviewHeader, reviewPolicy, reviewSets } from './review';
@@ -91,6 +92,7 @@ export function renderPopup(m: PopupModel): HTMLElement {
     kind !== 'review' && kind !== 'search' && duplicateStrip(m),
     body(m),
     m.toast && toast(m.toast),
+    m.helpOpen && helpPanel(),
     m.selection ? selectionBar(m.selection.size) : hintFooter(hintsFor(m)),
   );
 }

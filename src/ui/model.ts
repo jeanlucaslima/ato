@@ -88,6 +88,7 @@ export interface PopupModel {
   scope: Scope;
   screen: Screen;
   searchFocused: boolean;
+  helpOpen: boolean;
   cursor?: ItemKey;
   /** Present while in Select mode; holds the selected tab ids. */
   selection?: ReadonlySet<number>;
@@ -103,5 +104,6 @@ export function loadingModel(): PopupModel {
     scope: 'all',
     screen: { kind: 'loading' },
     searchFocused: true,
+    helpOpen: false,
   };
 }

@@ -48,6 +48,8 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
     } else {
       morph(root, next);
     }
+    // The shortcuts panel takes the keyboard: move focus off the search field behind it.
+    if (state.ui.helpOpen && root.contains(document.activeElement) && document.activeElement !== root) root.focus();
     const cursor = state.ui.cursor && root.querySelector(`[data-key="${CSS.escape(state.ui.cursor)}"]`);
     if (cursor) cursor.scrollIntoView({ block: 'nearest' });
   }
@@ -148,6 +150,8 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
         return { type: 'undo' };
       case 'settings':
         return { type: 'openSettings' };
+      case 'toggle-help':
+        return { type: 'toggleHelp' };
       case 'close-selected':
         return { type: 'closeSelected' };
       case 'unload-selected':
