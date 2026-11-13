@@ -9,22 +9,29 @@ On the `v3` branch the 2.x code (`background/`, `popup/`, `options/`, `shared/`,
 ```
 src/
 ├── manifest.json        # popup → popup/index.html; no service worker yet
-├── ui/                  # Popup UI: pure render functions, PopupModel → DOM
-│   ├── model.ts         # PopupModel / Screen / TabRow … (the view-model contract)
-│   ├── popup.ts         # renderPopup(model)
-│   ├── chrome.ts        # search bar, duplicate strip, view bar, footers, toast
-│   ├── rows.ts          # tab rows, site groups, match highlighting
-│   ├── review.ts        # duplicate review (keep/close per copy)
-│   ├── dom.ts icons.ts favicon.ts format.ts
-│   └── tokens.css popup.css   # design tokens (dark default, [data-theme=light]) + components
-├── popup/               # extension popup entry (renders loading state until core exists)
-└── dev/                 # screen gallery: every popup state rendered from fixtures
+├── core/                # Pure logic, no DOM/Chrome: types, tabs (domain/age), duplicates (keep/close
+│                        # planner + safety rules), search. fast-check property tests live beside them.
+├── ui/
+│   ├── state.ts         # UiState (view, query, expanded sites, selection, review choices, toast…)
+│   ├── derive.ts        # Snapshot + UiState → PopupModel
+│   ├── model.ts         # PopupModel: the render contract
+│   ├── actions.ts       # Action (intent/browser news) and Effect (browser work) unions
+│   ├── update.ts        # update(state, action) → [state, effects]; pure state machine
+│   ├── app.ts           # runtime: DOM events → actions, effects → BrowserPort, morph re-render
+│   ├── browser.ts       # BrowserPort interface (chrome.* impl still to come)
+│   ├── morph.ts         # keyed in-place DOM patching (keeps focus, transitions, scroll)
+│   ├── popup.ts chrome.ts rows.ts review.ts   # render functions (PopupModel → DOM, data-action attrs)
+│   └── tokens.css popup.css                    # tokens + components + motion section
+├── popup/               # extension popup entry (renders loading state until a chrome BrowserPort exists)
+└── dev/                 # live screen gallery: fixtures (sample snapshots) over an in-memory FakeBrowser
 ```
 
-- `npm run dev` → Vite dev server, opens `/dev/screens.html` (the gallery). Design changes happen here: edit `ui/*` or add a state to `dev/fixtures.ts`.
-- `npm run build` → icons + `tsc --noEmit` + `vite build` to `dist/`. `npm run typecheck` alone for types.
-- UI rule: rendering is a pure function of `PopupModel`; text goes in as text nodes (never `innerHTML` with data).
-- Planned verification: a pure decision core (tabs + settings → what to close/unload) with `fast-check` property tests for the safety invariants (never close the active tab; exactly one survivor per duplicate set; only real duplicates; protected tabs untouched; undo restores exactly what was closed).
+- `npm run dev` → Vite dev server, opens `/dev/screens.html`: every fixture is a live popup (click, type, keyboard; Reset per frame).
+- `npm run build` → icons + `tsc --noEmit` + `vite build` to `dist/`. `npm test` runs Vitest (DOM tests opt in with `// @vitest-environment happy-dom`).
+- Flow: event → `Action` → `update` → new state (+ `Effect`s run by `app.ts` against `BrowserPort`) → `deriveModel` → `renderPopup` → `morph`.
+- UI rules: rendering is a pure function of `PopupModel`; text goes in as text nodes (never `innerHTML` with data); motion is decorative only (state never waits on an animation; reduced-motion disables it).
+- Commits: keep them small and focused (one concern each) so they can be rolled back individually.
+- Verification: `core/duplicates.test.ts` checks the safety rules as fast-check properties (never close an active tab; every set keeps ≥1; only real duplicates; protected tabs untouched); `ui/update.test.ts` checks review can't close active/pinned tabs whatever the user flips.
 
 ## Project Overview
 
