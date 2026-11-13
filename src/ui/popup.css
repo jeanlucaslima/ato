@@ -44,9 +44,11 @@
 
 /* View bar */
 .bar { display: flex; align-items: center; gap: 4px; padding: 0 12px 8px; border-bottom: 1px solid var(--line); }
-.seg { display: flex; padding: 2px; background: var(--surface); border-radius: 8px; }
-.seg button { height: 28px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; color: var(--ink-2); font-size: 12px; }
-.seg button[aria-pressed='true'] { background: var(--raised); color: var(--ink); font-weight: 600; }
+.seg { position: relative; display: grid; grid-template-columns: 1fr 1fr; padding: 2px; background: var(--surface); border-radius: 8px; }
+.seg button { position: relative; height: 28px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; color: var(--ink-2); font-size: 12px; }
+.seg button[aria-pressed='true'] { color: var(--ink); font-weight: 600; }
+.seg-thumb { position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc(50% - 2px); border-radius: 6px; background: var(--raised); }
+.seg--second .seg-thumb { transform: translateX(100%); }
 .seg .n { font-family: var(--mono); font-weight: 400; color: var(--ink-2); margin-left: 4px; }
 .bar .spacer { flex: 1; }
 .menu-btn { height: 28px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; color: var(--ink-2); font-size: 12px; display: flex; align-items: center; gap: 4px; }
@@ -136,3 +138,46 @@ mark.hl { background: var(--match); color: var(--ink); border-radius: 2px; }
 .toast { position: absolute; left: 12px; right: 12px; bottom: 46px; display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 6px 0 14px; background: var(--raised); border-radius: var(--r); box-shadow: var(--shadow); font-size: 13px; }
 .toast .txt { flex: 1; }
 .toast .btn { color: var(--focus); border-color: transparent; font-weight: 600; }
+
+/* ---------------------------------------------------------------------------
+   Motion. Everything here is decoration: state never depends on an animation
+   finishing, and tokens.css turns it all off for prefers-reduced-motion.
+   --------------------------------------------------------------------------- */
+:root { --ease: cubic-bezier(0.2, 0.7, 0.2, 1); --t-fast: 90ms; --t: 180ms; --t-slow: 240ms; }
+
+/* Hover / cursor / state colors */
+.row, .site-row, .copy, .btn, .menu-btn, .icon-btn, .row-x, .strip { transition: background-color var(--t-fast), border-color var(--t), color var(--t-fast); }
+.seg button { transition: color var(--t); }
+.seg-thumb { transition: transform var(--t) var(--ease); }
+
+/* Site expand/collapse: grid row 0fr <-> 1fr, caret rotates, tabs fade */
+.site-body { transition: grid-template-rows var(--t-slow) var(--ease); }
+.site-body-inner { opacity: 0; transition: opacity var(--t) var(--ease); }
+.site.is-open .site-body-inner { opacity: 1; }
+.site-toggle .caret { transition: transform var(--t) var(--ease); }
+.site.is-open .site-actions, .site-row .count { animation: fade-in var(--t) var(--ease); }
+
+/* Rows enter (restored tabs, new results) and leave (closing) */
+.row { transition-property: background-color, opacity, translate; transition-duration: var(--t-fast), var(--t), var(--t); }
+@starting-style { .row { opacity: 0; translate: 0 -4px; } }
+.row.is-closing { pointer-events: none; animation: row-out var(--t) var(--ease) forwards; }
+@keyframes row-out {
+  to { height: 0; opacity: 0; translate: 24px 0; border-bottom-width: 0; }
+}
+
+/* Screens: lists fade in; review slides in from the right */
+.list { animation: fade-in var(--t) var(--ease); }
+[data-screen='review'] .list, .head--review, .policy { animation: slide-in var(--t-slow) var(--ease); }
+
+/* Review copies flip keep <-> close */
+.copy .verdict { transition: color var(--t); }
+.copy:not(:disabled):active { scale: 0.99; }
+
+/* Toast and selection bar rise in */
+.toast { transition: opacity var(--t), translate var(--t) var(--ease); }
+@starting-style { .toast { opacity: 0; translate: 0 8px; } }
+.actionbar { transition: translate var(--t) var(--ease); }
+@starting-style { .actionbar { translate: 0 100%; } }
+
+@keyframes fade-in { from { opacity: 0; } }
+@keyframes slide-in { from { opacity: 0; translate: 16px 0; } }
