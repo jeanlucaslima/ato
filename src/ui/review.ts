@@ -58,6 +58,9 @@ function copyRow(copy: DuplicateCopy, cursor: ItemKey | undefined): HTMLElement 
       type: 'button',
       class: cls('copy', keep ? 'copy--keep' : 'copy--close', cursor === `copy:${copy.tabId}` && 'is-cursor'),
       'data-key': `copy:${copy.tabId}`,
+      role: 'option',
+      'aria-selected': String(cursor === `copy:${copy.tabId}`),
+      'aria-label': `${keep ? 'Keep' : 'Close'}: ${copy.location}${copy.locked ? ', protected' : ''}`,
       'data-action': 'flip',
       'data-id': copy.tabId,
       disabled: copy.locked,
@@ -74,7 +77,7 @@ export function reviewSets(screen: ReviewScreen, cursor: ItemKey | undefined): H
   return screen.sets.map((set) =>
     h(
       'section',
-      { class: 'set', 'aria-label': `${set.title}, ${set.copies.length} copies` },
+      { class: 'set', role: 'group', 'aria-label': `${set.title}, ${set.copies.length} copies` },
       h('h3', { class: 'set-title' }, h('span', null, set.title), h('span', { class: 'k' }, set.domain)),
       set.copies.map((c) => copyRow(c, cursor)),
     ),

@@ -41,13 +41,13 @@ function body(m: PopupModel): Child[] {
         viewBar(m),
         list(
           'tabs',
-          { role: 'list', 'aria-label': 'Tabs' },
+          { role: 'listbox', 'aria-label': 'Tabs', 'aria-multiselectable': sel ? 'true' : 'false' },
           s.rows.map((r) => tabRow(r, { cursor: m.cursor === `tab:${r.id}`, selected: sel ? sel.has(r.id) : undefined })),
           s.rows.length === 0 && h('p', { class: 'empty' }, 'No tabs in this window.'),
         ),
       ];
     case 'sites':
-      return [viewBar(m), list('sites', { 'aria-label': 'Sites' }, s.groups.map((g) => siteGroup(g, m.cursor, sel)))];
+      return [viewBar(m), list('sites', { role: 'tree', 'aria-label': 'Sites', 'aria-multiselectable': sel ? 'true' : 'false' }, s.groups.map((g) => siteGroup(g, m.cursor, sel)))];
     case 'search': {
       const n = s.results.length;
       return [
@@ -61,7 +61,7 @@ function body(m: PopupModel): Child[] {
         ),
         list(
           'search',
-          { role: 'list', 'aria-label': 'Search results' },
+          { role: 'listbox', 'aria-label': 'Search results' },
           s.results.map((r) => tabRow(r, { cursor: m.cursor === `tab:${r.id}` })),
           n === 0
             ? h('p', { class: 'empty' }, `No tabs match “${s.query}”.`)
@@ -74,7 +74,7 @@ function body(m: PopupModel): Child[] {
         reviewPolicy(s),
         list(
           'review',
-          { 'aria-label': 'Duplicate sets' },
+          { role: 'listbox', 'aria-label': 'Duplicate copies: Space switches keep and close' },
           reviewSets(s, m.cursor),
           s.sets.length === 0 && h('p', { class: 'empty' }, 'No duplicates left.'),
         ),

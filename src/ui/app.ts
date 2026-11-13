@@ -26,10 +26,12 @@ export interface MountOptions {
   autofocus?: boolean;
 }
 
+let mounts = 0;
+
 export function mountApp(container: HTMLElement, browser: BrowserPort | null, initial: AppState, options: MountOptions = {}): App {
   let state = initial;
   let root: HTMLElement | null = null;
-  let shiftHeld = false;
+  const idPrefix = `ato${++mounts}`;
   const timers = new Set<ReturnType<typeof setTimeout>>();
 
   const later = (ms: number, fn: () => void) => {
@@ -50,8 +52,26 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
     }
     // The shortcuts panel takes the keyboard: move focus off the search field behind it.
     if (state.ui.helpOpen && root.contains(document.activeElement) && document.activeElement !== root) root.focus();
-    const cursor = state.ui.cursor && root.querySelector(`[data-key="${CSS.escape(state.ui.cursor)}"]`);
+    const cursor = state.ui.cursor ? root.querySelector<HTMLElement>(`[data-key="${CSS.escape(state.ui.cursor)}"]`) : null;
     if (cursor) cursor.scrollIntoView({ block: 'nearest' });
+    linkActiveDescendant(root, cursor);
+  }
+
+  /**
+   * Focus stays in the search field (or on the popup) while the cursor moves, so
+   * point assistive tech at the cursor item. IDs are per-mount: several popups can
+   * share a page (the gallery).
+   */
+  function linkActiveDescendant(popup: HTMLElement, cursor: HTMLElement | null): void {
+    const list = popup.querySelector<HTMLElement>('.list');
+    if (list) list.id = `${idPrefix}-list`;
+    if (cursor) cursor.id = `${idPrefix}-cursor`;
+    for (const el of [popup, popup.querySelector('input[name="q"]')]) {
+      if (!el) continue;
+      if (cursor) el.setAttribute('aria-activedescendant', cursor.id);
+      else el.removeAttribute('aria-activedescendant');
+      if (el !== popup && list) el.setAttribute('aria-controls', list.id);
+    }
   }
 
   function dispatch(action: Action): void {
@@ -160,28 +180,19 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
         return { type: 'moveSelected' };
       case 'exit-select':
         return { type: 'exitSelect' };
-      case 'toggle-selected':
-        return { type: 'toggleSelected', tabId: id, range: shiftHeld };
+      case 'toggle-row':
+        return { type: 'toggleSelected', tabId: id, range: (event as MouseEvent).shiftKey };
       default:
         return null;
     }
   };
 
   const onClick = (event: MouseEvent) => {
-    shiftHeld = event.shiftKey;
     const el = (event.target as HTMLElement).closest<HTMLElement>('[data-action]');
-    if (!el || !container.contains(el) || el.dataset.action === 'toggle-selected') return;
+    if (!el || !container.contains(el)) return;
     const action = actionFor(el, event);
     if (action) dispatch(action);
     if (el.dataset.action === 'clear-query') searchInput()?.focus();
-  };
-
-  const onChange = (event: Event) => {
-    const el = event.target as HTMLElement;
-    if (el.dataset.action === 'toggle-selected') {
-      const action = actionFor(el, event);
-      if (action) dispatch(action);
-    }
   };
 
   const onInput = (event: Event) => {
@@ -234,7 +245,6 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
   };
 
   container.addEventListener('click', onClick);
-  container.addEventListener('change', onChange);
   container.addEventListener('input', onInput);
   container.addEventListener('focusin', onFocus);
   container.addEventListener('focusout', onFocus);
@@ -247,7 +257,6 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
       unsubscribe?.();
       for (const id of timers) clearTimeout(id);
       container.removeEventListener('click', onClick);
-      container.removeEventListener('change', onChange);
       container.removeEventListener('input', onInput);
       container.removeEventListener('focusin', onFocus);
       container.removeEventListener('focusout', onFocus);
