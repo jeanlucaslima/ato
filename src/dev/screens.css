@@ -1,0 +1,8 @@
+body { padding: 32px; background: #17191b; }
+:root[data-theme='light'] body { background: #e2e3e0; }
+.gallery-head { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+.gallery-head h1 { margin: 0; font-size: 20px; }
+.gallery { display: flex; flex-wrap: wrap; gap: 40px 32px; }
+.gallery figure { margin: 0; }
+.gallery figcaption { font-size: 12px; color: var(--ink-2); margin-bottom: 8px; }
+.gallery .popup { border: 1px solid var(--line); border-radius: 12px; }

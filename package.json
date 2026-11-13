@@ -6,16 +6,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite build --watch --mode development",
-    "build": "npm run icons && vite build",
+    "dev": "vite",
+    "build": "npm run icons && npm run typecheck && vite build",
     "icons": "node scripts/generate-icons.js",
-    "zip": "npm run build && cd dist && zip -r ../ato-v$(node -p \"require('../package.json').version\").zip . -x '*.DS_Store'",
-    "preview": "vite preview",
-    "preview:popup": "vite preview --host 127.0.0.1 --port 4180",
-    "test": "vitest run",
-    "test:popup": "node scripts/test-popup.mjs",
-    "test:ui": "node scripts/test-ui.mjs",
-    "test:watch": "vitest"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest",
+    "zip": "npm run build && cd dist && zip -r ../ato-v$(node -p \"require('../package.json').version\").zip . -x '*.DS_Store'"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.268",

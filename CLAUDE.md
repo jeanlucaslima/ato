@@ -2,6 +2,30 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## ⚠️ `v3` branch: ground-up rewrite in progress
+
+On the `v3` branch the 2.x code (`background/`, `popup/`, `options/`, `shared/`, `engine/`) is gone; everything below this section describes 2.x as it still exists on `main`. The rewrite is **vanilla TypeScript** (Vite + Vitest, no UI framework). Scope of the first release is still being decided — don't build features beyond what's asked.
+
+```
+src/
+├── manifest.json        # popup → popup/index.html; no service worker yet
+├── ui/                  # Popup UI: pure render functions, PopupModel → DOM
+│   ├── model.ts         # PopupModel / Screen / TabRow … (the view-model contract)
+│   ├── popup.ts         # renderPopup(model)
+│   ├── chrome.ts        # search bar, duplicate strip, view bar, footers, toast
+│   ├── rows.ts          # tab rows, site groups, match highlighting
+│   ├── review.ts        # duplicate review (keep/close per copy)
+│   ├── dom.ts icons.ts favicon.ts format.ts
+│   └── tokens.css popup.css   # design tokens (dark default, [data-theme=light]) + components
+├── popup/               # extension popup entry (renders loading state until core exists)
+└── dev/                 # screen gallery: every popup state rendered from fixtures
+```
+
+- `npm run dev` → Vite dev server, opens `/dev/screens.html` (the gallery). Design changes happen here: edit `ui/*` or add a state to `dev/fixtures.ts`.
+- `npm run build` → icons + `tsc --noEmit` + `vite build` to `dist/`. `npm run typecheck` alone for types.
+- UI rule: rendering is a pure function of `PopupModel`; text goes in as text nodes (never `innerHTML` with data).
+- Planned verification: a pure decision core (tabs + settings → what to close/unload) with `fast-check` property tests for the safety invariants (never close the active tab; exactly one survivor per duplicate set; only real duplicates; protected tabs untouched; undo restores exactly what was closed).
+
 ## Project Overview
 
 **ATO (Advanced Tab Organizer)** is a Manifest V3 Chrome Extension that helps manage duplicate and excess tabs through a lightweight popup interface. Built with **vanilla JavaScript** (no frameworks), it prioritizes simplicity, performance, and focused functionality.

@@ -2,68 +2,31 @@ import { defineConfig } from 'vite'
 import { viteStaticCopy } from 'vite-plugin-static-copy'
 import path from 'path'
 
+const src = path.resolve(__dirname, 'src')
+
 export default defineConfig({
-  root: 'src',
+  root: src,
+  publicDir: false,
+  server: {
+    // `npm run dev` opens the screen gallery: every popup state rendered from fixtures.
+    open: '/dev/screens.html',
+  },
   build: {
     outDir: '../dist',
     emptyOutDir: true,
+    assetsDir: 'chunks',
     rollupOptions: {
       input: {
-        'background/service-worker': path.resolve(__dirname, 'src/background/service-worker.js'),
-        'popup/popup': path.resolve(__dirname, 'src/popup/popup.js'),
-        'options/options': path.resolve(__dirname, 'src/options/options.js')
+        popup: path.join(src, 'popup/index.html'),
       },
-      output: {
-        entryFileNames: '[name].js',
-        chunkFileNames: 'shared/[name].js',
-        assetFileNames: '[name].[ext]'
-      }
-    }
+    },
   },
   plugins: [
     viteStaticCopy({
       targets: [
-        {
-          src: 'manifest.json',
-          dest: '.'
-        },
-        {
-          src: 'popup/popup.html',
-          dest: 'popup'
-        },
-        {
-          src: 'popup/popup.css',
-          dest: 'popup'
-        },
-        {
-          src: 'options/options.html',
-          dest: 'options'
-        },
-        {
-          src: 'options/options.css',
-          dest: 'options'
-        },
-        {
-          src: 'assets/icons/*.png',
-          dest: 'assets/icons'
-        },
-        {
-          src: 'assets/icons/ato-logo.svg',
-          dest: 'assets/icons'
-        },
-        {
-          src: 'assets/fonts/**/*',
-          dest: 'assets/fonts'
-        },
-        {
-          src: 'shared/fonts.css',
-          dest: 'shared'
-        },
-        {
-          src: 'shared/theme.css',
-          dest: 'shared'
-        }
-      ]
-    })
-  ]
+        { src: 'manifest.json', dest: '.' },
+        { src: 'assets/icons/*.png', dest: 'assets/icons' },
+      ],
+    }),
+  ],
 })
