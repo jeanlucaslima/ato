@@ -1,7 +1,7 @@
 /**
  * View model for the popup: everything the UI needs to render, nothing more.
  * Rendering is a pure function of this model (see `renderPopup`). The live
- * popup derives it from browser state; the screen gallery builds it from fixtures.
+ * popup derives it from browser state + UI state (see `derive.ts`).
  */
 
 /** Half-open `[start, end)` character range to highlight. */
@@ -26,6 +26,8 @@ export interface TabRow {
   copies?: number;
   /** Short relative time since last access, e.g. `"12m"`. */
   age?: string;
+  /** Animating out; about to be closed. */
+  closing?: boolean;
   titleMatches?: readonly Range[];
   detailMatches?: readonly Range[];
 }
@@ -37,7 +39,9 @@ export interface SiteGroup {
   expanded: boolean;
 }
 
-export type KeepReason = 'current' | 'pinned' | 'grouped' | 'oldest' | 'newest';
+import type { KeepReason } from '../core/duplicates';
+
+export type { KeepReason };
 
 export type CopyVerdict =
   | { action: 'keep'; reason: KeepReason }
@@ -56,7 +60,7 @@ export interface DuplicateSet {
   copies: DuplicateCopy[];
 }
 
-export type SearchMode = 'fuzzy' | 'exact' | 'wildcard';
+export type SearchMode = 'contains' | 'exact';
 export type TabSort = 'recent' | 'oldest' | 'title' | 'site' | 'copies';
 export type SiteSort = 'most' | 'name' | 'recent';
 export type Scope = 'all' | 'current';

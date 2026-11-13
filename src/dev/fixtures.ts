@@ -1,179 +1,93 @@
-/** Sample states for the screen gallery. Display data only — no browser logic. */
-import type { DuplicateSet, PopupModel, Range, SiteGroup, TabRow } from '../ui/model';
+/** Sample browser state + starting UI states for the screen gallery. */
+import type { Snapshot, Tab } from '../core/types';
+import { initialUi, type AppState, type UiState } from '../ui/state';
 
-const tab = (id: number, title: string, domain: string, extra: Partial<TabRow> = {}): TabRow => ({
-  id,
-  title,
-  domain,
-  detail: domain,
-  ...extra,
-});
+const NOW = Date.UTC(2026, 10, 13, 12, 0);
+const MIN = 60_000;
 
-const TABS: TabRow[] = [
-  tab(1, 'Issues · ato', 'github.com', { current: true }),
-  tab(2, 'chrome.tabs — Chrome for Developers', 'developer.chrome.com', { copies: 2 }),
-  tab(3, 'Lo-fi beats to code to', 'youtube.com', { audible: true, age: '12m' }),
-  tab(4, 'Inbox (3)', 'mail.proton.me', { pinned: true, age: '18m' }),
-  tab(5, 'Hacker News', 'news.ycombinator.com', { copies: 3 }),
-  tab(6, 'ATO 3 — screen notes', 'docs.google.com', { age: '1h' }),
-  tab(7, 'fast-check: property based testing', 'fast-check.dev', { age: '2h' }),
-  tab(8, 'Intl.RelativeTimeFormat — MDN', 'developer.mozilla.org', { unloaded: true, age: '2d' }),
-  tab(9, 'Hacker News', 'news.ycombinator.com', { copies: 3 }),
-  tab(10, 'chrome.tabs — Chrome for Developers', 'developer.chrome.com', { copies: 2 }),
-];
+let nextId = 1;
+const counters = new Map<number, number>();
 
-const base: PopupModel = {
-  tabCount: 48,
-  siteCount: 17,
-  windowCount: 2,
-  duplicates: { extra: 4, sets: 3 },
-  scope: 'all',
-  searchFocused: false,
-  screen: { kind: 'tabs', sort: 'recent', rows: TABS },
-};
-
-/** Case-insensitive occurrences of each term — enough for fixtures; real search lives in core. */
-function matches(text: string, terms: string[]): Range[] {
-  const lower = text.toLowerCase();
-  const out: Range[] = [];
-  for (const term of terms) {
-    for (let i = lower.indexOf(term); i !== -1; i = lower.indexOf(term, i + term.length)) {
-      out.push([i, i + term.length]);
-    }
-  }
-  return out;
-}
-
-function searchRow(id: number, title: string, url: string, extra: Partial<TabRow> = {}): TabRow {
-  const terms = ['chrome', 'tabs'];
+function tab(windowId: number, title: string, url: string, minutesAgo: number, extra: Partial<Tab> = {}): Tab {
+  const index = counters.get(windowId) ?? 0;
+  counters.set(windowId, index + 1);
   return {
-    id,
+    id: nextId++,
+    windowId,
+    index,
     title,
-    detail: url,
-    domain: new URL(`https://${url}`).hostname,
-    titleMatches: matches(title, terms),
-    detailMatches: matches(url, terms),
+    url,
+    active: false,
+    pinned: false,
+    audible: false,
+    discarded: false,
+    groupId: -1,
+    lastAccessed: NOW - minutesAgo * MIN,
     ...extra,
   };
 }
 
-const SITES: SiteGroup[] = [
-  { domain: 'github.com', expanded: false, tabs: Array.from({ length: 12 }, (_, i) => tab(100 + i, `Repo ${i}`, 'github.com')) },
-  {
-    domain: 'news.ycombinator.com',
-    expanded: true,
-    tabs: [
-      tab(5, 'Hacker News', 'news.ycombinator.com', { copies: 3 }),
-      tab(9, 'Hacker News', 'news.ycombinator.com', { copies: 3 }),
-      tab(11, 'Hacker News', 'news.ycombinator.com', { copies: 3 }),
-      tab(12, 'Show HN: a tab manager that stays out of the way', 'news.ycombinator.com', { unloaded: true }),
-    ],
-  },
-  { domain: 'developer.chrome.com', expanded: false, tabs: Array.from({ length: 6 }, (_, i) => tab(200 + i, `Doc ${i}`, 'developer.chrome.com')) },
-  { domain: 'docs.google.com', expanded: false, tabs: Array.from({ length: 5 }, (_, i) => tab(300 + i, `Doc ${i}`, 'docs.google.com')) },
-  { domain: 'youtube.com', expanded: false, tabs: Array.from({ length: 3 }, (_, i) => tab(400 + i, `Video ${i}`, 'youtube.com')) },
+const HN = 'https://news.ycombinator.com/';
+const TABS_API = 'https://developer.chrome.com/docs/extensions/reference/api/tabs';
+const INBOX = 'https://mail.proton.me/u/0/inbox';
+
+/** Two windows, three duplicate sets (one with the current tab, one pinned). */
+export const TABS: Tab[] = [
+  tab(1, 'Inbox (3)', INBOX, 18, { pinned: true }),
+  tab(1, 'chrome.tabs — Chrome for Developers', TABS_API, 0, { active: true }),
+  tab(1, 'Issues · ato', 'https://github.com/jeanlucaslima/ato/issues', 2),
+  tab(1, 'Hacker News', HN, 180),
+  tab(1, 'Lo-fi beats to code to', 'https://www.youtube.com/watch?v=lofi', 12, { audible: true }),
+  tab(1, 'ATO 3 — screen notes', 'https://docs.google.com/document/d/ato3', 60),
+  tab(1, 'fast-check: property based testing', 'https://fast-check.dev/', 120),
+  tab(1, 'chrome.tabs — Chrome for Developers', TABS_API, 8),
+  tab(1, 'Hacker News', HN, 200),
+  tab(1, 'Intl.RelativeTimeFormat — MDN', 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/RelativeTimeFormat', 2 * 24 * 60, { discarded: true }),
+  tab(1, 'Show HN: a tab manager that stays out of the way', 'https://news.ycombinator.com/item?id=4242', 3 * 24 * 60, { discarded: true }),
+  tab(1, 'Pull request #212 · vitejs/vite', 'https://github.com/vitejs/vite/pull/212', 4 * 24 * 60),
+  tab(2, 'Hacker News', HN, 24 * 60),
+  tab(2, 'Inbox (3)', INBOX, 5 * 60),
+  tab(2, 'Postgres connection pooling explained', 'https://stackoverflow.com/questions/pooling', 9 * 24 * 60),
+  tab(2, 'Why we moved off microservices', 'https://medium.com/@eng/microservices', 8 * 24 * 60),
+  tab(2, 'Q3 planning (draft)', 'https://docs.google.com/document/d/q3', 6 * 24 * 60),
+  tab(2, 'Conference talk: building fast extensions', 'https://www.youtube.com/watch?v=talk', 6 * 24 * 60, { active: true }),
+  tab(2, 'Unload tabs in Chrome to save memory', 'https://blog.chromium.org/2026/memory-tabs', 3 * 24 * 60),
+  tab(2, 'Chrome Web Store — ATO tabs organizer', 'https://chromewebstore.google.com/detail/ato', 5 * 60),
 ];
 
-const SETS: DuplicateSet[] = [
-  {
-    title: 'Hacker News',
-    domain: 'news.ycombinator.com',
-    copies: [
-      { tabId: 5, location: 'Window 1 · tab 4', verdict: { action: 'keep', reason: 'oldest' } },
-      { tabId: 9, location: 'Window 1 · tab 9', verdict: { action: 'close', age: '3h' } },
-      { tabId: 11, location: 'Window 2 · tab 2', verdict: { action: 'close', age: '1d' } },
-    ],
-  },
-  {
-    title: 'chrome.tabs — Chrome for Developers',
-    domain: 'developer.chrome.com',
-    copies: [
-      { tabId: 2, location: 'Window 1 · tab 2', verdict: { action: 'keep', reason: 'current' } },
-      { tabId: 10, location: 'Window 1 · tab 8', verdict: { action: 'close', age: '8m' } },
-    ],
-  },
-  {
-    title: 'Inbox (3)',
-    domain: 'mail.proton.me',
-    copies: [
-      { tabId: 4, location: 'Window 1 · tab 1', verdict: { action: 'keep', reason: 'pinned' } },
-      { tabId: 13, location: 'Window 2 · tab 5', verdict: { action: 'close', age: '5h' } },
-    ],
-  },
-];
+export const SNAPSHOT: Snapshot = { tabs: TABS, focusedWindowId: 1, now: NOW };
 
-const SELECT_ROWS: TabRow[] = [
-  tab(21, 'Postgres connection pooling explained', 'stackoverflow.com', { age: '9d' }),
-  tab(22, 'Why we moved off microservices', 'medium.com', { age: '8d' }),
-  tab(23, 'Q3 planning (draft)', 'docs.google.com', { age: '6d' }),
-  tab(24, 'Conference talk: building fast extensions', 'youtube.com', { age: '6d' }),
-  tab(25, 'Pull request #212 · vite', 'github.com', { age: '4d' }),
-  tab(2, 'chrome.tabs — Chrome for Developers', 'developer.chrome.com', { copies: 2 }),
-  tab(4, 'Inbox (3)', 'mail.proton.me', { pinned: true, age: '18m' }),
-];
-
-const CLEANED = TABS.filter((t) => ![9, 10].includes(t.id)).map((t) =>
-  t.copies ? { ...t, copies: undefined, age: t.id === 2 ? '4m' : '3h' } : t,
-);
+const idOf = (title: string, n = 0) => TABS.filter((t) => t.title === title)[n]?.id ?? 0;
+const cleaned: Snapshot = {
+  ...SNAPSHOT,
+  tabs: TABS.filter((t) => ![idOf('Hacker News', 1), idOf('Hacker News', 2), idOf('chrome.tabs — Chrome for Developers', 1), idOf('Inbox (3)', 1)].includes(t.id)),
+};
 
 export interface Fixture {
   name: string;
-  model: PopupModel;
+  state: AppState;
 }
 
+const at = (ui: Partial<UiState>, snapshot: Snapshot | null = SNAPSHOT): AppState => ({ snapshot, ui: initialUi(ui) });
+
 export const FIXTURES: Fixture[] = [
-  { name: 'Tabs (on open)', model: { ...base, searchFocused: true } },
+  { name: 'Tabs (on open)', state: at({}) },
+  { name: 'Search', state: at({ query: 'chrome tabs', cursor: `tab:${idOf('chrome.tabs — Chrome for Developers')}` }) },
   {
-    name: 'Search',
-    model: {
-      ...base,
-      searchFocused: true,
-      cursor: 'tab:2',
-      screen: {
-        kind: 'search',
-        query: 'chrome tabs',
-        mode: 'fuzzy',
-        windowCount: 2,
-        results: [
-          searchRow(2, 'chrome.tabs — Chrome for Developers', 'developer.chrome.com/docs/extensions/reference/api/tabs', { copies: 2 }),
-          searchRow(10, 'chrome.tabs — Chrome for Developers', 'developer.chrome.com/docs/extensions/reference/api/tabs', { copies: 2 }),
-          searchRow(30, 'Unload tabs in Chrome to save memory', 'blog.chromium.org/2026/memory-tabs', { age: '3d' }),
-          searchRow(31, 'Chrome Web Store — ATO tabs organizer', 'chromewebstore.google.com/detail/ato', { age: '5h' }),
-        ],
-      },
-    },
+    name: 'Sites',
+    state: at({ view: 'sites', searchFocused: false, expanded: new Set(['news.ycombinator.com']), cursor: 'site:news.ycombinator.com' }),
   },
-  { name: 'Sites', model: { ...base, cursor: 'site:news.ycombinator.com', screen: { kind: 'sites', sort: 'most', groups: SITES } } },
-  { name: 'Duplicate review', model: { ...base, cursor: 'copy:9', screen: { kind: 'review', keep: 'oldest', protectGroups: true, sets: SETS } } },
+  { name: 'Duplicate review', state: at({ reviewOpen: true, searchFocused: false, cursor: `copy:${idOf('Hacker News', 1)}` }) },
   {
     name: 'Select mode',
-    model: { ...base, cursor: 'tab:24', selection: new Set([21, 22, 23, 24]), screen: { kind: 'tabs', sort: 'oldest', rows: SELECT_ROWS } },
+    state: at({
+      tabSort: 'oldest',
+      searchFocused: false,
+      selection: new Set(TABS.filter((t) => t.windowId === 2 && !t.active && t.lastAccessed < NOW - 5 * 24 * 60 * MIN).map((t) => t.id)),
+      cursor: `tab:${idOf('Q3 planning (draft)')}`,
+    }),
   },
-  {
-    name: 'After cleanup (undo)',
-    model: {
-      ...base,
-      tabCount: 44,
-      searchFocused: true,
-      duplicates: { extra: 0, sets: 0 },
-      toast: { message: 'Closed 4 duplicates', undo: true },
-      screen: { kind: 'tabs', sort: 'recent', rows: CLEANED },
-    },
-  },
-  {
-    name: 'Search, no matches',
-    model: { ...base, searchFocused: true, screen: { kind: 'search', query: 'kubernetes', mode: 'fuzzy', windowCount: 2, results: [] } },
-  },
-  {
-    name: 'Loading',
-    model: {
-      tabCount: 0,
-      siteCount: 0,
-      windowCount: 0,
-      duplicates: { extra: 0, sets: 0 },
-      scope: 'all',
-      searchFocused: true,
-      screen: { kind: 'loading' },
-    },
-  },
+  { name: 'After cleanup (undo)', state: at({ toast: { id: 1, message: 'Closed 4 duplicates', undo: [] } }, cleaned) },
+  { name: 'Search, no matches', state: at({ query: 'kubernetes' }) },
+  { name: 'Loading', state: at({}, null) },
 ];

@@ -51,7 +51,7 @@ export function tabRow(row: TabRow, state: RowState = {}): HTMLElement {
     h('span', { class: 'row-title' }, highlight(row.title, row.titleMatches)),
     !state.compact && h('span', { class: 'row-sub' }, highlight(row.detail, row.detailMatches)),
   );
-  const rowClass = cls('row', state.cursor && 'is-cursor', state.selected && 'is-selected', row.unloaded && 'is-asleep');
+  const rowClass = cls('row', state.cursor && 'is-cursor', state.selected && 'is-selected', row.unloaded && 'is-asleep', row.closing && 'is-closing');
 
   if (selecting) {
     return h(

@@ -2,6 +2,7 @@ import '../ui/tokens.css';
 import '../ui/popup.css';
 import './screens.css';
 import { h } from '../ui/dom';
+import { deriveModel } from '../ui/derive';
 import { renderPopup } from '../ui/popup';
 import { FIXTURES } from './fixtures';
 
@@ -34,7 +35,7 @@ function render(): void {
     h(
       'main',
       { class: 'gallery' },
-      FIXTURES.map((f, i) => h('figure', null, h('figcaption', null, `${i + 1} · ${f.name}`), renderPopup(f.model))),
+      FIXTURES.map((f, i) => h('figure', null, h('figcaption', null, `${i + 1} · ${f.name}`), renderPopup(deriveModel(f.state)))),
     ),
   );
 }

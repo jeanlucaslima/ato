@@ -31,7 +31,7 @@ export function searchBar(m: PopupModel): HTMLElement {
   );
 }
 
-const MODE_LABEL: Record<SearchMode, string> = { fuzzy: 'Fuzzy', exact: 'Exact', wildcard: 'Wildcard' };
+const MODE_LABEL: Record<SearchMode, string> = { contains: 'Contains', exact: 'Exact' };
 
 export function searchTips(mode: SearchMode): HTMLElement {
   return h(
@@ -39,7 +39,7 @@ export function searchTips(mode: SearchMode): HTMLElement {
     { class: 'search-tips' },
     h('span', { class: 'chip' }, MODE_LABEL[mode]),
     h('span', null, 'Try'),
-    ['"exact"', 'url:', 'title:', 'doc*'].map((s) => h('code', { class: 'k' }, s)),
+    ['"exact"', 'url:', 'title:'].map((s) => h('code', { class: 'k' }, s)),
   );
 }
 
