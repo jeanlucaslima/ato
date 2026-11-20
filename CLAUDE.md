@@ -8,7 +8,8 @@ On the `v3` branch the 2.x code (`background/`, `popup/`, `options/`, `shared/`,
 
 ```
 src/
-├── manifest.json        # popup → popup/index.html, options → options/index.html; no service worker yet
+├── manifest.json        # popup → popup/index.html, options → options/index.html, worker → background/worker.js
+├── background/worker.ts # MV3 service worker: toolbar badge (core/badge.ts) on tab events + settings changes
 ├── core/                # Pure logic, no DOM/Chrome: types, tabs (domain/age), duplicates (keep/close
 │                        # planner + safety rules), search, settings (defaults + safe read of stored data).
 │                        # fast-check property tests live beside them.

@@ -35,6 +35,11 @@ export default defineConfig(({ mode }) => ({
       input: {
         popup: path.join(src, 'popup/index.html'),
         options: path.join(src, 'options/index.html'),
+        background: path.join(src, 'background/worker.ts'),
+      },
+      output: {
+        // The manifest names the worker by path, so it can't carry a hash.
+        entryFileNames: (chunk) => (chunk.name === 'background' ? 'background/worker.js' : 'chunks/[name]-[hash].js'),
       },
     },
   },
