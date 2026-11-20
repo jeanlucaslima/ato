@@ -8,9 +8,10 @@ On the `v3` branch the 2.x code (`background/`, `popup/`, `options/`, `shared/`,
 
 ```
 src/
-├── manifest.json        # popup → popup/index.html; no service worker yet
+├── manifest.json        # popup → popup/index.html, options → options/index.html; no service worker yet
 ├── core/                # Pure logic, no DOM/Chrome: types, tabs (domain/age), duplicates (keep/close
-│                        # planner + safety rules), search. fast-check property tests live beside them.
+│                        # planner + safety rules), search, settings (defaults + safe read of stored data).
+│                        # fast-check property tests live beside them.
 ├── ui/
 │   ├── state.ts         # UiState (view, query, expanded sites, selection, review choices, toast…)
 │   ├── derive.ts        # Snapshot + UiState → PopupModel
@@ -18,12 +19,16 @@ src/
 │   ├── actions.ts       # Action (intent/browser news) and Effect (browser work) unions
 │   ├── update.ts        # update(state, action) → [state, effects]; pure state machine
 │   ├── app.ts           # runtime: DOM events → actions, effects → BrowserPort, morph re-render
-│   ├── browser.ts       # BrowserPort interface (chrome.* impl still to come)
+│   ├── browser.ts       # BrowserPort interface; chrome-browser.ts implements it over chrome.*
+│   ├── settings-store.ts # SettingsStore interface; chrome-settings.ts = chrome.storage.sync (key "settings")
+│   ├── settings-page.ts # options page render + mount (saves each change); settings.css; theme.ts
 │   ├── morph.ts         # keyed in-place DOM patching (keeps focus, transitions, scroll)
 │   ├── popup.ts chrome.ts rows.ts review.ts   # render functions (PopupModel → DOM, data-action attrs)
 │   └── tokens.css popup.css                    # tokens + components + motion section
-├── popup/               # extension popup entry (renders loading state until a chrome BrowserPort exists)
-└── dev/                 # live screen gallery: fixtures (sample snapshots) over an in-memory FakeBrowser
+├── popup/               # extension popup entry: loads settings, mounts the app over ChromeBrowser
+├── options/             # extension options page entry (settings page over ChromeSettings)
+└── dev/                 # live screen gallery: fixtures over an in-memory FakeBrowser + the settings page
+                         # over MemorySettings (its theme drives the gallery theme)
 ```
 
 - `npm run dev` → Vite dev server, opens `/dev/screens.html`: every fixture is a live popup (click, type, keyboard; Reset per frame).
