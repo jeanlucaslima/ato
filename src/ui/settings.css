@@ -12,7 +12,8 @@
 .ico { position: relative; width: var(--ico-size); height: var(--ico-size); perspective: 900px; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
 .ico.is-dragging { cursor: grabbing; }
 .ico-tilt, .ico-spin { position: absolute; inset: 0; transform-style: preserve-3d; }
-.ico-tilt { transform: rotateX(-12deg) rotateZ(23.5deg); }
+/* Axis leans top-left to bottom-right, about as much as the Earth's (~20°). */
+.ico-tilt { transform: rotateZ(-20deg) rotateX(-6deg); }
 .ico-face { position: absolute; left: 50%; top: 50%; width: 100px; height: 86.6px; transform-origin: 0 0; transform-style: preserve-3d; }
 .ico-face svg { position: absolute; inset: 0; overflow: visible; backface-visibility: hidden; }
 .ico-back { transform: rotateY(180deg); }
@@ -20,9 +21,6 @@
 /* 6 dashes + 5 gaps fill an edge exactly (6×7.5 + 5×11 = 100), so the pattern is
    symmetric and the two faces sharing an edge draw the same dashes. */
 .ico-back line { stroke-dasharray: 7.5 11; }
-.ico-axis { position: absolute; left: 50%; top: 50%; translate: -50% -50%; overflow: visible; }
-.ico-axis line { stroke: var(--ink-3); stroke-width: 1.5; }
-.ico-axis line.is-hidden { stroke-dasharray: 3 5; }
 .saved.is-saved { color: var(--ok); }
 .saved.is-saved::before { content: '✓ '; }
 

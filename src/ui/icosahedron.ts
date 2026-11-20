@@ -5,8 +5,8 @@
  * twice: solid edges that show while the face looks at you, dashed edges that
  * show while it looks away. That gives the logo's look (dashed hidden edges
  * meeting in stars at the back vertices) from any angle. The solid turns
- * about an axis through the centres of two opposite faces, like a globe on a
- * tilted rod, and can be spun by dragging.
+ * about an axis through the centres of two opposite faces, tilted like the
+ * Earth's, and can be spun by dragging.
  */
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -107,23 +107,6 @@ function edges(className: string): SVGSVGElement {
   return svg;
 }
 
-/** The axis rod: solid outside the solid, dashed (hidden) inside it. */
-function axis(radius: number, length: number): SVGSVGElement {
-  const inner = radius * INRADIUS_RATIO;
-  const svg = document.createElementNS(SVG_NS, 'svg');
-  svg.setAttribute('class', 'ico-axis');
-  svg.setAttribute('width', '4');
-  svg.setAttribute('height', String(2 * length));
-  svg.setAttribute('viewBox', `-2 ${-length} 4 ${2 * length}`);
-  for (const [y1, y2, hidden] of [[-length, -inner, false], [-inner, inner, true], [inner, length, false]] as const) {
-    const line = document.createElementNS(SVG_NS, 'line');
-    for (const [k, v] of Object.entries({ x1: 0, x2: 0, y1, y2 })) line.setAttribute(k, String(+v.toFixed(3)));
-    if (hidden) line.setAttribute('class', 'is-hidden');
-    svg.appendChild(line);
-  }
-  return svg;
-}
-
 /**
  * The solid, standing still. Decorative: hidden from assistive tech. Marked
  * `data-morph-keep` because `attachSpin` owns its rotation once mounted.
@@ -140,12 +123,12 @@ export function icosahedron(radius: number): HTMLElement {
   }
   const tilt = document.createElement('div');
   tilt.className = 'ico-tilt';
-  tilt.append(axis(radius, radius * 1.22), solid);
+  tilt.appendChild(solid);
   const stage = document.createElement('div');
   stage.className = 'ico';
   stage.setAttribute('aria-hidden', 'true');
   stage.setAttribute('data-morph-keep', '');
-  stage.style.setProperty('--ico-size', `${Math.round(radius * 2.5)}px`);
+  stage.style.setProperty('--ico-size', `${Math.round(radius * 2.2)}px`);
   stage.appendChild(tilt);
   return stage;
 }
