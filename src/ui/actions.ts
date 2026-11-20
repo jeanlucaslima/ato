@@ -26,6 +26,9 @@ export type Action =
   | { type: 'closeTab'; tabId: number }
   | { type: 'closeSite'; domain: string }
   | { type: 'unloadSite'; domain: string }
+  /** Gather a site's tabs (or the search results) into a new window. */
+  | { type: 'moveSite'; domain: string }
+  | { type: 'moveResults' }
   | { type: 'closeResults' }
   | { type: 'unloadResults' }
   | { type: 'closed'; tabs: readonly Tab[]; message: string }
@@ -47,7 +50,7 @@ export type Action =
   | { type: 'toggleView' }
   | { type: 'toggleHelp' }
   /** Enter / Space / Delete / U / ←→ on whatever the cursor is on. */
-  | { type: 'cursorKey'; key: 'enter' | 'space' | 'delete' | 'unload' | 'left' | 'right' }
+  | { type: 'cursorKey'; key: 'enter' | 'space' | 'delete' | 'unload' | 'move' | 'left' | 'right' }
   | { type: 'openSettings' }
   | { type: 'toggleMute'; tabId: number }
   /** Cleanup settings changed while the popup is open (options page, another machine). */

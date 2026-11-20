@@ -71,6 +71,8 @@
 .btn:hover:not(:disabled) { background: var(--surface); }
 .btn .k { color: inherit; }
 .btn--danger { color: var(--danger); border-color: var(--danger-line); }
+.btn--icon { padding-inline: 7px; }
+.btn--icon svg { display: block; }
 .btn--solid-danger { color: var(--danger-ink); background: var(--danger); border-color: var(--danger); font-weight: 600; }
 .btn--solid-danger:hover:not(:disabled) { background: var(--danger); filter: brightness(1.06); }
 .btn--ghost { border-color: transparent; color: var(--ink-2); }

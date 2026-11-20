@@ -104,6 +104,8 @@ export function resolveKey(e: KeyLike, ctx: KeyContext): KeyCommand | null {
       return act({ type: 'cursorKey', key: 'delete' });
     case 'u':
       return act({ type: 'cursorKey', key: 'unload' });
+    case 'm':
+      return act({ type: 'cursorKey', key: 'move' });
     case 'd':
       return act({ type: 'openReview' });
     case 'x':
@@ -147,6 +149,7 @@ export const KEY_HELP: HelpSection[] = [
       { keys: ['↵'], label: 'Go to tab · toggle site · confirm review' },
       { keys: ['⌫'], label: 'Close tab, site or selection' },
       { keys: ['U'], label: 'Unload (free memory, keep the tab)' },
+      { keys: ['M'], label: 'Move a site, the results or the selection to a new window' },
       { keys: ['Space'], label: 'Select · flip keep/close in review' },
       { keys: ['⌘Z'], label: 'Undo the last close' },
     ],

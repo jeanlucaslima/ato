@@ -57,6 +57,7 @@ function body(m: PopupModel): Child[] {
           { class: 'head head--results' },
           h('h2', null, plural(n, 'match', 'matches'), n > 0 && h('span', null, ` · ${plural(s.windowCount, 'window')}`)),
           n > 0 && h('button', { class: 'btn', type: 'button', 'data-action': 'unload-results' }, `Unload ${n}`),
+          n > 0 && h('button', { class: 'btn', type: 'button', 'data-action': 'move-results', title: 'Gather into a new window (M)' }, 'Move'),
           n > 0 &&
             (s.extra === undefined
               ? h('button', { class: 'btn btn--danger', type: 'button', 'data-action': 'close-results' }, `Close ${n}`)

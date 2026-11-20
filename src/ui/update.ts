@@ -81,6 +81,21 @@ function startClose(state: AppState, tabs: readonly Tab[], noun: string, bulk: b
   return [{ ...state, ui }, [{ kind: 'close', tabIds: [...ids], message }]];
 }
 
+/**
+ * Gather `tabs` into a new window, in the order they sit now (window by window,
+ * left to right). Tabs that already have a window to themselves stay put.
+ */
+function startMove(state: AppState, tabs: readonly Tab[]): Result {
+  if (tabs.length === 0) return withToast(state, 'Nothing to move');
+  const windows = new Set(tabs.map((t) => t.windowId));
+  const alone = windows.size === 1 && (state.snapshot?.tabs ?? []).every((t) => t.windowId !== tabs[0]!.windowId || tabs.includes(t));
+  if (alone) return withToast(state, 'Already in a window of their own');
+  // Pinned tabs lead, as Chrome keeps them at the left of a window.
+  const ordered = [...tabs].sort((a, b) => Number(b.pinned) - Number(a.pinned) || a.windowId - b.windowId || a.index - b.index);
+  const [s, effects] = withToast(state, `Moved ${plural(tabs.length, 'tab')} to a new window`);
+  return [s, [{ kind: 'move', tabIds: ordered.map((t) => t.id) }, ...effects]];
+}
+
 function startUnload(state: AppState, tabs: readonly Tab[]): Result {
   const eligible = tabs.filter((t) => !t.active && !t.discarded);
   if (eligible.length === 0) return withToast(state, 'Nothing to unload');
@@ -139,6 +154,7 @@ function onCursorKey(state: AppState, key: Extract<Action, { type: 'cursorKey' }
     if (key === 'left') return update(state, { type: 'toggleSite', domain, open: false });
     if (key === 'delete') return update(state, { type: 'closeSite', domain });
     if (key === 'unload') return update(state, { type: 'unloadSite', domain });
+    if (key === 'move') return update(state, { type: 'moveSite', domain });
     return [state, []];
   }
 
@@ -147,7 +163,9 @@ function onCursorKey(state: AppState, key: Extract<Action, { type: 'cursorKey' }
     if (key === 'space' && id !== null) return update(state, { type: 'toggleSelected', tabId: id });
     if (key === 'delete') return update(state, { type: 'closeSelected' });
     if (key === 'unload') return update(state, { type: 'unloadSelected' });
+    if (key === 'move') return update(state, { type: 'moveSelected' });
   }
+  if (key === 'move' && model.screen.kind === 'search') return update(state, { type: 'moveResults' });
   if (id === null) return [state, []];
   if (key === 'enter') return update(state, { type: 'activate', tabId: id });
   if (key === 'delete') return update(state, { type: 'closeTab', tabId: id });
@@ -304,11 +322,14 @@ function step(state: AppState, action: Action): Result {
       return [setUi(s, { selection: undefined }), effects];
     }
     case 'moveSelected': {
-      const ids = [...(ui.selection ?? [])];
-      if (ids.length === 0) return [state, []];
-      const [s, effects] = withToast(setUi(state, { selection: undefined }), `Moved ${plural(ids.length, 'tab')} to a new window`);
-      return [s, [{ kind: 'move', tabIds: ids }, ...effects]];
+      const tabs = tabsById(state, ui.selection ?? []);
+      if (tabs.length === 0) return [state, []];
+      return startMove(setUi(state, { selection: undefined }), tabs);
     }
+    case 'moveSite':
+      return startMove(state, siteTabs(state, action.domain));
+    case 'moveResults':
+      return startMove(state, resultTabs(state));
 
     case 'setCursor':
       return [setUi(state, { cursor: action.key }), []];

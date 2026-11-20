@@ -94,6 +94,31 @@ describe('update', () => {
     expect(closeEffects(again)).toEqual([]);
   });
 
+  it('gathers a site or the search results into a new window, in their current order', () => {
+    const moved = (fx: Effect[]) => fx.flatMap((e) => (e.kind === 'move' ? e.tabIds : []));
+    const hn = TABS.filter((t) => t.url === 'https://news.ycombinator.com/');
+    const [, siteFx] = run(start({ view: 'sites' }), [{ type: 'moveSite', domain: 'news.ycombinator.com' }]);
+    const expected = TABS.filter((t) => t.url.startsWith('https://news.ycombinator.com/'))
+      .sort((a, b) => Number(b.pinned) - Number(a.pinned) || a.windowId - b.windowId || a.index - b.index)
+      .map((t) => t.id);
+    expect(moved(siteFx)).toEqual(expected);
+    expect(hn.every((t) => expected.includes(t.id))).toBe(true);
+
+    const [, keyFx] = run(start({ view: 'sites', cursor: 'site:news.ycombinator.com' }), [{ type: 'cursorKey', key: 'move' }]);
+    expect(moved(keyFx)).toEqual(expected);
+
+    const [s, resultsFx] = run(start({ query: 'inbox' }), [{ type: 'moveResults' }]);
+    expect(moved(resultsFx).sort()).toEqual(TABS.filter((t) => t.title === 'Inbox (3)').map((t) => t.id).sort());
+    expect(s.ui.toast?.message).toBe('Moved 2 tabs to a new window');
+  });
+
+  it("doesn't move tabs that already have a window to themselves", () => {
+    const lone = { ...SNAPSHOT, tabs: [...TABS, { ...TABS[0]!, id: 700, windowId: 9, index: 0, url: 'https://solo.test/', title: 'Solo' }] };
+    const [s, fx] = run({ snapshot: lone, ui: initialUi({ view: 'sites' }) }, [{ type: 'moveSite', domain: 'solo.test' }]);
+    expect(fx.some((e) => e.kind === 'move')).toBe(false);
+    expect(s.ui.toast?.message).toBe('Already in a window of their own');
+  });
+
   it('follows a policy change while open: newly protected tabs are no longer closed', () => {
     const unprotected = { keep: 'oldest', protectPinned: false, protectGroups: false } as const;
     const [s] = run(start({ policy: unprotected }), [{ type: 'policy', policy: { ...unprotected, protectPinned: true } }]);

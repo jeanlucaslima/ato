@@ -153,6 +153,10 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
         return { type: 'closeSite', domain };
       case 'unload-site':
         return { type: 'unloadSite', domain };
+      case 'move-site':
+        return { type: 'moveSite', domain };
+      case 'move-results':
+        return { type: 'moveResults' };
       case 'open-review':
         return { type: 'openReview' };
       case 'close-duplicates':

@@ -119,6 +119,11 @@ export function siteGroup(group: SiteGroup, cursor: string | undefined, selectio
         { class: 'site-actions' },
         unloadable > 0 &&
           h('button', { class: 'btn', type: 'button', 'data-action': 'unload-site', 'data-domain': group.domain, tabindex: -1, title: 'Unload (U)' }, `Unload ${unloadable}`),
+        h(
+          'button',
+          { class: 'btn btn--icon', type: 'button', 'data-action': 'move-site', 'data-domain': group.domain, tabindex: -1, title: 'Move to a new window (M)', 'aria-label': 'Move to a new window' },
+          icon('newWindow', 15),
+        ),
         h('button', { class: 'btn btn--danger', type: 'button', 'data-action': 'close-site', 'data-domain': group.domain, tabindex: -1, title: 'Close (⌫)' }, `Close ${count}`),
       ),
     ),
