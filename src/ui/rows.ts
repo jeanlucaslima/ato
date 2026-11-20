@@ -55,7 +55,7 @@ export function tabRow(row: TabRow, state: RowState = {}): HTMLElement {
     'span',
     { class: 'row-text' },
     h('span', { class: 'row-title' }, highlight(row.title, row.titleMatches)),
-    !state.compact && h('span', { class: 'row-sub' }, highlight(row.detail, row.detailMatches)),
+    h('span', { class: cls('row-sub', state.compact && 'row-sub--path') }, highlight(row.detail, row.detailMatches)),
   );
   const role = state.compact
     ? { role: 'treeitem', 'aria-level': 2, 'aria-selected': String(selecting ? Boolean(state.selected) : Boolean(state.cursor)) }

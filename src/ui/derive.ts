@@ -1,7 +1,7 @@
 /** Browser snapshot + UI state → the PopupModel the renderer draws. */
 import { applyOverrides, planDuplicates, protection, tabsToClose, type DuplicateSet as PlanSet } from '../core/duplicates';
 import { parseQuery, searchTabs, splitField } from '../core/search';
-import { countCopies, domainOf, duplicateKey, formatAge } from '../core/tabs';
+import { countCopies, domainOf, duplicateKey, formatAge, pathOf } from '../core/tabs';
 import type { Snapshot, Tab } from '../core/types';
 import { loadingModel, type DuplicateSet, type PopupModel, type Range, type SiteGroup, type TabRow } from './model';
 import type { AppState, UiState } from './state';
@@ -54,7 +54,27 @@ function sortTabs(tabs: Tab[], ui: UiState, copies: Map<string, number>): Tab[] 
   }
 }
 
-function siteGroups(tabs: Tab[], rows: Map<number, TabRow>, ui: UiState): SiteGroup[] {
+/** Window labels as people count them: Window 1, Window 2… in id order. */
+function windowNumbers(snapshot: Snapshot): (t: Tab) => number {
+  const windows = [...new Set(snapshot.tabs.map((t) => t.windowId))].sort((a, b) => a - b);
+  return (t) => windows.indexOf(t.windowId) + 1;
+}
+
+/**
+ * Under a site its name is already in the header, so a tab's second line says
+ * what tells it apart: the page path, the window when the site spans several,
+ * and how long ago it was used when it is one of several copies.
+ */
+function nestedDetail(tab: Tab, row: TabRow, spansWindows: boolean, windowOf: (t: Tab) => number): string {
+  // Copies share a path, so where they sit is what tells them apart.
+  const where = row.copies ? `Window ${windowOf(tab)}, tab ${tab.index + 1}` : spansWindows && `Window ${windowOf(tab)}`;
+  return [pathOf(tab.url) || tab.url, where, row.copies && row.age && (row.age === 'now' ? 'used now' : `used ${row.age} ago`)]
+    .filter(Boolean)
+    .join(' · ');
+}
+
+function siteGroups(tabs: Tab[], rows: Map<number, TabRow>, ui: UiState, snapshot: Snapshot): SiteGroup[] {
+  const windowOf = windowNumbers(snapshot);
   const groups = new Map<string, Tab[]>();
   for (const tab of tabs) {
     const domain = domainOf(tab.url) || 'Other';
@@ -71,7 +91,11 @@ function siteGroups(tabs: Tab[], rows: Map<number, TabRow>, ui: UiState): SiteGr
     domain,
     favIconUrl: ts.find((t) => t.favIconUrl)?.favIconUrl,
     expanded: ui.expanded.has(domain),
-    tabs: ts.map((t) => rows.get(t.id)).filter((r): r is TabRow => r !== undefined),
+    tabs: ts.flatMap((t) => {
+      const row = rows.get(t.id);
+      const spansWindows = new Set(ts.map((x) => x.windowId)).size > 1;
+      return row ? [{ ...row, detail: nestedDetail(t, row, spansWindows, windowOf) }] : [];
+    }),
   }));
 }
 
@@ -154,7 +178,7 @@ export function deriveModel({ snapshot, ui }: AppState): PopupModel {
   }
 
   if (ui.view === 'sites') {
-    return { ...base, screen: { kind: 'sites', sort: ui.siteSort, groups: siteGroups(tabs, rows, ui) } };
+    return { ...base, screen: { kind: 'sites', sort: ui.siteSort, groups: siteGroups(tabs, rows, ui, snapshot) } };
   }
 
   const sorted = sortTabs(tabs, ui, copies);

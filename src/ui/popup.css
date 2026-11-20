@@ -141,8 +141,15 @@ mark.hl { background: var(--match); color: var(--ink); border-radius: 2px; }
 .site-body { display: grid; grid-template-rows: 0fr; }
 .site.is-open .site-body { grid-template-rows: 1fr; }
 .site-body-inner { min-height: 0; overflow: hidden; }
-.site .row { height: 44px; }
-.site .row-main { padding-left: 70px; } /* aligns titles with the site name */
+/* Tabs under a site: a tinted well with a tree rail from the caret, each row
+   hooked onto it, and a path line that tells same-titled tabs apart. */
+.site-body-inner { position: relative; background: color-mix(in srgb, var(--surface) 45%, var(--canvas)); }
+.site-body-inner::before { content: ''; position: absolute; left: 20px; top: 0; bottom: 24px; width: 1px; background: var(--line); }
+.site .row { position: relative; height: 48px; border-bottom-color: color-mix(in srgb, var(--line-soft) 60%, transparent); }
+.site .row::before { content: ''; position: absolute; left: 20px; top: 50%; width: 14px; height: 1px; background: var(--line); }
+.site .row.is-cursor::before { background: var(--focus); }
+.site .row-main { padding-left: 46px; }
+.row-sub--path { font-family: var(--mono); font-size: 11px; }
 
 /* Duplicate review */
 .policy { margin: 0; padding: 10px 14px; font-size: 12px; line-height: 1.5; color: var(--ink-3); border-bottom: 1px solid var(--line); }
