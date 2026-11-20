@@ -1,6 +1,6 @@
 # ATO v3: status and decisions
 
-_Last updated 2026-11-19._ This is the hand-off note for the `v3` branch: what was decided, how we work, what's built, and what's open. Read it with the v3 section of [CLAUDE.md](../CLAUDE.md) and [the Chrome features plan](v3-chrome-features-plan.md) before continuing.
+_Last updated 2026-11-20._ This is the hand-off note for the `v3` branch: what was decided, how we work, what's built, and what's open. Read it with the v3 section of [CLAUDE.md](../CLAUDE.md) and [the Chrome features plan](v3-chrome-features-plan.md) before continuing.
 
 ## Decisions
 
@@ -34,17 +34,9 @@ _Last updated 2026-11-19._ This is the hand-off note for the `v3` branch: what w
 - **Service worker** (`src/background/worker.ts`): toolbar badge (duplicates the popup would close, or all tabs, in the chosen colour, live) and the tab right-click menu (close duplicates of this tab, close other tabs from this site).
 - **Permissions:** `tabs`, `storage`, `sessions`, `tabGroups`, `contextMenus`.
 
-## Not yet confirmed in a real Chrome
+## Confirmed in a real Chrome
 
-These are built and unit-tested but haven't been checked in a browser by hand. Load `dist/` unpacked (Developer mode → Load unpacked) and try:
-
-- the badge (count, colour, live updates, settings changes);
-- the right-click menu (items under "ATO 3 (dev)"; protected copies survive);
-- **Undo after closing several tabs**: Chrome may close the popup while restoring, leaving the rest closed (plan step 2 fixes this properly);
-- move to new window, merge windows, and whether groups survive a merge;
-- whether the `tabGroups` permission shows an install warning (expected: none).
-
-Confirmed so far: the popup and settings run against real tabs, and ⌘D opens review without triggering Chrome's bookmark shortcut.
+The `dist/` dev build is in daily use (confirmed 2026-11-20): popup, settings, badge, right-click menu, moving and merging windows. One known limit stays until plan step 2: undo after closing many tabs can stop part-way if Chrome closes the popup while restoring.
 
 ## Deferred and open
 
