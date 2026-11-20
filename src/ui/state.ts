@@ -21,6 +21,8 @@ export interface UiState {
   /** Keyboard shortcuts panel. */
   helpOpen: boolean;
   expanded: ReadonlySet<string>;
+  /** Review: big duplicate sets the user unfolded, by duplicate key. */
+  openSets: ReadonlySet<string>;
   cursor?: ItemKey;
   /** Browse cursor to restore when search is cleared. */
   searchReturn?: ItemKey;
@@ -51,6 +53,7 @@ export function initialUi(overrides: Partial<UiState> = {}): UiState {
     reviewOpen: false,
     helpOpen: false,
     expanded: new Set(),
+    openSets: new Set(),
     overrides: new Map(),
     closing: new Set(),
     policy: DEFAULT_POLICY,

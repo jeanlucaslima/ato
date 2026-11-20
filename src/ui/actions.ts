@@ -17,6 +17,8 @@ export type Action =
   | { type: 'openReview' }
   | { type: 'closeReview' }
   | { type: 'flip'; tabId: number }
+  /** Review: open or close a big set's fold of Close copies. */
+  | { type: 'toggleFold'; key: string; open?: boolean }
   | { type: 'confirmReview' }
   | { type: 'activate'; tabId: number }
   | { type: 'closeTab'; tabId: number }

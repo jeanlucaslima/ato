@@ -167,6 +167,16 @@ mark.hl { background: var(--match); color: var(--ink); border-radius: 2px; }
 .copy .row-title { font-size: 13px; }
 .copy--close .row-title { color: var(--ink-3); text-decoration: line-through; text-decoration-color: var(--danger-line); }
 .copy--close .fav { opacity: 0.5; }
+.copy--fold .row-title { text-decoration: none; color: var(--ink-2); }
+.fav-stack { position: relative; width: 26px; height: 24px; flex: none; }
+.fav-stack .fav { position: absolute; }
+.fav-stack .fav:first-child { left: 6px; top: 0; opacity: 0.45; }
+.fav-stack .fav:last-child { left: 0; top: 4px; box-shadow: 0 0 0 2px var(--canvas); }
+.fold-caret { flex: none; color: var(--ink-3); display: grid; place-items: center; transition: transform var(--t) var(--ease); }
+.fold-caret svg { display: block; transform: rotate(-90deg); }
+.fold-caret.is-open svg { transform: rotate(180deg); }
+.copy--fold-back { height: 30px; gap: 8px; padding-left: 12px; color: var(--ink-3); }
+.copy--fold-back .row-sub { font-size: 11.5px; }
 .done { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 48px 24px; text-align: center; }
 .done-mark { width: 44px; height: 44px; margin-bottom: 8px; border-radius: 50%; display: grid; place-items: center; background: var(--ok-fill); color: var(--ok); }
 .done-mark svg { display: block; }

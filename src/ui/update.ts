@@ -31,7 +31,7 @@ export function navOrder(model: PopupModel): ItemKey[] {
     case 'sites':
       return s.groups.flatMap((g): ItemKey[] => [`site:${g.domain}`, ...(g.expanded ? g.tabs.map((t) => `tab:${t.id}` as const) : [])]);
     case 'review':
-      return s.sets.flatMap((set) => set.copies.map((c) => `copy:${c.tabId}` as const));
+      return s.sets.flatMap((set): ItemKey[] => [...set.copies.map((c) => `copy:${c.tabId}` as const), ...(set.fold ? [`fold:${set.key}` as const] : [])]);
   }
 }
 
@@ -114,7 +114,19 @@ function onCursorKey(state: AppState, key: Extract<Action, { type: 'cursorKey' }
   const model = deriveModel(state);
 
   if (ui.reviewOpen) {
+    if (cursor?.startsWith('fold:')) {
+      const foldKey = cursor.slice(5);
+      if (key === 'enter') return update(state, { type: 'confirmReview' });
+      if (key === 'space') return update(state, { type: 'toggleFold', key: foldKey });
+      if (key === 'right' || key === 'left') return update(state, { type: 'toggleFold', key: foldKey, open: key === 'right' });
+      return [state, []];
+    }
     const id = tabIdOf(cursor);
+    // ← on a copy inside an unfolded set folds it back.
+    if (key === 'left' && model.screen.kind === 'review') {
+      const set = model.screen.sets.find((s) => s.fold?.open && s.copies.some((c) => `copy:${c.tabId}` === cursor));
+      if (set) return update(state, { type: 'toggleFold', key: set.key, open: false });
+    }
     if (key === 'enter') return update(state, { type: 'confirmReview' });
     if ((key === 'space' || key === 'delete') && id !== null) return update(state, { type: 'flip', tabId: id });
     return [state, []];
@@ -199,7 +211,15 @@ function step(state: AppState, action: Action): Result {
     case 'openReview':
       return [setUi(state, { reviewOpen: true, query: '', selection: undefined, overrides: new Map(), cursor: undefined }), []];
     case 'closeReview':
-      return [setUi(state, { reviewOpen: false, overrides: new Map(), cursor: undefined }), []];
+      return [setUi(state, { reviewOpen: false, overrides: new Map(), openSets: new Set(), cursor: undefined }), []];
+    case 'toggleFold': {
+      const open = action.open ?? !ui.openSets.has(action.key);
+      const next = setUi(state, { openSets: toggleInSet(ui.openSets, action.key, open) });
+      // Opening lands on the first copy it revealed; closing lands on the fold.
+      const set = deriveModel(next).screen;
+      const revealed = open && set.kind === 'review' ? set.sets.find((s) => s.key === action.key)?.copies.find((c) => c.verdict.action === 'close') : undefined;
+      return [setUi(next, { cursor: revealed ? `copy:${revealed.tabId}` : `fold:${action.key}` }), []];
+    }
     case 'flip': {
       if (!state.snapshot) return [state, []];
       const copy = duplicatePlan(state.snapshot, ui)

@@ -3,7 +3,7 @@ import { applyOverrides, planDuplicates, protection, tabsToClose, type Duplicate
 import { parseQuery, searchTabs, splitField } from '../core/search';
 import { countCopies, domainOf, duplicateKey, formatAge, pathOf } from '../core/tabs';
 import type { Snapshot, Tab } from '../core/types';
-import { loadingModel, type DuplicateSet, type PopupModel, type Range, type SiteGroup, type TabRow } from './model';
+import { loadingModel, type DuplicateCopy, type DuplicateSet, type PopupModel, type Range, type SiteGroup, type TabRow } from './model';
 import type { AppState, UiState } from './state';
 
 /** Tabs in the popup's scope. Search ignores scope and always sees every window. */
@@ -102,14 +102,9 @@ function siteGroups(tabs: Tab[], rows: Map<number, TabRow>, ui: UiState, snapsho
 function reviewSets(plan: PlanSet[], snapshot: Snapshot, ui: UiState, rows: ReadonlyMap<number, TabRow>): DuplicateSet[] {
   const windowOf = windowNumbers(snapshot);
   const where = (t: Tab) => `Window ${windowOf(t)} · tab ${t.index + 1}`;
-  return plan.map((set) => {
+  return plan.map((set): DuplicateSet => {
     const first = set.copies[0]?.tab;
-    return {
-      title: first?.title || set.key,
-      domain: first ? domainOf(first.url) : '',
-      address: displayUrl(set.key, []).text,
-      resolving: set.copies.some((c) => c.decision.action === 'close') && set.copies.every((c) => c.decision.action === 'keep' || ui.closing.has(c.tab.id)),
-      copies: set.copies.map(({ tab, decision }) => ({
+    const copies = set.copies.map(({ tab, decision }): DuplicateCopy => ({
         tabId: tab.id,
         row: rows.get(tab.id) ?? toRow(tab, snapshot, new Map(), ui),
         location: where(tab),
@@ -119,9 +114,46 @@ function reviewSets(plan: PlanSet[], snapshot: Snapshot, ui: UiState, rows: Read
           decision.action === 'keep'
             ? { action: 'keep' as const, reason: decision.reason }
             : { action: 'close' as const, age: formatAge(snapshot.now - tab.lastAccessed) },
-      })),
+    }));
+    const closers = set.copies.filter((c) => c.decision.action === 'close').map((c) => c.tab);
+    const foldable = set.copies.length > FOLD_ABOVE && closers.length >= 2;
+    const open = ui.openSets.has(set.key);
+    const fold = foldable
+      ? {
+          count: closers.length,
+          open,
+          where: summarizeWindows(closers.map(windowOf)),
+          ages: ageRange(closers.map((t) => snapshot.now - t.lastAccessed)),
+          favIconUrl: closers[0]?.favIconUrl,
+          closing: closers.every((t) => ui.closing.has(t.id)),
+        }
+      : undefined;
+    return {
+      key: set.key,
+      title: first?.title || set.key,
+      domain: first ? domainOf(first.url) : '',
+      address: displayUrl(set.key, []).text,
+      resolving: closers.length > 0 && closers.every((t) => ui.closing.has(t.id)),
+      size: set.copies.length,
+      toClose: closers.filter((t) => !ui.closing.has(t.id)).length,
+      copies: fold && !open ? copies.filter((c) => c.verdict.action === 'keep') : copies,
+      fold,
     };
   });
+}
+
+/** Sets with more copies than this fold their Close copies into one row. */
+const FOLD_ABOVE = 3;
+
+function summarizeWindows(numbers: readonly number[]): string {
+  const distinct = [...new Set(numbers)];
+  return distinct.length === 1 ? `Window ${distinct[0]}` : `${distinct.length} windows`;
+}
+
+function ageRange(elapsed: readonly number[]): string {
+  const newest = formatAge(Math.min(...elapsed));
+  const oldest = formatAge(Math.max(...elapsed));
+  return newest === oldest ? newest : `${newest} – ${oldest}`;
 }
 
 /** URL without `https://` / `http://` / `www.`, with highlight ranges shifted to match. */

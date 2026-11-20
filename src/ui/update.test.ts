@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
-import { SNAPSHOT, TABS } from '../dev/fixtures';
+import { MANY_COPIES, SNAPSHOT, TABS } from '../dev/fixtures';
 import type { Action, Effect } from './actions';
 import { deriveModel } from './derive';
 import { initialUi, type AppState } from './state';
 import { navOrder, update } from './update';
 
 const start = (ui = {}): AppState => ({ snapshot: SNAPSHOT, ui: initialUi(ui) });
+const setCursor = (s: AppState, key: NonNullable<AppState['ui']['cursor']>): AppState => update(s, { type: 'setCursor', key })[0];
 
 function run(state: AppState, actions: Action[]): [AppState, Effect[]] {
   const effects: Effect[] = [];
@@ -42,6 +43,32 @@ describe('update', () => {
     const after = deriveModel(done).screen;
     expect(after.kind === 'review' && after.sets.length).toBe(0);
     expect(done.ui.toast?.undo).toHaveLength(ids.length);
+  });
+
+  it('folds a big set into one row that still counts, opens with Space, folds back with ←, and closes with ↵', () => {
+    const hn = 'https://news.ycombinator.com/';
+    const s0: AppState = { snapshot: MANY_COPIES, ui: initialUi({ reviewOpen: true }) };
+    const review = (s: AppState) => {
+      const screen = deriveModel(s).screen;
+      if (screen.kind !== 'review') throw new Error('expected review');
+      return screen.sets.find((set) => set.key === hn)!;
+    };
+    const folded = review(s0);
+    const total = MANY_COPIES.tabs.filter((t) => t.url === hn).length;
+    expect(folded.fold).toMatchObject({ count: total - 1, open: false });
+    expect(folded.copies).toHaveLength(1);
+    expect(folded.toClose).toBe(total - 1);
+    expect(navOrder(deriveModel(s0))).toContain(`fold:${hn}`);
+
+    const [opened] = run(setCursor(s0, `fold:${hn}`), [{ type: 'cursorKey', key: 'space' }]);
+    expect(review(opened).copies).toHaveLength(total);
+    expect(opened.ui.cursor?.startsWith('copy:')).toBe(true);
+    const [refolded] = run(opened, [{ type: 'cursorKey', key: 'left' }]);
+    expect(review(refolded).fold?.open).toBe(false);
+    expect(refolded.ui.cursor).toBe(`fold:${hn}`);
+
+    const [, fx] = run(refolded, [{ type: 'cursorKey', key: 'enter' }]);
+    expect(closeEffects(fx).filter((id) => MANY_COPIES.tabs.find((t) => t.id === id)?.url === hn)).toHaveLength(total - 1);
   });
 
   it('follows a policy change while open: newly protected tabs are no longer closed', () => {

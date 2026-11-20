@@ -2,13 +2,13 @@ import { cls, h } from './dom';
 import { favicon } from './favicon';
 import { plural } from './format';
 import { icon } from './icons';
-import type { DuplicateCopy, DuplicateSet, ItemKey, Screen } from './model';
+import type { CopyFold, DuplicateCopy, DuplicateSet, ItemKey, Screen } from './model';
 
 type ReviewScreen = Extract<Screen, { kind: 'review' }>;
 
 /** How many tabs the current review would close. */
 export function closeCount(sets: readonly DuplicateSet[]): number {
-  return sets.reduce((n, s) => n + s.copies.filter((c) => c.verdict.action === 'close' && !c.closing).length, 0);
+  return sets.reduce((n, s) => n + s.toClose, 0);
 }
 
 export function reviewHeader(screen: ReviewScreen): HTMLElement {
@@ -103,13 +103,53 @@ export function reviewDone(): HTMLElement {
   );
 }
 
+/**
+ * A big set's Close copies as one row. Folded, it stands in for them (and wears
+ * the Close pill); unfolded, it sits under them as a quiet "fold back" row.
+ */
+function foldRow(set: DuplicateSet, fold: CopyFold, cursor: ItemKey | undefined): HTMLElement {
+  const key = `fold:${set.key}` as const;
+  const attrs = {
+    type: 'button',
+    'data-key': key,
+    role: 'option',
+    'aria-selected': String(cursor === key),
+    'aria-expanded': String(fold.open),
+    'data-action': 'toggle-fold',
+    'data-set': set.key,
+    tabindex: -1,
+  };
+  if (fold.open) {
+    return h(
+      'button',
+      { ...attrs, class: cls('copy', 'copy--fold-back', cursor === key && 'is-cursor'), title: 'Fold these copies back (←)' },
+      h('span', { class: 'fold-caret is-open', 'aria-hidden': 'true' }, icon('chevron', 10)),
+      h('span', { class: 'row-sub' }, `Fold ${plural(fold.count, 'copy', 'copies')} back`),
+    );
+  }
+  return h(
+    'button',
+    {
+      ...attrs,
+      class: cls('copy', 'copy--close', 'copy--fold', cursor === key && 'is-cursor', fold.closing && 'is-closing'),
+      'aria-label': `Close ${plural(fold.count, 'copy', 'copies')}, ${fold.where}. Space shows them.`,
+      title: 'Show each copy (Space or →)',
+    },
+    h('span', { class: 'fav-stack', 'aria-hidden': 'true' }, favicon(set.domain, fold.favIconUrl), favicon(set.domain, fold.favIconUrl)),
+    h('span', { class: 'row-text' }, h('span', { class: 'row-title' }, `${plural(fold.count, 'copy', 'copies')}`), h('span', { class: 'row-sub' }, `${fold.where} · ${fold.ages}`)),
+    h('span', { class: 'fold-caret', 'aria-hidden': 'true' }, icon('chevron', 10)),
+    h('span', { class: 'verdict verdict--close' }, h('b', null, 'Close'), h('span', null, String(fold.count))),
+  );
+}
+
 export function reviewSets(screen: ReviewScreen, cursor: ItemKey | undefined): HTMLElement[] {
   return screen.sets.map((set) =>
     h(
       'section',
-      { class: cls('set', set.resolving && 'is-resolving'), 'data-key': `set:${set.address}`, role: 'group', 'aria-label': `${set.title}, ${set.copies.length} copies` },
-      h('h3', { class: 'set-title', title: set.address }, h('span', null, set.address), h('span', { class: 'k' }, plural(set.copies.length, 'copy', 'copies'))),
+      { class: cls('set', set.resolving && 'is-resolving'), 'data-key': `set:${set.address}`, role: 'group', 'aria-label': `${set.title}, ${set.size} copies` },
+      h('h3', { class: 'set-title', title: set.address }, h('span', null, set.address), h('span', { class: 'k' }, plural(set.size, 'copy', 'copies'))),
       set.copies.map((c) => copyRow(c, cursor)),
+      set.fold && foldRow(set, set.fold, cursor),
     ),
   );
 }
