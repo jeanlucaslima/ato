@@ -8,7 +8,10 @@
 export type Range = readonly [start: number, end: number];
 
 /** Stable key for whatever the keyboard cursor is on. */
-export type ItemKey = `tab:${number}` | `site:${string}` | `copy:${number}` | `fold:${string}` | `win:${number}`;
+export type ItemKey = `tab:${number}` | `site:${string}` | `copy:${number}` | `fold:${string}` | `win:${number}` | 'dupes' | `play:${number}`;
+
+/** Playing tabs that get a row in Now playing; the rest are counted. */
+export const PLAYING_ROWS = 2;
 
 export interface TabRow {
   id: number;

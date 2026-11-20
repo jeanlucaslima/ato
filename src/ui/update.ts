@@ -9,7 +9,7 @@ import type { Tab } from '../core/types';
 import type { Action, Effect } from './actions';
 import { deriveModel, duplicatePlan, extraCopies, scopedTabs } from './derive';
 import { plural } from './format';
-import type { ItemKey, PopupModel, SiteSort, TabSort } from './model';
+import { PLAYING_ROWS, type ItemKey, type PopupModel, type SiteSort, type TabSort } from './model';
 import type { AppState, Toast, UiState } from './state';
 
 export type Result = [AppState, Effect[]];
@@ -18,8 +18,19 @@ const TAB_SORTS: TabSort[] = ['recent', 'oldest', 'title', 'site', 'copies'];
 const SITE_SORTS: SiteSort[] = ['most', 'name', 'recent'];
 const next = <T>(list: readonly T[], value: T): T => list[(list.indexOf(value) + 1) % list.length] ?? value;
 
+/** Above the list on the browse screens: the duplicates bar (when there are any) and Now playing. */
+function frontKeys(model: PopupModel): ItemKey[] {
+  return [...(model.duplicates.extra > 0 ? ['dupes' as const] : []), ...model.playing.slice(0, PLAYING_ROWS).map((r) => `play:${r.id}` as const)];
+}
+
 /** Keys the cursor can visit, in screen order. */
 export function navOrder(model: PopupModel): ItemKey[] {
+  const s = model.screen;
+  const front = s.kind === 'tabs' || s.kind === 'sites' || s.kind === 'windows' ? frontKeys(model) : [];
+  return [...front, ...listOrder(model)];
+}
+
+function listOrder(model: PopupModel): ItemKey[] {
   const s = model.screen;
   switch (s.kind) {
     case 'loading':
@@ -37,7 +48,8 @@ export function navOrder(model: PopupModel): ItemKey[] {
   }
 }
 
-const tabIdOf = (key: ItemKey | undefined): number | null => (key?.startsWith('tab:') || key?.startsWith('copy:') ? Number(key.split(':')[1]) : null);
+const tabIdOf = (key: ItemKey | undefined): number | null =>
+  key?.startsWith('tab:') || key?.startsWith('copy:') || key?.startsWith('play:') ? Number(key.split(':')[1]) : null;
 
 /** Where the cursor should land once `removed` tabs disappear. */
 function cursorAfter(order: ItemKey[], removed: ReadonlySet<number>, cursor: ItemKey | undefined): ItemKey | undefined {
@@ -150,6 +162,20 @@ function onCursorKey(state: AppState, key: Extract<Action, { type: 'cursorKey' }
     }
     if (key === 'enter') return update(state, { type: 'confirmReview' });
     if ((key === 'space' || key === 'delete') && id !== null) return update(state, { type: 'flip', tabId: id });
+    return [state, []];
+  }
+
+  if (cursor === 'dupes') {
+    if (key === 'enter' || key === 'space' || key === 'right') return update(state, { type: 'openReview' });
+    if (key === 'delete') return update(state, { type: 'closeDuplicates' });
+    return [state, []];
+  }
+
+  if (cursor?.startsWith('play:')) {
+    const tabId = Number(cursor.slice(5));
+    if (key === 'enter') return update(state, { type: 'activate', tabId });
+    if (key === 'space') return update(state, { type: 'toggleMute', tabId });
+    if (key === 'delete') return update(state, { type: 'closeTab', tabId });
     return [state, []];
   }
 
@@ -329,8 +355,7 @@ function step(state: AppState, action: Action): Result {
       if (action.range && anchor !== -1) {
         const target = order.indexOf(key);
         for (const k of order.slice(Math.min(anchor, target), Math.max(anchor, target) + 1)) {
-          const id = tabIdOf(k);
-          if (id !== null) selection.add(id);
+          if (k.startsWith('tab:')) selection.add(Number(k.slice(4)));
         }
       } else if (selection.has(action.tabId)) selection.delete(action.tabId);
       else selection.add(action.tabId);

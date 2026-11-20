@@ -109,6 +109,7 @@ const at = (ui: Partial<UiState>, snapshot: Snapshot | null = SNAPSHOT): AppStat
 
 export const FIXTURES: Fixture[] = [
   { name: 'Tabs (on open)', state: at({}) },
+  { name: 'Tabs · cursor on the duplicates bar (↵ opens review)', state: at({ searchFocused: false, cursor: 'dupes' }) },
   { name: 'Search', state: at({ query: 'chrome tabs', cursor: `tab:${idOf('chrome.tabs — Chrome for Developers')}` }) },
   {
     name: 'Sites',

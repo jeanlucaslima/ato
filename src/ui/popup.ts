@@ -116,7 +116,7 @@ export function renderPopup(m: PopupModel): HTMLElement {
     brandBar(),
     m.screen.kind === 'review' ? reviewHeader(m.screen) : searchBar(m),
     kind !== 'review' && kind !== 'search' && duplicateStrip(m),
-    (kind === 'tabs' || kind === 'sites' || kind === 'windows') && nowPlaying(m.playing),
+    (kind === 'tabs' || kind === 'sites' || kind === 'windows') && nowPlaying(m.playing, m.cursor),
     body(m),
     m.toast && toast(m.toast),
     m.helpOpen && helpPanel(),

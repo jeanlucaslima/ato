@@ -3,7 +3,7 @@ import { cls, h } from './dom';
 import { plural } from './format';
 import { icon } from './icons';
 import { logoSvg } from './logo-svg';
-import type { PopupModel, Scope, SearchField, SearchMode, SiteSort, TabRow, TabSort } from './model';
+import { PLAYING_ROWS, type ItemKey, type PopupModel, type Scope, type SearchField, type SearchMode, type SiteSort, type TabRow, type TabSort } from './model';
 
 /**
  * The logo at header size: the 3D icosahedron in the text colour (so it follows
@@ -99,14 +99,11 @@ function eq(): HTMLElement {
   return h('span', { class: 'eq', 'aria-hidden': 'true' }, h('i'), h('i'), h('i'), h('i'));
 }
 
-/** How many playing tabs get a row; the rest are counted. */
-const PLAYING_ROWS = 2;
-
 /**
  * Tabs making sound, from any window: click one to go there, mute or unmute
  * it in place. Hidden when nothing plays.
  */
-export function nowPlaying(rows: readonly TabRow[]): HTMLElement | null {
+export function nowPlaying(rows: readonly TabRow[], cursor?: ItemKey): HTMLElement | null {
   if (rows.length === 0) return null;
   const extra = rows.length - PLAYING_ROWS;
   return h(
@@ -115,7 +112,7 @@ export function nowPlaying(rows: readonly TabRow[]): HTMLElement | null {
     rows.slice(0, PLAYING_ROWS).map((r) =>
       h(
         'div',
-        { class: cls('play-row', r.muted && 'is-muted') },
+        { class: cls('play-row', r.muted && 'is-muted', cursor === `play:${r.id}` && 'is-cursor'), 'data-key': `play:${r.id}` },
         h(
           'button',
           { class: 'play-go', type: 'button', 'data-action': 'activate', 'data-id': r.id, title: 'Go to this tab' },
@@ -138,7 +135,7 @@ export function duplicateStrip(m: PopupModel): HTMLElement {
   const state = m.screen.kind === 'loading' ? 'idle' : extra === 0 ? 'clean' : 'dupes';
   return h(
     'div',
-    { class: cls('strip', state === 'clean' && 'strip--clean', state === 'idle' && 'strip--idle'), role: 'status' },
+    { class: cls('strip', state === 'clean' && 'strip--clean', state === 'idle' && 'strip--idle', m.cursor === 'dupes' && 'is-cursor'), role: 'status', 'data-key': 'dupes' },
     h('span', { class: 'dot', 'aria-hidden': 'true' }),
     state === 'idle' && h('span', { class: 'txt' }, 'Checking for duplicates…'),
     state === 'clean' &&

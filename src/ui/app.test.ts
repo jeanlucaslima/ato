@@ -54,8 +54,8 @@ describe('mountApp keyboard + a11y', () => {
   it('moves the cursor from the search field and announces it', () => {
     const { container, input, press } = mount();
     expect(document.activeElement).toBe(input);
-    press('ArrowDown');
-    press('ArrowDown');
+    // Past the duplicates bar and Now playing, into the list.
+    for (let i = 0; i < 4; i++) press('ArrowDown');
     const id = input.getAttribute('aria-activedescendant');
     const cursor = container.querySelector('.is-cursor');
     expect(id).toBeTruthy();

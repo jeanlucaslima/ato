@@ -146,7 +146,7 @@ export const KEY_HELP: HelpSection[] = [
   {
     title: 'Act',
     entries: [
-      { keys: ['↵'], label: 'Go to tab or window · toggle site · confirm review' },
+      { keys: ['↵'], label: 'Go to tab or window · toggle site · open review from the duplicates bar' },
       { keys: ['⌫'], label: 'Close tab, site or selection' },
       { keys: ['U'], label: 'Unload (free memory, keep the tab)' },
       { keys: ['M'], label: 'Move a site, the results or the selection to a new window · merge a window into this one' },

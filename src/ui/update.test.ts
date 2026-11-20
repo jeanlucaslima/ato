@@ -19,6 +19,9 @@ function run(state: AppState, actions: Action[]): [AppState, Effect[]] {
   return [state, effects];
 }
 
+/** The list's own keys, without the duplicates bar and Now playing above it. */
+const listKeys = (state: AppState) => navOrder(deriveModel(state)).filter((k) => k !== 'dupes' && !k.startsWith('play:'));
+
 const closeEffects = (effects: Effect[]) => effects.flatMap((e) => (e.kind === 'close' ? e.tabIds : []));
 const activeIds = TABS.filter((t) => t.active).map((t) => t.id);
 const pinnedIds = TABS.filter((t) => t.pinned).map((t) => t.id);
@@ -69,6 +72,22 @@ describe('update', () => {
 
     const [, fx] = run(refolded, [{ type: 'cursorKey', key: 'enter' }]);
     expect(closeEffects(fx).filter((id) => MANY_COPIES.tabs.find((t) => t.id === id)?.url === hn)).toHaveLength(total - 1);
+  });
+
+  it('↓ visits the duplicates bar and Now playing before the list; ↵ opens review or goes to the tab', () => {
+    const order = navOrder(deriveModel(start()));
+    const playing = TABS.find((t) => t.audible)!.id;
+    expect(order.slice(0, 3)).toEqual(['dupes', `play:${playing}`, listKeys(start())[0]]);
+    const [onBar] = run(start(), [{ type: 'moveCursor', delta: 1 }]);
+    expect(onBar.ui.cursor).toBe('dupes');
+    expect(run(onBar, [{ type: 'cursorKey', key: 'enter' }])[0].ui.reviewOpen).toBe(true);
+    expect(closeEffects(run(onBar, [{ type: 'cursorKey', key: 'delete' }])[1])).toHaveLength(4);
+    const [onPlay, fx] = run(onBar, [{ type: 'moveCursor', delta: 1 }, { type: 'cursorKey', key: 'enter' }]);
+    expect(onPlay.ui.cursor).toBe(`play:${playing}`);
+    expect(fx).toContainEqual({ kind: 'activate', tabId: playing });
+    expect(run(onPlay, [{ type: 'cursorKey', key: 'space' }])[1]).toContainEqual({ kind: 'mute', tabId: playing, muted: true });
+    // Search hides both: the cursor starts on the first hit.
+    expect(navOrder(deriveModel(start({ query: 'hacker' })))[0]?.startsWith('tab:')).toBe(true);
   });
 
   it('dupe: Close closes only the extra copies: every duplicated page keeps a tab', () => {
@@ -128,11 +147,11 @@ describe('update', () => {
     expect(w1.runs.map((r) => [r.group?.title ?? null, r.tabs.length])).toEqual([[null, 5], ['ATO v3', 2], [null, 2], ['Read later', 3]]);
     expect(w1.runs.flatMap((r) => r.dots.map((d) => d.id))).toEqual(GROUPED.tabs.filter((t) => t.windowId === 1).sort((a, b) => a.index - b.index).map((t) => t.id));
     expect(screen.windows[2]!.duplicates).toBe(16);
-    expect(navOrder(deriveModel(s0))).toEqual(['win:1', 'win:2', 'win:3']);
+    expect(listKeys(s0)).toEqual(['win:1', 'win:2', 'win:3']);
 
     const [open] = run(setCursor(s0, 'win:2'), [{ type: 'cursorKey', key: 'right' }]);
-    expect(navOrder(deriveModel(open))).toHaveLength(3 + 8);
-    const firstTab = navOrder(deriveModel(open))[2]!;
+    expect(listKeys(open)).toHaveLength(3 + 8);
+    const firstTab = listKeys(open)[2]!;
     const [back] = run(setCursor(open, firstTab), [{ type: 'cursorKey', key: 'left' }]);
     expect(back.ui.cursor).toBe('win:2');
     expect(back.ui.openWindows.has(2)).toBe(false);
@@ -215,13 +234,13 @@ describe('update', () => {
   });
 
   it('moves the cursor to the next row when the cursor row is closed', () => {
-    const order = navOrder(deriveModel(start()));
+    const order = listKeys(start());
     const [s] = run(start({ cursor: order[1] }), [{ type: 'cursorKey', key: 'delete' }]);
     expect(s.ui.cursor).toBe(order[2]);
   });
 
   it('selects a range with shift', () => {
-    const order = navOrder(deriveModel(start()));
+    const order = listKeys(start());
     const id = (i: number) => Number(order[i]!.split(':')[1]);
     const [s] = run(start(), [{ type: 'toggleSelectMode' }, { type: 'toggleSelected', tabId: id(1) }, { type: 'toggleSelected', tabId: id(4), range: true }]);
     expect([...(s.ui.selection ?? [])].sort()).toEqual([1, 2, 3, 4].map(id).sort());
@@ -236,7 +255,7 @@ describe('update', () => {
   });
 
   it('extends and fills the selection from the keyboard', () => {
-    const order = navOrder(deriveModel(start()));
+    const order = listKeys(start());
     const id = (i: number) => Number(order[i]!.split(':')[1]);
     const [s] = run(start({ cursor: order[0] }), [
       { type: 'toggleSelectMode' },
@@ -250,7 +269,7 @@ describe('update', () => {
   });
 
   it('keeps the cursor on the same tab when switching views if it is still visible', () => {
-    const order = navOrder(deriveModel(start()));
+    const order = listKeys(start());
     const [sites] = run(start({ cursor: order[0] }), [{ type: 'toggleView' }]);
     expect(sites.ui.view).toBe('sites');
     expect(sites.ui.cursor).toBeUndefined(); // its site is collapsed
@@ -269,7 +288,7 @@ describe('update', () => {
   });
 
   it('hands the cursor to a neighbour when its tab is closed elsewhere', () => {
-    const order = navOrder(deriveModel(start()));
+    const order = listKeys(start());
     const gone = Number(order[2]!.split(':')[1]);
     const snapshot = { ...SNAPSHOT, tabs: SNAPSHOT.tabs.filter((t) => t.id !== gone) };
     const [s] = run(start({ cursor: order[2] }), [{ type: 'snapshot', snapshot }]);
