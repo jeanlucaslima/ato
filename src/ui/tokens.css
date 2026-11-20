@@ -1,11 +1,8 @@
 /* ATO design tokens + base. Dark is the default; light via [data-theme="light"]. */
 
-@font-face {
-  font-family: 'Inter';
-  src: url('../assets/fonts/Inter/Inter-VariableFont_opsz,wght.woff2') format('woff2');
-  font-weight: 100 900;
-  font-display: swap;
-}
+/* Manrope (variable, OFL), bundled from @fontsource-variable/manrope: the
+   woff2 files ship inside the extension, so nothing loads from the network. */
+@import '@fontsource-variable/manrope';
 
 :root {
   color-scheme: dark;
@@ -33,7 +30,7 @@
   --ok-fill: #24302a;
   --ok-line: #3b5143;
   --shadow: 0 8px 24px rgb(0 0 0 / 0.35);
-  --sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --sans: 'Manrope Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
   --r: 10px;
 }

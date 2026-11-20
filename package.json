@@ -15,6 +15,7 @@
     "zip": "npm run build && cd dist && zip -r ../ato-v$(node -p \"require('../package.json').version\").zip . -x '*.DS_Store'"
   },
   "devDependencies": {
+    "@fontsource-variable/manrope": "^5.3.0",
     "@types/chrome": "^0.0.268",
     "fast-check": "^4.10.2",
     "happy-dom": "^21.0.4",
