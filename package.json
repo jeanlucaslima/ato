@@ -14,7 +14,8 @@
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
     "zip": "npm run build:store && cd dist && zip -r ../ato-v$(node -p \"require('../package.json').version\").zip . -x '*.DS_Store'",
-    "logo": "vite-node scripts/generate-logo.ts"
+    "logo": "vite-node scripts/generate-logo.ts",
+    "perf": "vite-node scripts/perf.ts"
   },
   "devDependencies": {
     "@fontsource-variable/manrope": "^5.3.0",
