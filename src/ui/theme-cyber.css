@@ -56,20 +56,6 @@
 [data-theme='cyber'] .theme-card,
 [data-theme='cyber'] .playing,
 [data-theme='cyber'] .search { background: color-mix(in srgb, var(--surface) 82%, transparent); backdrop-filter: blur(2px); }
-/* A slow scan beam sweeps down the popup */
-[data-theme='cyber'] .popup::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: -120px;
-  height: 120px;
-  z-index: 10;
-  pointer-events: none;
-  background: linear-gradient(to bottom, transparent, rgb(0 240 255 / 0.06) 70%, rgb(0 240 255 / 0.16) 94%, transparent);
-  animation: cyber-scan 7s linear infinite;
-}
-@keyframes cyber-scan { to { translate: 0 740px; } }
 [data-theme='cyber'] .popup::after {
   content: '';
   position: absolute;
