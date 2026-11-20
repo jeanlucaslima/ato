@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { logoEdges, logoSvg } from './logo-svg';
+import { dashPattern, logoEdges, logoSvg } from './logo-svg';
 
 describe('logo svg', () => {
   it('draws all 30 edges, the front ones solid and the hidden ones dashed', () => {
@@ -12,6 +12,14 @@ describe('logo svg', () => {
     const svg = logoSvg();
     expect(svg.match(/<line /g)).toHaveLength(30);
     expect(svg.match(/pathLength="100"/g)).toHaveLength(30 - visible);
+  });
+
+  it('fits n dashes exactly into an edge', () => {
+    for (let n = 2; n <= 8; n++) {
+      const [dash, gap] = dashPattern(n).split(' ').map(Number) as [number, number];
+      expect(n * dash + (n - 1) * gap).toBeCloseTo(100, 1);
+    }
+    expect(dashPattern(6)).toBe('7.5 11');
   });
 
   it('treats an option given as undefined as not given', () => {

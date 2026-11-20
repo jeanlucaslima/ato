@@ -22,6 +22,10 @@ export interface LogoOptions {
   color?: string;
   /** Opacity of hidden (dashed) edges. */
   hiddenOpacity?: number;
+  /** Line weight relative to the spinning logo's (1); small renders need more. */
+  weight?: number;
+  /** Dashes per hidden edge; small renders need fewer. */
+  dashes?: number;
 }
 
 const DEFAULTS: Required<LogoOptions> = {
@@ -33,7 +37,19 @@ const DEFAULTS: Required<LogoOptions> = {
   background: { fill: '#151617', stroke: '#184667' },
   color: '#c7c7c7',
   hiddenOpacity: 0.45,
+  weight: 1,
+  dashes: 6,
 };
+
+/**
+ * Dash pattern (in pathLength-100 units) with `n` dashes that exactly fill an
+ * edge, starting and ending on a dash, gaps ~1.47× the dash as on the page.
+ */
+export function dashPattern(n: number): string {
+  const dash = 100 / (n + (n - 1) * 1.4667);
+  const f = (v: number) => +v.toFixed(3);
+  return n <= 1 ? '100 0' : `${f(dash)} ${f(dash * 1.4667)}`;
+}
 
 const rad = (deg: number) => (deg * Math.PI) / 180;
 
@@ -102,10 +118,10 @@ export function logoSvg(options: LogoOptions = {}): string {
   const at = ([x, y]: [number, number]) => [o.size / 2 + (x - cx) * scale, o.size / 2 + (y - cy) * scale].map((n) => +n.toFixed(2));
   // Same weight as the spinning logo: 3.6% of an edge.
   const edgeLen = 1.0514622 * scale;
-  const stroke = +(edgeLen * 0.036).toFixed(2);
+  const stroke = +(edgeLen * 0.036 * o.weight).toFixed(2);
   const line = (e: (typeof edges)[number]) => {
     const [x1, y1] = at(e.p), [x2, y2] = at(e.q);
-    // pathLength 100 + "7.5 11" = 6 dashes that exactly fill each edge, as on the page.
+    // pathLength 100 + dashPattern(n): n dashes that exactly fill each edge, as on the page.
     return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"${e.visible ? '' : ' pathLength="100"'}/>`;
   };
   const bg = o.background;
@@ -114,7 +130,7 @@ export function logoSvg(options: LogoOptions = {}): string {
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${o.size} ${o.size}" width="${o.size}" height="${o.size}">`,
     bg && `  <rect x="1" y="1" width="${o.size - 2}" height="${o.size - 2}" rx="${radius}" fill="${bg.fill}"${bg.stroke ? ` stroke="${bg.stroke}" stroke-width="2"` : ''}/>`,
     `  <g fill="none" stroke="${o.color}" stroke-width="${stroke}" stroke-linecap="round">`,
-    `    <g opacity="${o.hiddenOpacity}" stroke-dasharray="7.5 11">`,
+    `    <g opacity="${o.hiddenOpacity}" stroke-dasharray="${dashPattern(o.dashes)}">`,
     ...edges.filter((e) => !e.visible).map((e) => `      ${line(e)}`),
     `    </g>`,
     ...edges.filter((e) => e.visible).map((e) => `    ${line(e)}`),
