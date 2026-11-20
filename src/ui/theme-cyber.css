@@ -23,7 +23,7 @@
   --amber-fill: #151903;
   --amber-line: #4a520c;
   --danger: #ff2a6d;
-  --danger-ink: #12000a;
+  --danger-ink: #ffffff;
   --danger-line: #6a0f33;
   --danger-fill: #24051a;
   --ok: #39ff88;
@@ -95,7 +95,9 @@
 
 /* Buttons */
 [data-theme='cyber'] .btn--danger:hover:not(:disabled) { box-shadow: 0 0 12px color-mix(in srgb, var(--danger) 45%, transparent); }
-[data-theme='cyber'] .btn--solid-danger { box-shadow: 0 0 14px color-mix(in srgb, var(--danger) 55%, transparent); }
+/* White text needs a deeper fill than the neon pink to read (≈4.8:1); the glow keeps the neon. */
+[data-theme='cyber'] .btn--solid-danger { background: #e0115a; border-color: #e0115a; box-shadow: 0 0 14px color-mix(in srgb, var(--danger) 55%, transparent); }
+[data-theme='cyber'] .btn--solid-danger:hover:not(:disabled) { background: #e0115a; }
 
 /* Now playing */
 [data-theme='cyber'] .eq { filter: drop-shadow(0 0 3px var(--ok)); }
