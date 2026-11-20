@@ -1,7 +1,8 @@
 /* Popup components. Chrome caps action popups at 800×600; the frame is fixed
    (a viewport-relative root collapses the toolbar bubble — see 2.0.1). */
 .popup:focus { outline: none; }
-.popup { width: 400px; height: 600px; display: flex; flex-direction: column; overflow: hidden; position: relative; background: var(--canvas); }
+/* 600px is the tallest popup Chrome allows; width has room to spare (max 800). */
+.popup { width: 440px; height: 600px; display: flex; flex-direction: column; overflow: hidden; position: relative; background: var(--canvas); }
 
 .k { font-family: var(--mono); font-size: 11px; color: var(--key); }
 .k--box { border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; }
