@@ -1,0 +1,64 @@
+/* PROTOTYPE styles for the gallery's "all windows" section only. */
+.gallery-proto { margin-top: 56px; }
+.gallery-proto h2 { margin: 0; font-size: 18px; }
+.proto-fig { width: 400px; }
+.proto-note { margin: 10px 2px 0; font-size: 12px; line-height: 1.5; color: var(--ink-2); }
+.proto-hint { font-size: 11px; color: var(--ink-3); }
+
+/* Three-way segment */
+.seg--three { grid-template-columns: repeat(3, 1fr); }
+.seg--three .seg-thumb { width: calc(33.333% - 1.33px); }
+.seg--at-sites .seg-thumb { transform: translateX(100%); }
+.seg--three.seg--at-windows .seg-thumb { transform: translateX(200%); }
+
+/* Window tile: the window's number, like a favicon */
+.win-tile { width: 22px; height: 22px; flex: none; border-radius: 6px; display: grid; place-items: center; font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--ink-2); border: 1.5px solid var(--line); background: var(--surface); }
+.win-tile.is-focused { border-color: var(--focus); color: var(--focus); }
+.win-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.win-name { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.win-name .cur { font-size: 11px; font-weight: 600; color: var(--focus); }
+.win-sub { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--ink-3); white-space: nowrap; }
+.fav-strip { display: inline-flex; align-items: center; }
+.fav-strip .fav { width: 14px; height: 14px; font-size: 8px; border-radius: 4px; box-shadow: 0 0 0 1.5px var(--canvas); }
+.fav-strip .fav + .fav { margin-left: -3px; }
+.fav-strip .more { margin-left: 4px; font-family: var(--mono); font-size: 10px; }
+
+/* A */
+.win-row { height: 56px; }
+.win-flags { display: flex; align-items: center; gap: 8px; font-size: 11px; }
+.win-flags .dup { font-family: var(--mono); color: var(--amber); }
+.win-flags .audio { color: var(--ok); display: grid; }
+.win.is-open .win-flags { display: none; }
+
+/* B */
+.win-map { padding: 10px; display: flex; flex-direction: column; gap: 10px; }
+.win-card { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding: 10px 12px; }
+.win-card.is-focused { border-color: color-mix(in srgb, var(--focus) 55%, var(--line)); }
+.win-card-head { display: flex; align-items: center; gap: 10px; }
+.win-card-count { font-family: var(--mono); font-size: 18px; font-weight: 600; color: var(--ink-2); }
+.tab-dots { display: flex; flex-wrap: wrap; gap: 4px; margin: 10px 0; }
+.dot { width: 11px; height: 11px; border-radius: 3px; background: var(--c, var(--ink-3)); display: inline-block; }
+.dot.is-asleep { opacity: 0.35; }
+.dot.is-dup { box-shadow: 0 0 0 1.5px var(--canvas), 0 0 0 3px var(--amber); }
+.dot.is-playing { box-shadow: 0 0 0 1.5px var(--canvas), 0 0 0 3px var(--ok); }
+.dot.is-active { box-shadow: 0 0 0 1.5px var(--canvas), 0 0 0 3px var(--focus); }
+.dot.is-pinned { border-radius: 50%; }
+.win-card-foot { display: flex; align-items: center; gap: 10px; font-size: 11.5px; color: var(--ink-3); }
+.win-card-foot .dup { color: var(--amber); }
+.win-card-foot .btn { height: 26px; font-size: 11.5px; }
+.spacer { flex: 1; }
+.win-legend { display: flex; align-items: center; gap: 6px; margin: 2px 2px 6px; font-size: 11px; color: var(--ink-3); }
+.win-legend .dot { margin-left: 8px; background: var(--ink-3); }
+.win-legend .dot:first-child { margin-left: 0; }
+
+/* C */
+.bar--chips { flex-direction: column; align-items: stretch; gap: 8px; }
+.bar-row { display: flex; align-items: center; gap: 8px; }
+.win-chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.win-chip { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px 0 6px; border: 1px solid var(--line); border-radius: 14px; background: transparent; color: var(--ink-2); font-size: 12px; }
+.win-chip:first-child { padding-left: 10px; }
+.win-chip .fav { width: 16px; height: 16px; font-size: 9px; }
+.win-chip .n { font-family: var(--mono); color: var(--ink-3); }
+.win-chip.is-on { border-color: var(--focus); color: var(--ink); background: var(--focus-fill); }
+.win-filter-note { display: flex; align-items: center; gap: 6px; padding: 8px 10px 8px 14px; font-size: 12px; color: var(--ink-2); border-bottom: 1px solid var(--line); }
+.win-filter-note .btn { height: 26px; font-size: 11.5px; }
