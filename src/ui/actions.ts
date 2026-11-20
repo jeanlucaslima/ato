@@ -1,3 +1,4 @@
+import type { DuplicatePolicy } from '../core/duplicates';
 import type { Snapshot, Tab } from '../core/types';
 import type { ItemKey } from './model';
 
@@ -44,7 +45,9 @@ export type Action =
   /** Enter / Space / Delete / U / ←→ on whatever the cursor is on. */
   | { type: 'cursorKey'; key: 'enter' | 'space' | 'delete' | 'unload' | 'left' | 'right' }
   | { type: 'openSettings' }
-  | { type: 'toggleMute'; tabId: number };
+  | { type: 'toggleMute'; tabId: number }
+  /** Cleanup settings changed while the popup is open (options page, another machine). */
+  | { type: 'policy'; policy: DuplicatePolicy };
 
 /** Side effects the runtime performs; results come back as actions. */
 export type Effect =

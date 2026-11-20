@@ -325,5 +325,8 @@ function step(state: AppState, action: Action): Result {
       const [s, effects] = withToast(state, 'Settings open in a new tab');
       return [s, [{ kind: 'openSettings' }, ...effects]];
     }
+    case 'policy':
+      // Review choices stay; protections in the new policy still win over them.
+      return [setUi(state, { policy: action.policy }), []];
   }
 }

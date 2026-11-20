@@ -23,6 +23,14 @@ const activeIds = TABS.filter((t) => t.active).map((t) => t.id);
 const pinnedIds = TABS.filter((t) => t.pinned).map((t) => t.id);
 
 describe('update', () => {
+  it('follows a policy change while open: newly protected tabs are no longer closed', () => {
+    const unprotected = { keep: 'oldest', protectPinned: false, protectGroups: false } as const;
+    const [s] = run(start({ policy: unprotected }), [{ type: 'policy', policy: { ...unprotected, protectPinned: true } }]);
+    expect(s.ui.policy.protectPinned).toBe(true);
+    const [, effects] = run(s, [{ type: 'closeSite', domain: 'mail.proton.me' }]);
+    expect(closeEffects(effects).some((id) => pinnedIds.includes(id))).toBe(false);
+  });
+
   it('expands and collapses a site, moving the cursor onto it', () => {
     const [opened] = run(start({ view: 'sites' }), [{ type: 'toggleSite', domain: 'github.com' }]);
     expect(opened.ui.expanded.has('github.com')).toBe(true);
