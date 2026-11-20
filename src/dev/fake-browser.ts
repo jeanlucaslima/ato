@@ -6,7 +6,8 @@ export class FakeBrowser implements BrowserPort {
   private state: Snapshot;
   private listeners = new Set<() => void>();
 
-  constructor(initial: Snapshot) {
+  /** `onOpenSettings`: what the gear does here (the gallery scrolls to its settings page). */
+  constructor(initial: Snapshot, private onOpenSettings?: () => void) {
     this.state = initial;
   }
 
@@ -56,7 +57,9 @@ export class FakeBrowser implements BrowserPort {
     this.commit(this.state.tabs.map((t) => (ids.has(t.id) ? { ...t, windowId, index: index++, active: index === 1 } : t)));
   }
 
-  async openSettings(): Promise<void> {}
+  async openSettings(): Promise<void> {
+    this.onOpenSettings?.();
+  }
 
   private commit(tabs: Tab[]): void {
     const indexed = new Map<number, number>();
