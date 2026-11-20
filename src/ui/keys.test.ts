@@ -44,7 +44,8 @@ describe('resolveKey', () => {
 
   it('only takes Enter when there is something to act on', () => {
     expect(resolveKey({ key: 'Enter' }, ctx({ hasCursor: false }))).toBeNull();
-    expect(action({ key: 'Enter' }, ctx({ hasCursor: false, reviewOpen: true }))).toEqual({ type: 'cursorKey', key: 'enter' });
+    // Review too: ↵ acts on the row under the cursor; ⌘D closes everything.
+    expect(resolveKey({ key: 'Enter' }, ctx({ hasCursor: false, reviewOpen: true }))).toBeNull();
   });
 
   it('unwinds Escape one layer at a time', () => {

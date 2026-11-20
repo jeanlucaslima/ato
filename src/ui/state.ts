@@ -25,8 +25,8 @@ export interface UiState {
   expanded: ReadonlySet<string>;
   /** Windows view: windows opened to show their tabs, by window id. */
   openWindows: ReadonlySet<number>;
-  /** Review: big duplicate sets the user unfolded, by duplicate key. */
-  openSets: ReadonlySet<string>;
+  /** Review: sets the user opened or folded, by duplicate key (otherwise small sets start open). */
+  setOpen: ReadonlyMap<string, boolean>;
   cursor?: ItemKey;
   /** Browse cursor to restore when search is cleared. */
   searchReturn?: ItemKey;
@@ -57,7 +57,7 @@ export function initialUi(overrides: Partial<UiState> = {}): UiState {
     reviewOpen: false,
     helpOpen: false,
     expanded: new Set(),
-    openSets: new Set(),
+    setOpen: new Map(),
     openWindows: new Set(),
     overrides: new Map(),
     closing: new Set(),

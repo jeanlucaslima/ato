@@ -162,39 +162,30 @@ function reviewSets(plan: PlanSet[], snapshot: Snapshot, ui: UiState, rows: Read
   return plan.map((set): DuplicateSet => {
     const first = set.copies[0]?.tab;
     const copies = set.copies.map(({ tab, decision }): DuplicateCopy => ({
-        tabId: tab.id,
-        row: rows.get(tab.id) ?? toRow(tab, snapshot, new Map(), ui),
-        location: where(tab),
-        locked: protection(tab, ui.policy) !== null,
-        closing: ui.closing.has(tab.id),
-        verdict:
-          decision.action === 'keep'
-            ? { action: 'keep' as const, reason: decision.reason }
-            : { action: 'close' as const, age: formatAge(snapshot.now - tab.lastAccessed) },
+      tabId: tab.id,
+      row: rows.get(tab.id) ?? toRow(tab, snapshot, new Map(), ui),
+      location: where(tab),
+      locked: protection(tab, ui.policy) !== null,
+      closing: ui.closing.has(tab.id),
+      verdict:
+        decision.action === 'keep'
+          ? { action: 'keep' as const, reason: decision.reason }
+          : { action: 'close' as const, age: formatAge(snapshot.now - tab.lastAccessed) },
     }));
     const closers = set.copies.filter((c) => c.decision.action === 'close').map((c) => c.tab);
-    const foldable = set.copies.length > FOLD_ABOVE && closers.length >= 2;
-    const open = ui.openSets.has(set.key);
-    const fold = foldable
-      ? {
-          count: closers.length,
-          open,
-          where: summarizeWindows(closers.map(windowOf)),
-          ages: ageRange(closers.map((t) => snapshot.now - t.lastAccessed)),
-          favIconUrl: closers[0]?.favIconUrl,
-          closing: closers.every((t) => ui.closing.has(t.id)),
-        }
-      : undefined;
+    const keepers = copies.filter((c) => c.verdict.action === 'keep');
     return {
       key: set.key,
       title: first?.title || set.key,
       domain: first ? domainOf(first.url) : '',
+      favIconUrl: set.copies.find((c) => c.tab.favIconUrl)?.tab.favIconUrl,
       address: displayUrl(set.key, []).text,
+      kept: keepers.length === 1 ? keepers[0]!.location : `${keepers.length} kept`,
+      expanded: ui.setOpen.get(set.key) ?? set.copies.length <= OPEN_UP_TO,
       resolving: closers.length > 0 && closers.every((t) => ui.closing.has(t.id)),
       size: set.copies.length,
       toClose: closers.filter((t) => !ui.closing.has(t.id)).length,
-      copies: fold && !open ? copies.filter((c) => c.verdict.action === 'keep') : copies,
-      fold,
+      copies,
     };
   });
 }
@@ -208,19 +199,8 @@ export function extraCopies(snapshot: Snapshot, ui: UiState, among: readonly Tab
   return tabsToClose(planDuplicates(snapshot.tabs, ui.policy)).filter((t) => ids.has(t.id) && !ui.closing.has(t.id));
 }
 
-/** Sets with more copies than this fold their Close copies into one row. */
-const FOLD_ABOVE = 3;
-
-function summarizeWindows(numbers: readonly number[]): string {
-  const distinct = [...new Set(numbers)];
-  return distinct.length === 1 ? `Window ${distinct[0]}` : `${distinct.length} windows`;
-}
-
-function ageRange(elapsed: readonly number[]): string {
-  const newest = formatAge(Math.min(...elapsed));
-  const oldest = formatAge(Math.max(...elapsed));
-  return newest === oldest ? newest : `${newest} – ${oldest}`;
-}
+/** Sets with this many copies or fewer start open in review; bigger ones start folded. */
+const OPEN_UP_TO = 3;
 
 /** URL without `https://` / `http://` / `www.`, with highlight ranges shifted to match. */
 export function displayUrl(url: string, ranges: readonly Range[]): { text: string; ranges: Range[] } {

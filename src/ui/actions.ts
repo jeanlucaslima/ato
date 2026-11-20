@@ -17,8 +17,10 @@ export type Action =
   | { type: 'openReview' }
   | { type: 'closeReview' }
   | { type: 'flip'; tabId: number }
-  /** Review: open or close a big set's fold of Close copies. */
-  | { type: 'toggleFold'; key: string; open?: boolean }
+  /** Review: open or fold a duplicate set. */
+  | { type: 'toggleSet'; key: string; open?: boolean }
+  /** Review: close one set's extra copies (one stays, as planned). */
+  | { type: 'closeSet'; key: string }
   | { type: 'confirmReview' }
   /** Close every duplicate the planner would, without opening review. */
   | { type: 'closeDuplicates' }

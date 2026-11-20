@@ -70,7 +70,7 @@ export const PLAYING_DUPLICATE: Snapshot = {
   tabs: [...TABS, { ...lofi, id: 900, windowId: 2, index: 8, audible: false, lastAccessed: NOW - 3 * 24 * 60 * MIN }],
 };
 
-/** Eighteen copies of one page in a window: review folds the ones it closes into one row. */
+/** Nineteen copies of one page (16 in a window of their own): review starts that set folded. */
 export const MANY_COPIES: Snapshot = {
   ...SNAPSHOT,
   tabs: [
@@ -117,7 +117,11 @@ export const FIXTURES: Fixture[] = [
   },
   { name: 'Windows (tab map, groups)', state: at({ view: 'windows', searchFocused: false, openWindows: new Set([2]), cursor: 'win:2' }, GROUPED) },
   { name: 'Duplicate review', state: at({ reviewOpen: true, searchFocused: false, cursor: `copy:${idOf('Hacker News', 1)}` }) },
-  { name: 'Duplicate review · 19 copies of one page', state: at({ reviewOpen: true, searchFocused: false }, MANY_COPIES) },
+  { name: 'Duplicate review · 19 copies of one page (folded)', state: at({ reviewOpen: true, searchFocused: false, cursor: `set:${HN}` }, MANY_COPIES) },
+  {
+    name: 'Duplicate review · 19 copies, opened',
+    state: at({ reviewOpen: true, searchFocused: false, setOpen: new Map([[HN, true]]), cursor: 'copy:803' }, MANY_COPIES),
+  },
   { name: 'Duplicate review · a copy is playing', state: at({ reviewOpen: true, searchFocused: false }, PLAYING_DUPLICATE) },
   {
     name: 'Select mode',

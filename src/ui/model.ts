@@ -8,7 +8,7 @@
 export type Range = readonly [start: number, end: number];
 
 /** Stable key for whatever the keyboard cursor is on. */
-export type ItemKey = `tab:${number}` | `site:${string}` | `copy:${number}` | `fold:${string}` | `win:${number}` | 'dupes' | `play:${number}`;
+export type ItemKey = `tab:${number}` | `site:${string}` | `copy:${number}` | `set:${string}` | `win:${number}` | 'dupes' | `play:${number}`;
 
 /** Playing tabs that get a row in Now playing; the rest are counted. */
 export const PLAYING_ROWS = 2;
@@ -112,36 +112,26 @@ export interface DuplicateCopy {
   closing: boolean;
 }
 
-/** A big set's Close copies as one row, so a set of 18 doesn't fill the list. */
-export interface CopyFold {
-  /** Copies it stands for. */
-  count: number;
-  open: boolean;
-  /** Where they are, e.g. `"Window 18"` or `"3 windows"`. */
-  where: string;
-  /** Last-used range, e.g. `"now – 5h"`. */
-  ages: string;
-  favIconUrl?: string;
-  /** All of them confirmed and on their way out. */
-  closing: boolean;
-}
-
+/** Copies of one page, drawn like a site: a header row, its copies under it. */
 export interface DuplicateSet {
   /** The duplicate key (the shared URL). */
   key: string;
   title: string;
   domain: string;
+  favIconUrl?: string;
   /** The address every copy shares, without the scheme: what makes them duplicates. */
   address: string;
+  /** Which copy stays, e.g. `"Window 4 · tab 16"`, or how many when several do. */
+  kept: string;
+  /** Showing its copies. Small sets start open, big ones folded. */
+  expanded: boolean;
   /** Every copy it closes is on its way out: the set folds away once they're gone. */
   resolving: boolean;
-  /** Every copy in the set, folded ones included. */
   size: number;
-  /** Copies not yet confirmed that this set would close (folded ones included). */
+  /** Copies not yet confirmed that this set would close. */
   toClose: number;
-  /** Copies shown as rows, in order; a closed fold leaves out the copies it stands for. */
+  /** Every copy, in order (rendered inert while folded). */
   copies: DuplicateCopy[];
-  fold?: CopyFold;
 }
 
 export type SearchMode = 'contains' | 'exact';

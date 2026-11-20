@@ -48,30 +48,49 @@ describe('update', () => {
     expect(done.ui.toast?.undo).toHaveLength(ids.length);
   });
 
-  it('folds a big set into one row that still counts, opens with Space, folds back with ←, and closes with ↵', () => {
+  it('review works like Sites: a big set starts folded, opens with →, ← from a copy folds it, ⌫ closes only its extras', () => {
     const hn = 'https://news.ycombinator.com/';
-    const s0: AppState = { snapshot: MANY_COPIES, ui: initialUi({ reviewOpen: true }) };
+    const total = MANY_COPIES.tabs.filter((t) => t.url === hn).length;
+    const [s0] = run({ snapshot: MANY_COPIES, ui: initialUi() }, [{ type: 'openReview' }]);
     const review = (s: AppState) => {
       const screen = deriveModel(s).screen;
       if (screen.kind !== 'review') throw new Error('expected review');
       return screen.sets.find((set) => set.key === hn)!;
     };
-    const folded = review(s0);
-    const total = MANY_COPIES.tabs.filter((t) => t.url === hn).length;
-    expect(folded.fold).toMatchObject({ count: total - 1, open: false });
-    expect(folded.copies).toHaveLength(1);
-    expect(folded.toClose).toBe(total - 1);
-    expect(navOrder(deriveModel(s0))).toContain(`fold:${hn}`);
+    expect(s0.ui.cursor).toBe(navOrder(deriveModel(s0))[0]); // opens on the first set, not on nothing
+    expect(review(s0)).toMatchObject({ expanded: false, size: total, toClose: total - 1 });
+    expect(navOrder(deriveModel(s0)).some((k) => k.startsWith('copy:') && MANY_COPIES.tabs.find((t) => `copy:${t.id}` === k)?.url === hn)).toBe(false);
 
-    const [opened] = run(setCursor(s0, `fold:${hn}`), [{ type: 'cursorKey', key: 'space' }]);
-    expect(review(opened).copies).toHaveLength(total);
+    const [opened] = run(setCursor(s0, `set:${hn}`), [{ type: 'cursorKey', key: 'right' }, { type: 'moveCursor', delta: 1 }]);
+    expect(review(opened).expanded).toBe(true);
     expect(opened.ui.cursor?.startsWith('copy:')).toBe(true);
+    const [, go] = run(opened, [{ type: 'cursorKey', key: 'enter' }]);
+    expect(go).toContainEqual({ kind: 'activate', tabId: Number(opened.ui.cursor!.slice(5)) });
     const [refolded] = run(opened, [{ type: 'cursorKey', key: 'left' }]);
-    expect(review(refolded).fold?.open).toBe(false);
-    expect(refolded.ui.cursor).toBe(`fold:${hn}`);
+    expect(review(refolded).expanded).toBe(false);
+    expect(refolded.ui.cursor).toBe(`set:${hn}`);
 
-    const [, fx] = run(refolded, [{ type: 'cursorKey', key: 'enter' }]);
-    expect(closeEffects(fx).filter((id) => MANY_COPIES.tabs.find((t) => t.id === id)?.url === hn)).toHaveLength(total - 1);
+    const [after, fx] = run(refolded, [{ type: 'cursorKey', key: 'delete' }]);
+    const closed = closeEffects(fx);
+    expect(closed).toHaveLength(total - 1);
+    expect(closed.every((id) => MANY_COPIES.tabs.find((t) => t.id === id)?.url === hn)).toBe(true);
+    expect(after.ui.cursor).not.toBe(`set:${hn}`);
+    expect(after.ui.cursor?.startsWith('set:')).toBe(true);
+  });
+
+  it('closing one set never closes an active or protected tab and keeps a copy, whatever the user flips', () => {
+    const keys = [...new Set(TABS.map((t) => t.url))].filter((url) => TABS.filter((t) => t.url === url).length > 1);
+    fc.assert(
+      fc.property(fc.array(fc.constantFrom(...TABS.map((t) => t.id)), { maxLength: 20 }), fc.constantFrom(...keys), (flips, key) => {
+        const actions: Action[] = [{ type: 'openReview' }, ...flips.map((tabId): Action => ({ type: 'flip', tabId })), { type: 'closeSet', key }];
+        const closed = closeEffects(run(start(), actions)[1]);
+        const copies = TABS.filter((t) => t.url === key);
+        return (
+          closed.every((id) => !activeIds.includes(id) && !pinnedIds.includes(id) && copies.some((t) => t.id === id)) &&
+          copies.some((t) => !closed.includes(t.id))
+        );
+      }),
+    );
   });
 
   it('↓ visits the duplicates bar and Now playing before the list; ↵ opens review or goes to the tab', () => {

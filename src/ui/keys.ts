@@ -61,7 +61,7 @@ export function resolveKey(e: KeyLike, ctx: KeyContext): KeyCommand | null {
     case 'PageUp':
       return act({ type: 'moveCursor', delta: -PAGE });
     case 'Enter':
-      return ctx.hasCursor || ctx.reviewOpen ? act({ type: 'cursorKey', key: 'enter' }) : null;
+      return ctx.hasCursor ? act({ type: 'cursorKey', key: 'enter' }) : null;
     case 'Escape':
       if (ctx.hasQuery) return act({ type: 'clearQuery' });
       if (ctx.selecting) return act({ type: 'exitSelect' });
@@ -140,14 +140,14 @@ export const KEY_HELP: HelpSection[] = [
       { keys: ['↑', '↓'], label: 'Previous / next (also j k)' },
       { keys: ['PgUp', 'PgDn'], label: `Jump ${PAGE} rows` },
       { keys: ['Home', 'End'], label: 'First / last (also ⌘↑ ⌘↓)' },
-      { keys: ['←', '→'], label: 'Collapse / expand a site or window' },
+      { keys: ['←', '→'], label: 'Fold / unfold a site, window or duplicate set' },
     ],
   },
   {
     title: 'Act',
     entries: [
       { keys: ['↵'], label: 'Go to tab or window · toggle site · open review from the duplicates bar' },
-      { keys: ['⌫'], label: 'Close tab, site or selection' },
+      { keys: ['⌫'], label: 'Close tab, site or selection · a set\'s extra copies in review' },
       { keys: ['U'], label: 'Unload (free memory, keep the tab)' },
       { keys: ['M'], label: 'Move a site, the results or the selection to a new window · merge a window into this one' },
       { keys: ['Space'], label: 'Select · flip keep/close in review' },

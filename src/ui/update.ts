@@ -44,7 +44,7 @@ function listOrder(model: PopupModel): ItemKey[] {
     case 'windows':
       return s.windows.flatMap((w): ItemKey[] => [`win:${w.id}`, ...(w.expanded ? w.runs.flatMap((r) => r.tabs.map((t) => `tab:${t.id}` as const)) : [])]);
     case 'review':
-      return s.sets.flatMap((set): ItemKey[] => [...set.copies.map((c) => `copy:${c.tabId}` as const), ...(set.fold ? [`fold:${set.key}` as const] : [])]);
+      return s.sets.flatMap((set): ItemKey[] => [`set:${set.key}`, ...(set.expanded ? set.copies.map((c) => `copy:${c.tabId}` as const) : [])]);
   }
 }
 
@@ -146,22 +146,25 @@ function onCursorKey(state: AppState, key: Extract<Action, { type: 'cursorKey' }
   const cursor = ui.cursor;
   const model = deriveModel(state);
 
+  // Review works like Sites: a set is a header with its copies under it.
   if (ui.reviewOpen) {
-    if (cursor?.startsWith('fold:')) {
-      const foldKey = cursor.slice(5);
-      if (key === 'enter') return update(state, { type: 'confirmReview' });
-      if (key === 'space') return update(state, { type: 'toggleFold', key: foldKey });
-      if (key === 'right' || key === 'left') return update(state, { type: 'toggleFold', key: foldKey, open: key === 'right' });
+    if (cursor?.startsWith('set:')) {
+      const setKey = cursor.slice(4);
+      if (key === 'enter' || key === 'space') return update(state, { type: 'toggleSet', key: setKey });
+      if (key === 'right' || key === 'left') return update(state, { type: 'toggleSet', key: setKey, open: key === 'right' });
+      if (key === 'delete') return update(state, { type: 'closeSet', key: setKey });
       return [state, []];
     }
     const id = tabIdOf(cursor);
-    // ← on a copy inside an unfolded set folds it back.
+    if (id === null) return [state, []];
     if (key === 'left' && model.screen.kind === 'review') {
-      const set = model.screen.sets.find((s) => s.fold?.open && s.copies.some((c) => `copy:${c.tabId}` === cursor));
-      if (set) return update(state, { type: 'toggleFold', key: set.key, open: false });
+      const set = model.screen.sets.find((s) => s.copies.some((c) => c.tabId === id));
+      if (set) return update(state, { type: 'toggleSet', key: set.key, open: false });
     }
-    if (key === 'enter') return update(state, { type: 'confirmReview' });
-    if ((key === 'space' || key === 'delete') && id !== null) return update(state, { type: 'flip', tabId: id });
+    if (key === 'space') return update(state, { type: 'flip', tabId: id });
+    if (key === 'enter') return update(state, { type: 'activate', tabId: id });
+    if (key === 'delete') return update(state, { type: 'closeTab', tabId: id });
+    if (key === 'unload') return startUnload(state, tabsById(state, [id]));
     return [state, []];
   }
 
@@ -273,17 +276,29 @@ function step(state: AppState, action: Action): Result {
     case 'toggleSite':
       return [setUi(state, { expanded: toggleInSet(ui.expanded, action.domain, action.open), cursor: `site:${action.domain}` }), []];
 
-    case 'openReview':
-      return [setUi(state, { reviewOpen: true, query: '', selection: undefined, overrides: new Map(), cursor: undefined }), []];
+    case 'openReview': {
+      // The cursor starts on the first set, so ↵ unfolds it rather than closing anything.
+      const opened = setUi(state, { reviewOpen: true, query: '', selection: undefined, overrides: new Map(), setOpen: new Map(), cursor: undefined });
+      return [setUi(opened, { cursor: navOrder(deriveModel(opened))[0] }), []];
+    }
     case 'closeReview':
-      return [setUi(state, { reviewOpen: false, overrides: new Map(), openSets: new Set(), cursor: undefined }), []];
-    case 'toggleFold': {
-      const open = action.open ?? !ui.openSets.has(action.key);
-      const next = setUi(state, { openSets: toggleInSet(ui.openSets, action.key, open) });
-      // Opening lands on the first copy it revealed; closing lands on the fold.
-      const set = deriveModel(next).screen;
-      const revealed = open && set.kind === 'review' ? set.sets.find((s) => s.key === action.key)?.copies.find((c) => c.verdict.action === 'close') : undefined;
-      return [setUi(next, { cursor: revealed ? `copy:${revealed.tabId}` : `fold:${action.key}` }), []];
+      return [setUi(state, { reviewOpen: false, overrides: new Map(), setOpen: new Map(), cursor: undefined }), []];
+    case 'toggleSet': {
+      const screen = deriveModel(state).screen;
+      const shown = screen.kind === 'review' ? screen.sets.find((s) => s.key === action.key)?.expanded : undefined;
+      const open = action.open ?? !shown;
+      return [setUi(state, { setOpen: new Map(ui.setOpen).set(action.key, open), cursor: `set:${action.key}` }), []];
+    }
+    case 'closeSet': {
+      if (!state.snapshot) return [state, []];
+      const set = duplicatePlan(state.snapshot, ui).find((s) => s.key === action.key);
+      const tabs = set ? tabsToClose([set]).filter((t) => !ui.closing.has(t.id)) : [];
+      if (tabs.length === 0) return [state, []];
+      // The set folds away: hand the cursor to the next set (or the one before).
+      const heads = navOrder(deriveModel(state)).filter((k) => k.startsWith('set:'));
+      const at = heads.indexOf(`set:${action.key}`);
+      const [s, effects] = startClose(state, tabs, 'duplicate', true);
+      return [setUi(s, { cursor: heads[at + 1] ?? heads[at - 1] }), effects];
     }
     case 'flip': {
       if (!state.snapshot) return [state, []];

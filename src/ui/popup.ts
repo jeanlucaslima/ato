@@ -20,7 +20,7 @@ function hintsFor(m: PopupModel): Hint[] {
     case 'search':
       return [['↑↓', 'move'], ['↵', 'go'], ['⌘⌫', 'close all'], ['Esc', 'clear']];
     case 'review':
-      return m.screen.sets.length === 0 ? [['Esc', 'back']] : [['↵', `close ${closeCount(m.screen.sets)}`], ['Space', 'keep/close'], ['Esc', 'back']];
+      return m.screen.sets.length === 0 ? [['Esc', 'back']] : [['←→', 'fold'], ['Space', 'keep/close'], ['⌫', 'close set'], ['⌘D', `close ${closeCount(m.screen.sets)}`]];
   }
 }
 
@@ -99,7 +99,7 @@ function body(m: PopupModel): Child[] {
         s.sets.length > 0 && reviewPolicy(s),
         list(
           'review',
-          { role: 'listbox', 'aria-label': 'Duplicate copies: Space switches keep and close' },
+          { role: 'tree', 'aria-label': 'Duplicates: Space switches keep and close' },
           reviewSets(s, m.cursor),
           s.sets.length === 0 && reviewDone(),
         ),

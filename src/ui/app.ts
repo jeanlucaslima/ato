@@ -211,8 +211,10 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
         return { type: 'confirmReview' };
       case 'flip':
         return { type: 'flip', tabId: id };
-      case 'toggle-fold':
-        return { type: 'toggleFold', key: el.dataset.set ?? '' };
+      case 'toggle-set':
+        return { type: 'toggleSet', key: el.dataset.set ?? '' };
+      case 'close-set':
+        return { type: 'closeSet', key: el.dataset.set ?? '' };
       case 'view':
         return { type: 'setView', view: el.dataset.view === 'sites' || el.dataset.view === 'windows' ? el.dataset.view : 'tabs' };
       case 'toggle-window':
@@ -331,7 +333,7 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
     // Mouse users get the cursor where they point, so keys act on what they see.
     const el = (event.target as HTMLElement).closest<HTMLElement>('[data-key]');
     const key = el?.dataset.key as ItemKey | undefined;
-    if (key && key !== state.ui.cursor && /^((tab|site|copy|fold|win|play):|dupes$)/.test(key)) dispatch({ type: 'setCursor', key });
+    if (key && key !== state.ui.cursor && /^((tab|site|copy|set|win|play):|dupes$)/.test(key)) dispatch({ type: 'setCursor', key });
   };
 
   container.addEventListener('click', onClick);
