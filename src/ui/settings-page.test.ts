@@ -49,6 +49,15 @@ describe('settings page', () => {
     expect(off.querySelector<HTMLInputElement>('input[name="badgeColor"]')!.disabled).toBe(true);
   });
 
+  it('shows whether ATO is pinned, and hides the badge preview when it is not', () => {
+    const on = renderSettings({ settings: DEFAULT_SETTINGS, version: '3', saved: false, pinned: true });
+    expect(on.querySelector('.pin-status')!.textContent).toBe('Pinned');
+    expect(on.querySelector('.tb-badge')).not.toBeNull();
+    const off = renderSettings({ settings: DEFAULT_SETTINGS, version: '3', saved: false, pinned: false });
+    expect(off.querySelector('.pin-status')!.textContent).toBe('Not pinned');
+    expect(off.querySelector('.tb-badge')).toBeNull();
+  });
+
   it('follows changes saved elsewhere', async () => {
     const store = new MemorySettings();
     const container = document.createElement('div');

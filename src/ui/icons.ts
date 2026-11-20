@@ -27,6 +27,11 @@ const ICONS = {
     strokeWidth: 1.8,
     body: '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="m16 9.5 5 5m0-5-5 5"/>',
   },
+  puzzle: {
+    viewBox: '0 0 24 24',
+    strokeWidth: 1.7,
+    body: '<path d="M9 4.5a2 2 0 0 1 4 0V6h4v4h1.5a2 2 0 0 1 0 4H17v4.5H5V14h1.5a2 2 0 0 0 0-4H5V6h4z"/>',
+  },
   pin: { viewBox: '0 0 24 24', strokeWidth: 1.8, body: '<path d="M9 3h6l-1 6 4 3v2H6v-2l4-3zM12 14v7"/>' },
   caretRight: { viewBox: '0 0 12 12', fill: true, body: '<path d="M4 2l4 4-4 4z"/>' },
   caretDown: { viewBox: '0 0 12 12', fill: true, body: '<path d="M2 4h8l-4 4z"/>' },

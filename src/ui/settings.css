@@ -94,6 +94,11 @@
 @starting-style { .tb-badge { scale: 0.6; opacity: 0; } }
 .tb-badge { transition: background-color 150ms, scale 160ms cubic-bezier(0.2, 0.7, 0.2, 1), opacity 160ms; }
 
+.tb-slot--menu { color: var(--ink-2); }
+.tb-icon--menu { display: grid; place-items: center; background: none; color: var(--ink-3); }
+.pin-status { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 14px; border: 1px solid var(--amber-line); background: var(--amber-fill); color: var(--amber); font-size: 12px; font-weight: 700; }
+.pin-status.is-pinned { border-color: var(--ok-line); background: var(--ok-fill); color: var(--ok); }
+
 .swatches { flex: none; display: flex; gap: 6px; }
 .swatch { position: relative; width: 22px; height: 22px; cursor: pointer; }
 .swatch input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }

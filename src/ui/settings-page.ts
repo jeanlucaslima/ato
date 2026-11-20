@@ -7,6 +7,7 @@ import { BADGE_COLORS, CHOICES, readSettings, type BadgeColor, type ChoiceKey, t
 import { logoSvg } from './logo-svg';
 import { THEME_INFO } from './theme';
 import { cls, h } from './dom';
+import { icon } from './icons';
 import { attachSpin, icosahedron } from './icosahedron';
 import { morph } from './morph';
 import type { SettingsStore } from './settings-store';
@@ -14,6 +15,8 @@ import type { SettingsStore } from './settings-store';
 export interface SettingsView {
   settings: Settings;
   version: string;
+  /** Whether ATO's icon is pinned to the toolbar; `null` when unknown. Only the user can pin it. */
+  pinned?: boolean | null;
   /** A change has been saved since the page opened. */
   saved: boolean;
 }
@@ -113,20 +116,52 @@ const SAMPLE: Record<Settings['badge'], string> = { duplicates: '4', all: '128',
 
 const BADGE_MARK = logoSvg({ size: 18, spin: 100, pitch: -18, background: null, color: 'currentColor', weight: 2.6, dashes: 2, hiddenOpacity: 0.5 });
 
-function badgePreview(s: Settings): HTMLElement {
+/**
+ * Pinning is the user's call: Chrome lets an extension see whether it's pinned
+ * but not pin itself. So this shows the state and how to change it.
+ */
+function pinRow(pinned: boolean | null): HTMLElement {
+  return h(
+    'div',
+    { class: 'setting' },
+    text(
+      'setting-pin',
+      'Keep ATO on the toolbar',
+      pinned
+        ? 'Pinned: ATO and its badge stay in view. Unpin it from the puzzle-piece menu.'
+        : 'Only you can pin it: open the puzzle-piece menu next to the address bar and click the pin beside ATO. The badge only shows while pinned.',
+    ),
+    h('span', { class: cls('pin-status', pinned && 'is-pinned') }, icon(pinned ? 'pin' : 'puzzle', 14), pinned === null ? 'Unknown' : pinned ? 'Pinned' : 'Not pinned'),
+  );
+}
+
+function badgePreview(s: Settings, pinned: boolean | null): HTMLElement {
   const mark = h('span', { class: 'tb-icon tb-icon--ato' });
   mark.innerHTML = BADGE_MARK; // generated, trusted markup
+  const hidden = pinned === false;
   return h(
     'div',
     { class: 'setting badge-preview' },
-    text('badge-preview-title', 'Preview', s.badge === 'off' ? 'No number on the icon.' : s.badge === 'duplicates' ? 'Counts duplicate tabs; hidden when there are none.' : 'Counts every open tab.'),
+    text(
+      'badge-preview-title',
+      'Preview',
+      hidden
+        ? 'Unpinned: ATO waits in the puzzle-piece menu, so no badge shows.'
+        : s.badge === 'off'
+          ? 'No number on the icon.'
+          : s.badge === 'duplicates'
+            ? 'Counts duplicate tabs; hidden when there are none.'
+            : 'Counts every open tab.',
+    ),
     h(
       'div',
       { class: 'toolbar-mock', 'aria-hidden': 'true' },
       h('span', { class: 'tb-icon' }),
       h('span', { class: 'tb-icon' }),
-      h('span', { class: 'tb-slot' }, mark, s.badge !== 'off' && h('span', { class: 'tb-badge', style: `background:${s.badgeColor}` }, SAMPLE[s.badge])),
-      h('span', { class: 'tb-icon' }),
+      hidden
+        ? h('span', { class: 'tb-slot tb-slot--menu' }, icon('puzzle', 16))
+        : h('span', { class: 'tb-slot' }, mark, s.badge !== 'off' && h('span', { class: 'tb-badge', style: `background:${s.badgeColor}` }, SAMPLE[s.badge])),
+      !hidden && h('span', { class: 'tb-icon tb-icon--menu' }, icon('puzzle', 14)),
     ),
   );
 }
@@ -153,7 +188,7 @@ function swatches(s: Settings): HTMLElement {
 }
 
 /** Render the whole settings page. Pure: same view, same DOM. */
-export function renderSettings({ settings: s, version, saved }: SettingsView): HTMLElement {
+export function renderSettings({ settings: s, version, saved, pinned = null }: SettingsView): HTMLElement {
   return h(
     'div',
     { class: 'settings' },
@@ -180,9 +215,10 @@ export function renderSettings({ settings: s, version, saved }: SettingsView): H
     ),
     themePicker(s),
     section(
-      'Toolbar badge',
+      'Toolbar',
       'Preview: the number on the toolbar icon arrives with the background worker.',
-      badgePreview(s),
+      pinRow(pinned),
+      badgePreview(s, pinned),
       choice(s, 'badge', 'Shows', { duplicates: 'Duplicates', all: 'All tabs', off: 'Off' }),
       swatches(s),
     ),
@@ -202,6 +238,8 @@ export function renderSettings({ settings: s, version, saved }: SettingsView): H
 }
 
 export interface SettingsPage {
+  /** Tell the page whether ATO is pinned (it changes outside the page). */
+  setPinned(pinned: boolean | null): void;
   destroy(): void;
 }
 
@@ -214,10 +252,11 @@ export interface SettingsOptions {
 export async function mountSettings(container: HTMLElement, store: SettingsStore, options: SettingsOptions): Promise<SettingsPage> {
   let settings = await store.load();
   let saved = false;
+  let pinned: boolean | null = null;
   let root: HTMLElement | null = null;
 
   function render(): void {
-    const next = renderSettings({ settings, version: options.version, saved });
+    const next = renderSettings({ settings, version: options.version, saved, pinned });
     if (root) morph(root, next);
     else container.replaceChildren((root = next));
   }
@@ -243,6 +282,10 @@ export async function mountSettings(container: HTMLElement, store: SettingsStore
   const stopSpin = logo ? attachSpin(logo) : () => {};
 
   return {
+    setPinned(next) {
+      pinned = next;
+      render();
+    },
     destroy() {
       stopSpin();
       unsubscribe();
