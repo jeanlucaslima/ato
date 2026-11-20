@@ -10,6 +10,7 @@ export const THEME_INFO: Record<Settings['theme'], ThemeInfo> = {
   system: { name: 'System', tagline: 'Paper by day, Graphite by night' },
   graphite: { name: 'Graphite', tagline: 'Calm, cool dark' },
   paper: { name: 'Paper', tagline: 'Quiet, warm light' },
+  cyber: { name: 'Cyber', tagline: 'Neon grid, everything glows' },
   nebula: { name: 'Nebula', tagline: 'Violet deep space' },
   ember: { name: 'Ember', tagline: 'Campfire, low and warm' },
   neon: { name: 'Neon', tagline: 'Arcade after midnight' },

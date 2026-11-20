@@ -6,7 +6,7 @@
 import type { DuplicatePolicy } from './duplicates';
 
 /** Named colour themes. `system` (a setting, not a theme) follows the OS: Paper or Graphite. */
-export const THEMES = ['graphite', 'paper', 'nebula', 'ember', 'neon', 'lagoon', 'sakura', 'dune'] as const;
+export const THEMES = ['graphite', 'paper', 'cyber', 'nebula', 'ember', 'neon', 'lagoon', 'sakura', 'dune'] as const;
 export type ThemeId = (typeof THEMES)[number];
 
 /** Badge background colours on offer. */

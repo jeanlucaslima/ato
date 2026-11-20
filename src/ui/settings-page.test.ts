@@ -36,7 +36,7 @@ describe('settings page', () => {
   it('offers every theme, each card previewed in its own colours', () => {
     const page = renderSettings({ settings: DEFAULT_SETTINGS, version: '3', saved: false });
     const cards = page.querySelectorAll('.theme-card');
-    expect(cards).toHaveLength(9);
+    expect(cards).toHaveLength(10);
     expect(page.querySelector('.theme-card input[value="ember"]')!.closest('.theme-card')!.querySelector('[data-theme="ember"]')).not.toBeNull();
   });
 
