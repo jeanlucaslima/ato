@@ -3,10 +3,29 @@ import type { Tab } from './types';
 
 export type Range = readonly [start: number, end: number];
 
+export type SearchField = 'url' | 'title';
+
 export interface ParsedQuery {
   mode: 'contains' | 'exact';
-  field: 'all' | 'title' | 'url';
+  field: 'all' | SearchField;
   terms: string[];
+}
+
+const FIELD_PREFIX = /^\s*(url|title):\s*/i;
+
+/**
+ * Split a leading `url:` / `title:` off a query; the popup shows it as a chip
+ * and the rest as the search text. Only the first prefix counts.
+ */
+export function splitField(raw: string): { field: SearchField | null; rest: string } {
+  const prefix = FIELD_PREFIX.exec(raw);
+  if (!prefix?.[1]) return { field: null, rest: raw };
+  return { field: prefix[1].toLowerCase() as SearchField, rest: raw.slice(prefix[0].length) };
+}
+
+/** Inverse of `splitField`: the query a chip plus search text stand for. */
+export function joinField(field: SearchField | null, rest: string): string {
+  return field ? `${field}:${rest}` : rest;
 }
 
 /**
@@ -14,13 +33,9 @@ export interface ParsedQuery {
  * anything else → whitespace-separated terms that must all appear.
  */
 export function parseQuery(raw: string): ParsedQuery {
-  let text = raw.trim();
-  let field: ParsedQuery['field'] = 'all';
-  const prefix = /^(url|title):\s*/i.exec(text);
-  if (prefix?.[1]) {
-    field = prefix[1].toLowerCase() as 'url' | 'title';
-    text = text.slice(prefix[0].length);
-  }
+  const split = splitField(raw);
+  const field: ParsedQuery['field'] = split.field ?? 'all';
+  const text = split.rest.trim();
   const quoted = /^"(.*)"?$/.exec(text);
   if (quoted && text.length > 1) {
     const phrase = (quoted[1] ?? '').replace(/"$/, '').toLowerCase();

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
-import { findRanges, parseQuery, searchTabs } from './search';
+import { findRanges, joinField, parseQuery, searchTabs, splitField } from './search';
 import type { Tab } from './types';
 
 const tab = (id: number, title: string, url: string): Tab => ({
@@ -26,6 +26,37 @@ describe('parseQuery', () => {
     ['title:"a b"', { mode: 'exact', field: 'title', terms: ['a b'] }],
     ['   ', { mode: 'contains', field: 'all', terms: [] }],
   ])('%s', (raw, expected) => expect(parseQuery(raw)).toEqual(expected));
+});
+
+describe('splitField', () => {
+  it.each([
+    ['url:', { field: 'url', rest: '' }],
+    ['URL: github', { field: 'url', rest: 'github' }],
+    ['  title:"a b"', { field: 'title', rest: '"a b"' }],
+    ['url:title:x', { field: 'url', rest: 'title:x' }],
+    ['github url:', { field: null, rest: 'github url:' }],
+    ['urls: x', { field: null, rest: 'urls: x' }],
+  ])('%s', (raw, expected) => expect(splitField(raw)).toEqual(expected));
+
+  it('chip + text always search for what was typed', () => {
+    const typed = fc.oneof(fc.string(), fc.tuple(fc.constantFrom('url:', 'title:', 'URL: ', ' title:  '), fc.string()).map(([p, s]) => p + s));
+    fc.assert(
+      fc.property(typed, (raw) => {
+        const { field, rest } = splitField(raw);
+        expect(parseQuery(joinField(field, rest))).toEqual(parseQuery(raw));
+      }),
+    );
+  });
+
+  it('splits back what was joined', () => {
+    const rest = fc.string().filter((s) => !/^\s/.test(s));
+    fc.assert(
+      fc.property(fc.constantFrom('url' as const, 'title' as const, null), rest, (field, text) => {
+        const back = splitField(joinField(field, text));
+        return field === null ? back.rest === joinField(field, text) : back.field === field && back.rest === text;
+      }),
+    );
+  });
 });
 
 describe('searchTabs', () => {
