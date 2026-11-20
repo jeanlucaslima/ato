@@ -176,7 +176,15 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
       case 'toggle-fold':
         return { type: 'toggleFold', key: el.dataset.set ?? '' };
       case 'view':
-        return { type: 'setView', view: el.dataset.view === 'sites' ? 'sites' : 'tabs' };
+        return { type: 'setView', view: el.dataset.view === 'sites' || el.dataset.view === 'windows' ? el.dataset.view : 'tabs' };
+      case 'toggle-window':
+        return { type: 'toggleWindow', windowId: Number(el.dataset.window) };
+      case 'focus-window':
+        return { type: 'focusWindow', windowId: Number(el.dataset.window) };
+      case 'merge-window':
+        return { type: 'mergeWindow', windowId: Number(el.dataset.window) };
+      case 'close-window':
+        return { type: 'closeWindow', windowId: Number(el.dataset.window) };
       case 'cycle-sort':
         return { type: 'cycleSort' };
       case 'cycle-scope':
@@ -285,7 +293,7 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
     // Mouse users get the cursor where they point, so keys act on what they see.
     const el = (event.target as HTMLElement).closest<HTMLElement>('[data-key]');
     const key = el?.dataset.key as ItemKey | undefined;
-    if (key && key !== state.ui.cursor && /^(tab|site|copy|fold):/.test(key)) dispatch({ type: 'setCursor', key });
+    if (key && key !== state.ui.cursor && /^(tab|site|copy|fold|win):/.test(key)) dispatch({ type: 'setCursor', key });
   };
 
   container.addEventListener('click', onClick);

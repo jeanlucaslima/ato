@@ -3,7 +3,7 @@ import { applyOverrides, planDuplicates, protection, tabsToClose, type Duplicate
 import { parseQuery, searchTabs, splitField } from '../core/search';
 import { countCopies, domainOf, duplicateKey, formatAge, pathOf } from '../core/tabs';
 import type { Snapshot, Tab } from '../core/types';
-import { loadingModel, type DuplicateCopy, type DuplicateSet, type PopupModel, type Range, type SiteGroup, type TabRow } from './model';
+import { loadingModel, type DuplicateCopy, type DuplicateSet, type GroupLabel, type WindowGroup, type WindowRun, type PopupModel, type Range, type SiteGroup, type TabRow } from './model';
 import type { AppState, UiState } from './state';
 
 /** Tabs in the popup's scope. Search ignores scope and always sees every window. */
@@ -99,6 +99,60 @@ function siteGroups(tabs: Tab[], rows: Map<number, TabRow>, ui: UiState, snapsho
   }));
 }
 
+/**
+ * Every window (the Windows view ignores scope), each with its tab strip cut
+ * into runs: a tab group, or the ungrouped tabs between groups.
+ */
+function windowGroups(snapshot: Snapshot, ui: UiState): WindowGroup[] {
+  const copies = countCopies(snapshot.tabs);
+  const extras = new Set(tabsToClose(planDuplicates(snapshot.tabs, ui.policy)).map((t) => t.id));
+  const groups = new Map((snapshot.groups ?? []).map((g): [number, GroupLabel] => [g.id, { id: g.id, title: g.title, color: g.color, collapsed: g.collapsed }]));
+  const byWindow = new Map<number, Tab[]>();
+  for (const t of snapshot.tabs) {
+    const list = byWindow.get(t.windowId);
+    if (list) list.push(t);
+    else byWindow.set(t.windowId, [t]);
+  }
+  return [...byWindow.keys()]
+    .sort((a, b) => a - b)
+    .map((id, i): WindowGroup => {
+      const tabs = byWindow.get(id)!.sort((a, b) => a.index - b.index);
+      const runs: WindowRun[] = [];
+      for (const t of tabs) {
+        const group = groups.get(t.groupId);
+        const row = toRow(t, snapshot, copies, ui);
+        const dot = {
+          id: t.id,
+          domain: row.domain,
+          title: row.title,
+          current: t.active,
+          duplicate: extras.has(t.id),
+          playing: t.audible,
+          unloaded: t.discarded,
+          pinned: t.pinned,
+        };
+        const last = runs[runs.length - 1];
+        if (last && last.group?.id === group?.id) {
+          last.dots.push(dot);
+          last.tabs.push(row);
+        } else runs.push({ group, dots: [dot], tabs: [row] });
+      }
+      return {
+        id,
+        n: i + 1,
+        current: id === snapshot.focusedWindowId,
+        tabCount: tabs.length,
+        siteCount: new Set(tabs.map((t) => domainOf(t.url) || 'Other')).size,
+        groupCount: runs.filter((r) => r.group).length,
+        duplicates: tabs.filter((t) => extras.has(t.id)).length,
+        playing: tabs.some((t) => t.audible),
+        lastUsed: formatAge(snapshot.now - Math.max(...tabs.map((t) => t.lastAccessed))),
+        expanded: ui.openWindows.has(id),
+        runs,
+      };
+    });
+}
+
 function reviewSets(plan: PlanSet[], snapshot: Snapshot, ui: UiState, rows: ReadonlyMap<number, TabRow>): DuplicateSet[] {
   const windowOf = windowNumbers(snapshot);
   const where = (t: Tab) => `Window ${windowOf(t)} · tab ${t.index + 1}`;
@@ -185,6 +239,7 @@ export function deriveModel({ snapshot, ui }: AppState): PopupModel {
     tabCount: tabs.length,
     siteCount: new Set(tabs.map((t) => domainOf(t.url) || 'Other')).size,
     windowCount: new Set(tabs.map((t) => t.windowId)).size,
+    windowTotal: new Set(snapshot.tabs.map((t) => t.windowId)).size,
     duplicates: { extra: tabsToClose(planDuplicates(tabs, ui.policy)).filter((t) => !ui.closing.has(t.id)).length, sets: plan.length },
     scope: ui.scope,
     searchFocused: ui.searchFocused,
@@ -221,6 +276,10 @@ export function deriveModel({ snapshot, ui }: AppState): PopupModel {
         }),
       },
     };
+  }
+
+  if (ui.view === 'windows') {
+    return { ...base, screen: { kind: 'windows', windows: windowGroups(snapshot, ui) } };
   }
 
   if (ui.view === 'sites') {

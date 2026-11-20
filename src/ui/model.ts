@@ -8,7 +8,7 @@
 export type Range = readonly [start: number, end: number];
 
 /** Stable key for whatever the keyboard cursor is on. */
-export type ItemKey = `tab:${number}` | `site:${string}` | `copy:${number}` | `fold:${string}`;
+export type ItemKey = `tab:${number}` | `site:${string}` | `copy:${number}` | `fold:${string}` | `win:${number}`;
 
 export interface TabRow {
   id: number;
@@ -38,6 +38,54 @@ export interface SiteGroup {
   favIconUrl?: string;
   tabs: TabRow[];
   expanded: boolean;
+}
+
+import type { GroupColor } from '../core/types';
+
+/** One tab in a window's tab map: a dot, coloured by its site. */
+export interface TabDot {
+  id: number;
+  domain: string;
+  title: string;
+  current?: boolean;
+  /** An extra copy: what duplicate cleanup would close. */
+  duplicate?: boolean;
+  playing?: boolean;
+  unloaded?: boolean;
+  pinned?: boolean;
+}
+
+export interface GroupLabel {
+  id: number;
+  title: string;
+  color: GroupColor;
+  collapsed: boolean;
+}
+
+/** A stretch of a window's tab strip: one tab group, or the ungrouped tabs between groups. */
+export interface WindowRun {
+  group?: GroupLabel;
+  dots: TabDot[];
+  tabs: TabRow[];
+}
+
+export interface WindowGroup {
+  id: number;
+  /** "Window 1, 2…" in id order, as people count them. */
+  n: number;
+  /** The window the popup was opened from. */
+  current: boolean;
+  tabCount: number;
+  siteCount: number;
+  groupCount: number;
+  /** Extra copies in this window: what cleanup would close here. */
+  duplicates: number;
+  playing: boolean;
+  /** Since its most recently used tab. */
+  lastUsed: string;
+  expanded: boolean;
+  /** The tab strip in order. */
+  runs: WindowRun[];
 }
 
 import type { KeepReason } from '../core/duplicates';
@@ -104,6 +152,7 @@ export type Screen =
   | { kind: 'loading' }
   | { kind: 'tabs'; sort: TabSort; rows: TabRow[] }
   | { kind: 'sites'; sort: SiteSort; groups: SiteGroup[] }
+  | { kind: 'windows'; windows: WindowGroup[] }
   | {
       kind: 'search';
       query: string;
@@ -129,6 +178,8 @@ export interface PopupModel {
   tabCount: number;
   siteCount: number;
   windowCount: number;
+  /** Every window, whatever the scope (the Windows view shows them all). */
+  windowTotal: number;
   duplicates: DuplicateSummary;
   scope: Scope;
   screen: Screen;
@@ -147,6 +198,7 @@ export function loadingModel(): PopupModel {
     tabCount: 0,
     siteCount: 0,
     windowCount: 0,
+    windowTotal: 0,
     duplicates: { extra: 0, sets: 0 },
     scope: 'all',
     screen: { kind: 'loading' },

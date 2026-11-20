@@ -10,7 +10,7 @@ export type Action =
   /** Remove the url:/title: chip, keeping the typed text. */
   | { type: 'clearField' }
   | { type: 'searchFocus'; focused: boolean }
-  | { type: 'setView'; view: 'tabs' | 'sites' }
+  | { type: 'setView'; view: 'tabs' | 'sites' | 'windows' }
   | { type: 'cycleSort' }
   | { type: 'cycleScope' }
   | { type: 'toggleSite'; domain: string; open?: boolean }
@@ -26,6 +26,13 @@ export type Action =
   | { type: 'closeTab'; tabId: number }
   | { type: 'closeSite'; domain: string }
   | { type: 'unloadSite'; domain: string }
+  /** Windows view: open or close a window's tab list. */
+  | { type: 'toggleWindow'; windowId: number; open?: boolean }
+  | { type: 'focusWindow'; windowId: number }
+  /** Move a window's tabs into the current window. */
+  | { type: 'mergeWindow'; windowId: number }
+  | { type: 'closeWindow'; windowId: number }
+  | { type: 'unloadWindow'; windowId: number }
   /** Gather a site's tabs (or the search results) into a new window. */
   | { type: 'moveSite'; domain: string }
   | { type: 'moveResults' }

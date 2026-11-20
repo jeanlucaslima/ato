@@ -5,6 +5,7 @@ import { plural } from './format';
 import type { PopupModel } from './model';
 import { closeCount, reviewDone, reviewHeader, reviewPolicy, reviewSets } from './review';
 import { siteGroup, tabRow } from './rows';
+import { windowGroup } from './windows';
 
 function hintsFor(m: PopupModel): Hint[] {
   switch (m.screen.kind) {
@@ -13,7 +14,9 @@ function hintsFor(m: PopupModel): Hint[] {
     case 'tabs':
       return [['↑↓', 'move'], ['↵', 'go'], ['⌫', 'close'], ['U', 'unload'], ['X', 'select']];
     case 'sites':
-      return [['←→', 'fold'], ['⌫', 'close site'], ['U', 'unload site'], ['S', 'tabs']];
+      return [['←→', 'fold'], ['⌫', 'close site'], ['U', 'unload site'], ['S', 'windows']];
+    case 'windows':
+      return [['←→', 'fold'], ['↵', 'focus'], ['M', 'merge'], ['⌫', 'close'], ['S', 'tabs']];
     case 'search':
       return [['↑↓', 'move'], ['↵', 'go'], ['⌘⌫', 'close all'], ['Esc', 'clear']];
     case 'review':
@@ -48,6 +51,8 @@ function body(m: PopupModel): Child[] {
       ];
     case 'sites':
       return [viewBar(m), list('sites', { role: 'tree', 'aria-label': 'Sites', 'aria-multiselectable': sel ? 'true' : 'false' }, s.groups.map((g) => siteGroup(g, m.cursor, sel)))];
+    case 'windows':
+      return [viewBar(m), list('windows', { role: 'tree', 'aria-label': 'Windows', 'aria-multiselectable': sel ? 'true' : 'false' }, s.windows.map((w) => windowGroup(w, m.cursor, sel)))];
     case 'search': {
       const n = s.results.length;
       return [
@@ -103,7 +108,7 @@ export function renderPopup(m: PopupModel): HTMLElement {
     brandBar(),
     m.screen.kind === 'review' ? reviewHeader(m.screen) : searchBar(m),
     kind !== 'review' && kind !== 'search' && duplicateStrip(m),
-    (kind === 'tabs' || kind === 'sites') && nowPlaying(m.playing),
+    (kind === 'tabs' || kind === 'sites' || kind === 'windows') && nowPlaying(m.playing),
     body(m),
     m.toast && toast(m.toast),
     m.helpOpen && helpPanel(),

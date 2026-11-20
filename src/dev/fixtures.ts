@@ -79,6 +79,27 @@ export const MANY_COPIES: Snapshot = {
   ],
 };
 
+/**
+ * Three windows with tab groups (one collapsed), for the Windows view. Groups are
+ * contiguous runs in the strip, as in Chrome.
+ */
+export const GROUPED: Snapshot = (() => {
+  const runs: Record<number, [from: number, to: number, groupId: number][]> = { 1: [[5, 6, 11], [9, 11, 12]], 2: [[2, 3, 21], [4, 4, 22]] };
+  return {
+    ...MANY_COPIES,
+    tabs: MANY_COPIES.tabs.map((t) => {
+      const run = runs[t.windowId]?.find(([a, b]) => t.index >= a && t.index <= b);
+      return run ? { ...t, groupId: run[2] } : t;
+    }),
+    groups: [
+      { id: 11, windowId: 1, title: 'ATO v3', color: 'blue', collapsed: false },
+      { id: 12, windowId: 1, title: 'Read later', color: 'purple', collapsed: true },
+      { id: 21, windowId: 2, title: 'Reading', color: 'orange', collapsed: false },
+      { id: 22, windowId: 2, title: '', color: 'green', collapsed: false },
+    ],
+  };
+})();
+
 export interface Fixture {
   name: string;
   state: AppState;
@@ -93,6 +114,7 @@ export const FIXTURES: Fixture[] = [
     name: 'Sites',
     state: at({ view: 'sites', searchFocused: false, expanded: new Set(['news.ycombinator.com']), cursor: 'site:news.ycombinator.com' }),
   },
+  { name: 'Windows (tab map, groups)', state: at({ view: 'windows', searchFocused: false, openWindows: new Set([2]), cursor: 'win:2' }, GROUPED) },
   { name: 'Duplicate review', state: at({ reviewOpen: true, searchFocused: false, cursor: `copy:${idOf('Hacker News', 1)}` }) },
   { name: 'Duplicate review · 19 copies of one page', state: at({ reviewOpen: true, searchFocused: false }, MANY_COPIES) },
   { name: 'Duplicate review · a copy is playing', state: at({ reviewOpen: true, searchFocused: false }, PLAYING_DUPLICATE) },

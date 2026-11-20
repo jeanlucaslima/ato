@@ -140,16 +140,16 @@ export const KEY_HELP: HelpSection[] = [
       { keys: ['↑', '↓'], label: 'Previous / next (also j k)' },
       { keys: ['PgUp', 'PgDn'], label: `Jump ${PAGE} rows` },
       { keys: ['Home', 'End'], label: 'First / last (also ⌘↑ ⌘↓)' },
-      { keys: ['←', '→'], label: 'Collapse / expand a site' },
+      { keys: ['←', '→'], label: 'Collapse / expand a site or window' },
     ],
   },
   {
     title: 'Act',
     entries: [
-      { keys: ['↵'], label: 'Go to tab · toggle site · confirm review' },
+      { keys: ['↵'], label: 'Go to tab or window · toggle site · confirm review' },
       { keys: ['⌫'], label: 'Close tab, site or selection' },
       { keys: ['U'], label: 'Unload (free memory, keep the tab)' },
-      { keys: ['M'], label: 'Move a site, the results or the selection to a new window' },
+      { keys: ['M'], label: 'Move a site, the results or the selection to a new window · merge a window into this one' },
       { keys: ['Space'], label: 'Select · flip keep/close in review' },
       { keys: ['⌘Z'], label: 'Undo the last close' },
     ],
@@ -158,7 +158,7 @@ export const KEY_HELP: HelpSection[] = [
     title: 'Views',
     entries: [
       { keys: ['/'], label: 'Search (or just start typing) · start with url:, title: or dupe: to narrow' },
-      { keys: ['S'], label: 'Switch Tabs / Sites' },
+      { keys: ['S'], label: 'Switch Tabs / Sites / Windows' },
       { keys: ['D', '⌘D'], label: 'Review duplicates (⌘D also while typing) · ⌘D again closes them' },
       { keys: ['X'], label: 'Select mode (⇧↑↓ to extend, ⌘A all)' },
       { keys: ['Esc'], label: 'Clear search · leave mode · back' },

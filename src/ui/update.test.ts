@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
-import { MANY_COPIES, SNAPSHOT, TABS } from '../dev/fixtures';
+import { GROUPED, MANY_COPIES, SNAPSHOT, TABS } from '../dev/fixtures';
 import type { Action, Effect } from './actions';
 import { deriveModel } from './derive';
 import { initialUi, type AppState } from './state';
@@ -119,6 +119,44 @@ describe('update', () => {
     expect(s.ui.toast?.message).toBe('Already in a window of their own');
   });
 
+  it('Windows view: every window as a row; groups cut the strip into runs; ← → fold, ↵ focuses, M merges, ⌫ closes', () => {
+    const s0: AppState = { snapshot: GROUPED, ui: initialUi({ view: 'windows', scope: 'current' }) };
+    const screen = deriveModel(s0).screen;
+    if (screen.kind !== 'windows') throw new Error('expected windows');
+    expect(screen.windows.map((w) => [w.n, w.tabCount, w.current])).toEqual([[1, 12, true], [2, 8, false], [3, 16, false]]);
+    const w1 = screen.windows[0]!;
+    expect(w1.runs.map((r) => [r.group?.title ?? null, r.tabs.length])).toEqual([[null, 5], ['ATO v3', 2], [null, 2], ['Read later', 3]]);
+    expect(w1.runs.flatMap((r) => r.dots.map((d) => d.id))).toEqual(GROUPED.tabs.filter((t) => t.windowId === 1).sort((a, b) => a.index - b.index).map((t) => t.id));
+    expect(screen.windows[2]!.duplicates).toBe(16);
+    expect(navOrder(deriveModel(s0))).toEqual(['win:1', 'win:2', 'win:3']);
+
+    const [open] = run(setCursor(s0, 'win:2'), [{ type: 'cursorKey', key: 'right' }]);
+    expect(navOrder(deriveModel(open))).toHaveLength(3 + 8);
+    const firstTab = navOrder(deriveModel(open))[2]!;
+    const [back] = run(setCursor(open, firstTab), [{ type: 'cursorKey', key: 'left' }]);
+    expect(back.ui.cursor).toBe('win:2');
+    expect(back.ui.openWindows.has(2)).toBe(false);
+
+    const [, focusFx] = run(back, [{ type: 'cursorKey', key: 'enter' }]);
+    expect(focusFx).toContainEqual({ kind: 'focusWindow', windowId: 2 });
+    const [, mergeFx] = run(back, [{ type: 'cursorKey', key: 'move' }]);
+    const w2 = GROUPED.tabs.filter((t) => t.windowId === 2).sort((a, b) => a.index - b.index).map((t) => t.id);
+    expect(mergeFx).toContainEqual({ kind: 'moveTo', tabIds: w2, windowId: 1 });
+    const [, selfMerge] = run(setCursor(s0, 'win:1'), [{ type: 'cursorKey', key: 'move' }]);
+    expect(selfMerge.some((e) => e.kind === 'moveTo')).toBe(false);
+    const [, closeFx] = run(back, [{ type: 'cursorKey', key: 'delete' }]);
+    const closing = closeEffects(closeFx);
+    expect(closing.every((id) => w2.includes(id))).toBe(true);
+    expect(closing.some((id) => GROUPED.tabs.find((t) => t.id === id)!.active)).toBe(false);
+  });
+
+  it('S cycles Tabs → Sites → Windows → Tabs', () => {
+    const [a] = run(start(), [{ type: 'toggleView' }]);
+    const [b] = run(a, [{ type: 'toggleView' }]);
+    const [c] = run(b, [{ type: 'toggleView' }]);
+    expect([a.ui.view, b.ui.view, c.ui.view]).toEqual(['sites', 'windows', 'tabs']);
+  });
+
   it('follows a policy change while open: newly protected tabs are no longer closed', () => {
     const unprotected = { keep: 'oldest', protectPinned: false, protectGroups: false } as const;
     const [s] = run(start({ policy: unprotected }), [{ type: 'policy', policy: { ...unprotected, protectPinned: true } }]);
@@ -200,7 +238,7 @@ describe('update', () => {
     expect(sites.ui.cursor).toBeUndefined(); // its site is collapsed
     const domain = 'github.com';
     const tabId = TABS.find((t) => t.url.includes(domain))!.id;
-    const [kept] = run(start({ view: 'sites', expanded: new Set([domain]), cursor: `tab:${tabId}` }), [{ type: 'toggleView' }]);
+    const [kept] = run(start({ view: 'sites', expanded: new Set([domain]), cursor: `tab:${tabId}` }), [{ type: 'setView', view: 'tabs' }]);
     expect(kept.ui.cursor).toBe(`tab:${tabId}`);
   });
 

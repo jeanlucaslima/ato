@@ -170,7 +170,7 @@ function cycleButton(label: string, action: string, title: string): HTMLElement 
 }
 
 export function viewBar(m: PopupModel): HTMLElement {
-  const sites = m.screen.kind === 'sites';
+  const view = m.screen.kind === 'sites' || m.screen.kind === 'windows' ? m.screen.kind : 'tabs';
   const counted = m.screen.kind !== 'loading';
   const sortLabel = m.screen.kind === 'sites' ? SITE_SORT[m.screen.sort] : m.screen.kind === 'tabs' ? TAB_SORT[m.screen.sort] : '';
   return h(
@@ -178,14 +178,16 @@ export function viewBar(m: PopupModel): HTMLElement {
     { class: 'bar' },
     h(
       'div',
-      { class: cls('seg', sites && 'seg--second'), role: 'group', 'aria-label': 'View' },
+      { class: cls('seg', `seg--at-${view}`), role: 'group', 'aria-label': 'View' },
       h('span', { class: 'seg-thumb', 'aria-hidden': 'true' }),
-      h('button', { type: 'button', 'aria-pressed': String(!sites), 'data-action': 'view', 'data-view': 'tabs' }, 'Tabs', counted && h('span', { class: 'n' }, m.tabCount)),
-      h('button', { type: 'button', 'aria-pressed': String(sites), 'data-action': 'view', 'data-view': 'sites' }, 'Sites', counted && h('span', { class: 'n' }, m.siteCount)),
+      h('button', { type: 'button', 'aria-pressed': String(view === 'tabs'), 'data-action': 'view', 'data-view': 'tabs' }, 'Tabs', counted && h('span', { class: 'n' }, m.tabCount)),
+      h('button', { type: 'button', 'aria-pressed': String(view === 'sites'), 'data-action': 'view', 'data-view': 'sites' }, 'Sites', counted && h('span', { class: 'n' }, m.siteCount)),
+      h('button', { type: 'button', 'aria-pressed': String(view === 'windows'), 'data-action': 'view', 'data-view': 'windows' }, 'Windows', counted && h('span', { class: 'n' }, m.windowTotal)),
     ),
     h('span', { class: 'spacer' }),
     sortLabel && cycleButton(sortLabel, 'cycle-sort', 'Change sort order'),
-    cycleButton(SCOPE[m.scope], 'cycle-scope', 'Switch between all windows and this window'),
+    // The Windows view always shows every window.
+    view !== 'windows' && cycleButton(SCOPE[m.scope], 'cycle-scope', 'Switch between all windows and this window'),
   );
 }
 

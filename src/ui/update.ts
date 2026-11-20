@@ -30,6 +30,8 @@ export function navOrder(model: PopupModel): ItemKey[] {
       return s.results.map((r) => `tab:${r.id}` as const);
     case 'sites':
       return s.groups.flatMap((g): ItemKey[] => [`site:${g.domain}`, ...(g.expanded ? g.tabs.map((t) => `tab:${t.id}` as const) : [])]);
+    case 'windows':
+      return s.windows.flatMap((w): ItemKey[] => [`win:${w.id}`, ...(w.expanded ? w.runs.flatMap((r) => r.tabs.map((t) => `tab:${t.id}` as const)) : [])]);
     case 'review':
       return s.sets.flatMap((set): ItemKey[] => [...set.copies.map((c) => `copy:${c.tabId}` as const), ...(set.fold ? [`fold:${set.key}` as const] : [])]);
   }
@@ -108,6 +110,10 @@ function tabsById(state: AppState, ids: Iterable<number>): Tab[] {
   return state.snapshot?.tabs.filter((t) => wanted.has(t.id)) ?? [];
 }
 
+function windowTabs(state: AppState, windowId: number): Tab[] {
+  return state.snapshot?.tabs.filter((t) => t.windowId === windowId).sort((a, b) => a.index - b.index) ?? [];
+}
+
 function siteTabs(state: AppState, domain: string): Tab[] {
   return state.snapshot ? scopedTabs(state.snapshot, state.ui).filter((t) => (domainOf(t.url) || 'Other') === domain) : [];
 }
@@ -158,6 +164,17 @@ function onCursorKey(state: AppState, key: Extract<Action, { type: 'cursorKey' }
     return [state, []];
   }
 
+  if (cursor?.startsWith('win:')) {
+    const windowId = Number(cursor.slice(4));
+    if (key === 'enter') return update(state, { type: 'focusWindow', windowId });
+    if (key === 'space') return update(state, { type: 'toggleWindow', windowId });
+    if (key === 'right' || key === 'left') return update(state, { type: 'toggleWindow', windowId, open: key === 'right' });
+    if (key === 'delete') return update(state, { type: 'closeWindow', windowId });
+    if (key === 'unload') return update(state, { type: 'unloadWindow', windowId });
+    if (key === 'move') return update(state, { type: 'mergeWindow', windowId });
+    return [state, []];
+  }
+
   const id = tabIdOf(cursor);
   if (ui.selection) {
     if (key === 'space' && id !== null) return update(state, { type: 'toggleSelected', tabId: id });
@@ -170,6 +187,10 @@ function onCursorKey(state: AppState, key: Extract<Action, { type: 'cursorKey' }
   if (key === 'enter') return update(state, { type: 'activate', tabId: id });
   if (key === 'delete') return update(state, { type: 'closeTab', tabId: id });
   if (key === 'unload') return startUnload(state, tabsById(state, [id]));
+  if (key === 'left' && model.screen.kind === 'windows') {
+    const win = model.screen.windows.find((w) => w.runs.some((r) => r.tabs.some((t) => t.id === id)));
+    if (win) return [setUi(state, { cursor: `win:${win.id}`, openWindows: toggleInSet(ui.openWindows, win.id, false) }), []];
+  }
   if (key === 'left' && model.screen.kind === 'sites') {
     const domain = model.screen.groups.find((g) => g.tabs.some((t) => t.id === id))?.domain;
     if (domain) return [setUi(state, { cursor: `site:${domain}`, expanded: toggleInSet(ui.expanded, domain, false) }), []];
@@ -362,7 +383,23 @@ function step(state: AppState, action: Action): Result {
       return [setUi(state, { selection: new Set(ids) }), []];
     }
     case 'toggleView':
-      return update(state, { type: 'setView', view: ui.view === 'sites' ? 'tabs' : 'sites' });
+      return update(state, { type: 'setView', view: ui.view === 'tabs' ? 'sites' : ui.view === 'sites' ? 'windows' : 'tabs' });
+    case 'toggleWindow':
+      return [setUi(state, { openWindows: toggleInSet(ui.openWindows, action.windowId, action.open), cursor: `win:${action.windowId}` }), []];
+    case 'focusWindow':
+      return [state, [{ kind: 'focusWindow', windowId: action.windowId }]];
+    case 'mergeWindow': {
+      const target = state.snapshot?.focusedWindowId;
+      if (target === undefined || action.windowId === target) return withToast(state, 'That is this window');
+      const tabs = windowTabs(state, action.windowId);
+      if (tabs.length === 0) return [state, []];
+      const [s, effects] = withToast(state, `Moved ${plural(tabs.length, 'tab')} into this window`);
+      return [s, [{ kind: 'moveTo', tabIds: tabs.map((t) => t.id), windowId: target }, ...effects]];
+    }
+    case 'closeWindow':
+      return startClose(state, windowTabs(state, action.windowId), 'tab', true);
+    case 'unloadWindow':
+      return startUnload(state, windowTabs(state, action.windowId));
     case 'toggleHelp':
       return [setUi(state, { helpOpen: !ui.helpOpen }), []];
     case 'cursorKey':

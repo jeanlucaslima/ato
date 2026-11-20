@@ -11,7 +11,7 @@ export interface Toast {
 }
 
 export interface UiState {
-  view: 'tabs' | 'sites';
+  view: 'tabs' | 'sites' | 'windows';
   tabSort: TabSort;
   siteSort: SiteSort;
   scope: Scope;
@@ -21,6 +21,8 @@ export interface UiState {
   /** Keyboard shortcuts panel. */
   helpOpen: boolean;
   expanded: ReadonlySet<string>;
+  /** Windows view: windows opened to show their tabs, by window id. */
+  openWindows: ReadonlySet<number>;
   /** Review: big duplicate sets the user unfolded, by duplicate key. */
   openSets: ReadonlySet<string>;
   cursor?: ItemKey;
@@ -54,6 +56,7 @@ export function initialUi(overrides: Partial<UiState> = {}): UiState {
     helpOpen: false,
     expanded: new Set(),
     openSets: new Set(),
+    openWindows: new Set(),
     overrides: new Map(),
     closing: new Set(),
     policy: DEFAULT_POLICY,

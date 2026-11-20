@@ -240,7 +240,7 @@ export function renderSettings({ settings: s, version, saved, pinned = null, the
     section(
       'When the popup opens',
       null,
-      choice(s, 'view', 'Show', { tabs: 'Tabs', sites: 'Sites' }),
+      choice(s, 'view', 'Show', { tabs: 'Tabs', sites: 'Sites', windows: 'Windows' }),
       choice(s, 'scope', 'From', { all: 'All windows', current: 'This window' }, 'Search always covers every window.'),
     ),
     themePicker(s, themesOpen),

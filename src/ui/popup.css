@@ -79,11 +79,12 @@
 
 /* View bar */
 .bar { display: flex; align-items: center; gap: 4px; padding: 0 12px 8px; border-bottom: 1px solid var(--line); }
-.seg { position: relative; display: grid; grid-template-columns: 1fr 1fr; padding: 2px; background: var(--surface); border-radius: 8px; }
+.seg { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); padding: 2px; background: var(--surface); border-radius: 8px; }
 .seg button { position: relative; height: 28px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; color: var(--ink-2); font-size: 12px; }
 .seg button[aria-pressed='true'] { color: var(--ink); font-weight: 600; }
-.seg-thumb { position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc(50% - 2px); border-radius: 6px; background: var(--raised); }
-.seg--second .seg-thumb { transform: translateX(100%); }
+.seg-thumb { position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc((100% - 4px) / 3); border-radius: 6px; background: var(--raised); }
+.seg--at-sites .seg-thumb { transform: translateX(100%); }
+.seg--at-windows .seg-thumb { transform: translateX(200%); }
 .seg .n { font-family: var(--mono); font-weight: 400; color: var(--ink-2); margin-left: 4px; }
 .bar .spacer { flex: 1; }
 .menu-btn { height: 28px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; color: var(--ink-2); font-size: 12px; display: flex; align-items: center; gap: 4px; }
@@ -130,6 +131,49 @@ mark.hl { background: var(--match); color: var(--ink); border-radius: 2px; }
 
 /* Sites — the body is always rendered; collapsed = zero-height grid row (animatable). */
 .site { border-bottom: 1px solid var(--line-soft); }
+
+/* Windows view: a row per window, a map of its tab strip, its tabs under their groups */
+.win { border-bottom: 1px solid var(--line-soft); }
+.win-row { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 6px 8px 0 0; }
+.win-row.is-cursor { background: var(--focus-fill); box-shadow: inset 3px 0 var(--focus); }
+.win-row.is-cursor + .win-map { background: var(--focus-fill); box-shadow: inset 3px 0 var(--focus); }
+.win-toggle { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding-left: 12px; cursor: pointer; user-select: none; }
+.win-toggle .caret { display: grid; flex: none; color: var(--ink-3); }
+.win.is-open .win-toggle .caret { transform: rotate(90deg); }
+.win-tile { width: 22px; height: 22px; flex: none; border-radius: 6px; display: grid; place-items: center; font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--ink-2); border: 1.5px solid var(--line); background: var(--surface); }
+.win.is-current .win-tile { border-color: var(--focus); color: var(--focus); }
+.win-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.win-name { display: flex; align-items: baseline; gap: 8px; font-size: 13.5px; font-weight: 500; white-space: nowrap; }
+.win-name .cur { font-size: 11px; font-weight: 600; color: var(--focus); }
+.win-sub { font-size: 11.5px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.win-flags { flex: none; display: flex; align-items: center; gap: 8px; font-size: 11px; }
+.win-flags .dup { font-family: var(--mono); color: var(--amber); }
+.win-flags .audio { display: grid; color: var(--ok); }
+.win-actions { display: none; gap: 4px; }
+.win-actions .btn { height: 26px; font-size: 11.5px; }
+.win.is-open .win-actions, .win-row.is-cursor .win-actions { display: flex; }
+.win.is-open .win-flags, .win-row.is-cursor .win-flags { display: none; }
+.win-map { padding: 6px 10px 10px 66px; cursor: pointer; }
+.tab-map { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.dot { width: 11px; height: 11px; flex: none; border-radius: 3px; background: var(--c, var(--ink-3)); }
+.dot.is-pinned { border-radius: 50%; }
+.dot.is-asleep { opacity: 0.35; }
+.dot.is-dup { box-shadow: 0 0 0 1.5px var(--canvas), 0 0 0 3px var(--amber); }
+.dot.is-playing { box-shadow: 0 0 0 1.5px var(--canvas), 0 0 0 3px var(--ok); }
+.dot.is-current { box-shadow: 0 0 0 1.5px var(--canvas), 0 0 0 3px var(--focus); }
+.map-group { display: inline-flex; gap: 4px; padding: 2px 3px; border: 1.5px solid var(--g); border-radius: 5px; background: color-mix(in srgb, var(--g) 14%, transparent); }
+.map-pill { display: inline-flex; align-items: center; gap: 5px; height: 15px; padding: 0 6px; border-radius: 8px; background: var(--g); color: #15171a; font-size: 10px; font-weight: 600; white-space: nowrap; }
+.map-pill b { font-family: var(--mono); font-weight: 500; opacity: 0.75; }
+.win-body { display: grid; grid-template-rows: 0fr; }
+.win.is-open .win-body { grid-template-rows: 1fr; }
+.win-body-inner { min-height: 0; overflow: hidden; background: color-mix(in srgb, var(--surface) 45%, var(--canvas)); }
+.win.is-open .win-body-inner { border-top: 1px solid var(--line-soft); }
+.tab-group { border-left: 3px solid var(--g); background: color-mix(in srgb, var(--g) 6%, transparent); }
+.tab-group-head { display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 10px 0 11px; font-size: 11.5px; color: var(--ink-3); border-bottom: 1px solid var(--line-soft); }
+.tab-group-name { padding: 1px 8px; border-radius: 9px; background: var(--g); color: #15171a; font-weight: 600; }
+.tab-group-name.is-unnamed { font-style: italic; font-weight: 500; }
+.tab-group-head .note { font-style: italic; }
+.tab-group .row-main { padding-left: 11px; }
 .site-row { display: flex; align-items: center; gap: 8px; height: 48px; padding-right: 8px; }
 .site-row.is-cursor { background: var(--focus-fill); box-shadow: inset 3px 0 var(--focus); }
 .site-toggle { flex: 1; min-width: 0; height: 100%; display: flex; cursor: pointer; user-select: none; align-items: center; gap: 12px; padding: 0 0 0 14px; border: 0; background: transparent; text-align: left; }
@@ -223,7 +267,8 @@ mark.hl { background: var(--match); color: var(--ink); border-radius: 2px; }
 .seg-thumb { transition: transform var(--t) var(--ease); }
 
 /* Site expand/collapse: grid row 0fr <-> 1fr, caret rotates, tabs fade */
-.site-body { transition: grid-template-rows var(--t-slow) var(--ease); }
+.site-body, .win-body { transition: grid-template-rows var(--t-slow) var(--ease); }
+.win-toggle .caret { transition: transform var(--t) var(--ease); }
 .site-body-inner { opacity: 0; transition: opacity var(--t) var(--ease); }
 .site.is-open .site-body-inner { opacity: 1; }
 .site-toggle .caret { transition: transform var(--t) var(--ease); }

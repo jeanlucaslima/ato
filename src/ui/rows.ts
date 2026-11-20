@@ -42,6 +42,8 @@ export interface RowState {
   selected?: boolean;
   /** Nested under a site: hide the domain line, and expose as a level-2 tree item. */
   compact?: boolean;
+  /** Nested in a tree (a window) but drawn in full, favicon and all. */
+  treeItem?: boolean;
 }
 
 /**
@@ -57,7 +59,7 @@ export function tabRow(row: TabRow, state: RowState = {}): HTMLElement {
     h('span', { class: 'row-title' }, highlight(row.title, row.titleMatches)),
     h('span', { class: cls('row-sub', state.compact && 'row-sub--path') }, highlight(row.detail, row.detailMatches)),
   );
-  const role = state.compact
+  const role = state.compact || state.treeItem
     ? { role: 'treeitem', 'aria-level': 2, 'aria-selected': String(selecting ? Boolean(state.selected) : Boolean(state.cursor)) }
     : { role: 'option', 'aria-selected': String(selecting ? Boolean(state.selected) : Boolean(state.cursor)) };
   return h(

@@ -19,7 +19,7 @@ export interface Settings {
   protectPinned: boolean;
   protectGroups: boolean;
   /** View the popup opens on. */
-  view: 'tabs' | 'sites';
+  view: 'tabs' | 'sites' | 'windows';
   /** Windows the popup shows when it opens. Search always covers every window. */
   scope: 'all' | 'current';
   theme: 'system' | ThemeId;
@@ -45,7 +45,7 @@ export type ToggleKey = { [K in keyof Settings]: Settings[K] extends boolean ? K
 /** Allowed values of every multiple-choice setting. */
 export const CHOICES: { readonly [K in ChoiceKey]: readonly Settings[K][] } = {
   keep: ['oldest', 'newest'],
-  view: ['tabs', 'sites'],
+  view: ['tabs', 'sites', 'windows'],
   scope: ['all', 'current'],
   theme: ['system', ...THEMES],
   badge: ['duplicates', 'all', 'off'],
