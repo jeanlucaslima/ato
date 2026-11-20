@@ -27,7 +27,9 @@ export function reviewPolicy(screen: ReviewScreen): HTMLElement {
     { class: 'policy' },
     'Keeping the ',
     h('b', null, 'current tab'),
-    ', then ',
+    ' and any ',
+    h('b', null, 'playing'),
+    ' one, then ',
     h('b', null, 'pinned'),
     ', then the ',
     h('b', null, screen.keep),
@@ -39,6 +41,7 @@ export function reviewPolicy(screen: ReviewScreen): HTMLElement {
 
 const REASON_LABEL: Record<string, string> = {
   current: 'current tab',
+  playing: 'playing',
   pinned: 'pinned',
   grouped: 'in a group',
   oldest: 'oldest',

@@ -6,6 +6,7 @@
  *  2. Every duplicate set keeps at least one tab.
  *  3. Only real duplicates (same key, set of ≥ 2) are ever closed.
  *  4. Protected tabs (pinned / grouped, per policy) are never closed.
+ *  5. A tab playing audio is never closed: it's what the user is listening to.
  */
 import { duplicateKey } from './tabs';
 import type { Tab } from './types';
@@ -19,7 +20,7 @@ export interface DuplicatePolicy {
 
 export const DEFAULT_POLICY: DuplicatePolicy = { keep: 'oldest', protectPinned: true, protectGroups: true };
 
-export type KeepReason = 'current' | 'pinned' | 'grouped' | 'oldest' | 'newest' | 'chosen';
+export type KeepReason = 'current' | 'playing' | 'pinned' | 'grouped' | 'oldest' | 'newest' | 'chosen';
 
 export type Decision = { action: 'keep'; reason: KeepReason } | { action: 'close' };
 
@@ -34,8 +35,10 @@ export interface DuplicateSet {
 }
 
 /** Why a tab may not be closed by cleanup, or `null` if it may. */
-export function protection(tab: Tab, policy: DuplicatePolicy): 'current' | 'pinned' | 'grouped' | null {
+export function protection(tab: Tab, policy: DuplicatePolicy): 'current' | 'playing' | 'pinned' | 'grouped' | null {
   if (tab.active) return 'current';
+  // Audible covers muted tabs too (Chrome reports sound it produced, heard or not).
+  if (tab.audible) return 'playing';
   if (policy.protectPinned && tab.pinned) return 'pinned';
   if (policy.protectGroups && tab.groupId !== -1) return 'grouped';
   return null;

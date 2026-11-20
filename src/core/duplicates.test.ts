@@ -14,6 +14,7 @@ const tabsArb = fc
       url: fc.constantFrom(...URLS),
       active: fc.boolean(),
       pinned: fc.boolean(),
+      audible: fc.boolean(),
       groupId: fc.constantFrom(-1, -1, 7),
     }),
     { maxLength: 24 },
@@ -24,7 +25,6 @@ const tabsArb = fc
         id: i + 1,
         index: i,
         title: r.url,
-        audible: false,
         discarded: false,
         lastAccessed: 0,
         ...r,
@@ -52,6 +52,10 @@ const plannedArb = fc.tuple(tabsArb, policyArb, overridesArb).map(([tabs, policy
 describe('duplicate cleanup safety rules', () => {
   it('never closes the active tab of any window', () => {
     fc.assert(fc.property(plannedArb, ({ sets }) => tabsToClose(sets).every((t) => !t.active)));
+  });
+
+  it('never closes a tab that is playing audio', () => {
+    fc.assert(fc.property(plannedArb, ({ sets }) => tabsToClose(sets).every((t) => !t.audible)));
   });
 
   it('keeps at least one tab in every set', () => {
