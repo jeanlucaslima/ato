@@ -4,9 +4,11 @@
  *
  * Children are matched by `data-key` when present, otherwise by position and tag.
  * A node whose tag or key differs is replaced, so a new key is how a render asks
- * for a fresh element (and its enter animation).
+ * for a fresh element (and its enter animation). An element marked
+ * `data-morph-keep` in both trees is left as it is: a controller owns it.
  */
 export function morph(current: Element, next: Element): void {
+  if (current.hasAttribute('data-morph-keep') && next.hasAttribute('data-morph-keep')) return;
   syncAttributes(current, next);
   syncFormState(current, next);
   syncChildren(current, next);

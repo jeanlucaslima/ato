@@ -8,6 +8,15 @@ const list = (keys: string[]) =>
   h('ul', null, keys.map((k) => h('li', { 'data-key': k, class: `item-${k}` }, `text ${k}`)));
 
 describe('morph', () => {
+  it('leaves elements marked data-morph-keep as they are', () => {
+    const el = h('div', null, h('div', { 'data-morph-keep': '', style: 'transform: rotateY(40deg)' }, 'owned'));
+    const kept = el.firstElementChild!;
+    morph(el, h('div', null, h('div', { 'data-morph-keep': '' }, 'fresh')));
+    expect(el.firstElementChild).toBe(kept);
+    expect(kept.getAttribute('style')).toBe('transform: rotateY(40deg)');
+    expect(kept.textContent).toBe('owned');
+  });
+
   it('updates text and attributes in place', () => {
     const el = h('div', { class: 'a', title: 'x' }, 'hello');
     const before = el.firstChild;
