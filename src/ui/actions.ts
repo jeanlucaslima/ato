@@ -6,6 +6,8 @@ export type Action =
   | { type: 'snapshot'; snapshot: Snapshot }
   | { type: 'query'; text: string }
   | { type: 'clearQuery' }
+  /** Remove the url:/title: chip, keeping the typed text. */
+  | { type: 'clearField' }
   | { type: 'searchFocus'; focused: boolean }
   | { type: 'setView'; view: 'tabs' | 'sites' }
   | { type: 'cycleSort' }

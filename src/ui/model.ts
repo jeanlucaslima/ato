@@ -63,6 +63,8 @@ export interface DuplicateSet {
 }
 
 export type SearchMode = 'contains' | 'exact';
+export type { SearchField } from '../core/search';
+import type { SearchField } from '../core/search';
 export type TabSort = 'recent' | 'oldest' | 'title' | 'site' | 'copies';
 export type SiteSort = 'most' | 'name' | 'recent';
 export type Scope = 'all' | 'current';
@@ -71,7 +73,17 @@ export type Screen =
   | { kind: 'loading' }
   | { kind: 'tabs'; sort: TabSort; rows: TabRow[] }
   | { kind: 'sites'; sort: SiteSort; groups: SiteGroup[] }
-  | { kind: 'search'; query: string; mode: SearchMode; results: TabRow[]; windowCount: number }
+  | {
+      kind: 'search';
+      query: string;
+      /** A leading `url:` / `title:`, shown as a chip in the search field. */
+      field: SearchField | null;
+      /** What the search field holds: the query without the chip's prefix. */
+      text: string;
+      mode: SearchMode;
+      results: TabRow[];
+      windowCount: number;
+    }
   | { kind: 'review'; keep: 'oldest' | 'newest'; protectGroups: boolean; sets: DuplicateSet[] };
 
 export interface DuplicateSummary {

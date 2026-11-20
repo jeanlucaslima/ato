@@ -1,6 +1,6 @@
 /** Browser snapshot + UI state → the PopupModel the renderer draws. */
 import { applyOverrides, planDuplicates, protection, tabsToClose, type DuplicateSet as PlanSet } from '../core/duplicates';
-import { parseQuery, searchTabs } from '../core/search';
+import { parseQuery, searchTabs, splitField } from '../core/search';
 import { countCopies, domainOf, duplicateKey, formatAge } from '../core/tabs';
 import type { Snapshot, Tab } from '../core/types';
 import { loadingModel, type DuplicateSet, type PopupModel, type Range, type SiteGroup, type TabRow } from './model';
@@ -137,6 +137,7 @@ export function deriveModel({ snapshot, ui }: AppState): PopupModel {
       screen: {
         kind: 'search',
         query: ui.query,
+        ...(({ field, rest }) => ({ field, text: rest }))(splitField(ui.query)),
         mode: parsed.mode,
         windowCount: new Set(hits.map((h) => h.tab.windowId)).size,
         results: hits.map(({ tab, titleRanges, urlRanges }) => {

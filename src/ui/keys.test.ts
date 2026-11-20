@@ -29,6 +29,8 @@ describe('resolveKey', () => {
     expect(action({ key: 'ArrowDown' }, ctx({ typing: true }))).toEqual({ type: 'moveCursor', delta: 1 });
     expect(resolveKey({ key: 'j' }, ctx({ typing: true }))).toBeNull();
     expect(resolveKey({ key: 'Backspace' }, ctx({ typing: true }))).toBeNull();
+    expect(resolveKey({ key: 'Backspace' }, ctx({ typing: true, fieldChip: true }))).toBeNull();
+    expect(action({ key: 'Backspace' }, ctx({ typing: true, fieldChip: true, caretAtStart: true }))).toEqual({ type: 'clearField' });
     expect(resolveKey({ key: 'z', metaKey: true }, ctx({ typing: true }))).toBeNull();
   });
 

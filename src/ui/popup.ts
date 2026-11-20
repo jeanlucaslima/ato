@@ -51,7 +51,7 @@ function body(m: PopupModel): Child[] {
     case 'search': {
       const n = s.results.length;
       return [
-        searchTips(s.mode),
+        searchTips(s.mode, s.field),
         h(
           'div',
           { class: 'head head--results' },
@@ -63,7 +63,9 @@ function body(m: PopupModel): Child[] {
           'search',
           { role: 'listbox', 'aria-label': 'Search results' },
           s.results.map((r) => tabRow(r, { cursor: m.cursor === `tab:${r.id}` })),
-          n === 0
+          n === 0 && !s.text.trim()
+            ? h('p', { class: 'empty' }, `Type to search ${s.field === 'title' ? 'tab titles' : 'URLs'}.`)
+            : n === 0
             ? h('p', { class: 'empty' }, `No tabs match “${s.query}”.`)
             : h('p', { class: 'note' }, 'Search covers every window. ', h('kbd', { class: 'k' }, 'Esc'), ' clears it and returns to where you were.'),
         ),

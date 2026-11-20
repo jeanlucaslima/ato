@@ -7,6 +7,7 @@ import type { BrowserPort } from './browser';
 import { deriveModel } from './derive';
 import { resolveKey } from './keys';
 import type { ItemKey } from './model';
+import { joinField, splitField } from '../core/search';
 import { morph } from './morph';
 import { renderPopup } from './popup';
 import type { AppState } from './state';
@@ -165,6 +166,8 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
         return { type: 'cycleScope' };
       case 'clear-query':
         return { type: 'clearQuery' };
+      case 'clear-field':
+        return { type: 'clearField' };
       case 'close-results':
         return { type: 'closeResults' };
       case 'unload-results':
@@ -195,13 +198,29 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
     if (!el || !container.contains(el)) return;
     const action = actionFor(el, event);
     if (action) dispatch(action);
-    if (el.dataset.action === 'clear-query') searchInput()?.focus();
+    if (el.dataset.action === 'clear-query' || el.dataset.action === 'clear-field') searchInput()?.focus();
   };
 
   const onInput = (event: Event) => {
     const el = event.target as HTMLInputElement;
-    if (el.name === 'q') dispatch({ type: 'query', text: el.value });
+    if (el.name !== 'q') return;
+    // The field holds the text after the chip; the query is chip + text.
+    dispatch({ type: 'query', text: joinField(splitField(state.ui.query).field, el.value) });
+    syncSearchText(el);
   };
+
+  /**
+   * Typing `url:` turns it into a chip: take the prefix out of the field.
+   * (morph leaves a focused field alone, so this is done here.)
+   */
+  function syncSearchText(el: HTMLInputElement): void {
+    const { rest } = splitField(state.ui.query);
+    if (el.value === rest) return;
+    const cut = el.value.length - rest.length;
+    const caret = Math.max(0, (el.selectionStart ?? el.value.length) - cut);
+    el.value = rest;
+    el.setSelectionRange(caret, caret);
+  }
 
   const onFocus = (event: FocusEvent) => {
     const inSearch = (event.target as HTMLElement).matches?.('input[name="q"]');
@@ -220,6 +239,8 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
       reviewOpen: ui.reviewOpen,
       helpOpen: ui.helpOpen,
       hasCursor: ui.cursor !== undefined,
+      fieldChip: splitField(ui.query).field !== null,
+      caretAtStart: typing && (event.target as HTMLInputElement).selectionStart === 0 && (event.target as HTMLInputElement).selectionEnd === 0,
     });
     if (!command) return;
     event.preventDefault();
@@ -234,7 +255,8 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
         input.focus();
         if (command.text) {
           input.value += command.text;
-          dispatch({ type: 'query', text: input.value });
+          dispatch({ type: 'query', text: joinField(splitField(state.ui.query).field, input.value) });
+          syncSearchText(input);
         }
       }
     }

@@ -3,7 +3,7 @@
  * Pure — browser work is described as effects and run by the runtime (`app.ts`).
  */
 import { protection, tabsToClose } from '../core/duplicates';
-import { parseQuery, searchTabs } from '../core/search';
+import { parseQuery, searchTabs, splitField } from '../core/search';
 import { domainOf } from '../core/tabs';
 import type { Tab } from '../core/types';
 import type { Action, Effect } from './actions';
@@ -176,6 +176,11 @@ function step(state: AppState, action: Action): Result {
     }
     case 'clearQuery':
       return [withValidCursor(setUi(state, { query: '', cursor: ui.searchReturn, searchReturn: undefined })), []];
+    case 'clearField': {
+      // Removing the chip with nothing typed leaves search, like clearing it.
+      const { rest } = splitField(ui.query);
+      return update(state, rest.trim() ? { type: 'query', text: rest } : { type: 'clearQuery' });
+    }
     case 'searchFocus':
       return [setUi(state, { searchFocused: action.focused }), []];
     case 'setView': {

@@ -20,6 +20,10 @@ export interface KeyContext {
   reviewOpen: boolean;
   helpOpen: boolean;
   hasCursor: boolean;
+  /** Search has a url:/title: chip. */
+  fieldChip?: boolean;
+  /** The text caret sits at the very start of the search field. */
+  caretAtStart?: boolean;
 }
 
 export type KeyCommand =
@@ -66,6 +70,7 @@ export function resolveKey(e: KeyLike, ctx: KeyContext): KeyCommand | null {
   }
   if (mod && key.toLowerCase() === 'f') return { kind: 'focusSearch' };
   if (mod && key === 'Backspace' && ctx.typing && ctx.hasQuery) return act({ type: 'closeResults' });
+  if (key === 'Backspace' && !mod && ctx.typing && ctx.fieldChip && ctx.caretAtStart) return act({ type: 'clearField' });
 
   // Everything below is for when focus is not in the search field.
   if (ctx.typing) return null;
@@ -146,7 +151,7 @@ export const KEY_HELP: HelpSection[] = [
   {
     title: 'Views',
     entries: [
-      { keys: ['/'], label: 'Search (or just start typing)' },
+      { keys: ['/'], label: 'Search (or just start typing) · start with url: or title: to narrow' },
       { keys: ['S'], label: 'Switch Tabs / Sites' },
       { keys: ['D'], label: 'Review duplicates' },
       { keys: ['X'], label: 'Select mode (⇧↑↓ to extend, ⌘A all)' },

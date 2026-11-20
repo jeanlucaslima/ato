@@ -3,7 +3,7 @@ import { cls, h } from './dom';
 import { plural } from './format';
 import { icon } from './icons';
 import { logoSvg } from './logo-svg';
-import type { PopupModel, Scope, SearchMode, SiteSort, TabSort } from './model';
+import type { PopupModel, Scope, SearchField, SearchMode, SiteSort, TabSort } from './model';
 
 /**
  * The logo at header size: the 3D icosahedron in the text colour (so it follows
@@ -30,9 +30,29 @@ export function brandBar(): HTMLElement {
   );
 }
 
+const FIELD_LABEL: Record<SearchField, string> = { url: 'URL', title: 'Title' };
+const FIELD_PLACEHOLDER: Record<SearchField, string> = { url: 'Search URLs', title: 'Search titles' };
+
+/**
+ * `url:` / `title:` typed at the start of search turns into this chip. Always
+ * rendered (hidden when unused) so the field's children keep their places and
+ * the input never gets replaced mid-typing.
+ */
+function fieldChip(field: SearchField | null): HTMLElement {
+  return h(
+    'span',
+    { class: 'field-chip', hidden: !field },
+    field && FIELD_LABEL[field],
+    field &&
+      h('button', { class: 'field-chip-x', type: 'button', 'aria-label': `Remove ${FIELD_LABEL[field]} filter`, 'data-action': 'clear-field' }, icon('close', 8)),
+  );
+}
+
 export function searchBar(m: PopupModel): HTMLElement {
-  const query = m.screen.kind === 'search' ? m.screen.query : '';
-  const placeholder = m.screen.kind === 'loading' ? 'Search tabs' : `Search ${plural(m.tabCount, 'tab')}`;
+  const search = m.screen.kind === 'search' ? m.screen : null;
+  const query = search?.query ?? '';
+  const field = search?.field ?? null;
+  const placeholder = field ? FIELD_PLACEHOLDER[field] : m.screen.kind === 'loading' ? 'Search tabs' : `Search ${plural(m.tabCount, 'tab')}`;
   return h(
     'div',
     { class: 'top' },
@@ -40,10 +60,11 @@ export function searchBar(m: PopupModel): HTMLElement {
       'label',
       { class: cls('search', m.searchFocused && 'is-focused') },
       icon('search', 18),
+      fieldChip(field),
       h('input', {
         type: 'search',
         name: 'q',
-        value: query,
+        value: search?.text ?? '',
         placeholder,
         'aria-label': 'Search tabs',
         role: 'combobox',
@@ -61,13 +82,14 @@ export function searchBar(m: PopupModel): HTMLElement {
 
 const MODE_LABEL: Record<SearchMode, string> = { contains: 'Contains', exact: 'Exact' };
 
-export function searchTips(mode: SearchMode): HTMLElement {
+export function searchTips(mode: SearchMode, field: SearchField | null): HTMLElement {
   return h(
     'div',
     { class: 'search-tips' },
     h('span', { class: 'chip' }, MODE_LABEL[mode]),
-    h('span', null, 'Try'),
-    ['"exact"', 'url:', 'title:'].map((s) => h('code', { class: 'k' }, s)),
+    field
+      ? [h('span', null, `${field === 'url' ? 'URLs' : 'Titles'} only ·`), h('kbd', { class: 'k' }, '⌫'), h('span', null, 'at the start removes it')]
+      : [h('span', null, 'Try'), ['"exact"', 'url:', 'title:'].map((s) => h('code', { class: 'k' }, s))],
   );
 }
 

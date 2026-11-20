@@ -89,5 +89,8 @@ export const FIXTURES: Fixture[] = [
   },
   { name: 'After cleanup (undo)', state: at({ toast: { id: 1, message: 'Closed 4 duplicates', undo: [] } }, cleaned) },
   { name: 'Search, no matches', state: at({ query: 'kubernetes' }) },
+  { name: 'Search · url: chip', state: at({ query: 'url:github', cursor: `tab:${idOf('Issues · ato')}` }) },
+  { name: 'url: just typed (chip, no text yet)', state: at({ query: 'url:' }) },
+  { name: 'Search · title: chip', state: at({ query: 'title:chrome', cursor: `tab:${idOf('chrome.tabs — Chrome for Developers')}` }) },
   { name: 'Loading', state: at({}, null) },
 ];
