@@ -32,7 +32,7 @@ src/
 ```
 
 - `npm run dev` → Vite dev server, opens `/dev/screens.html`: every fixture is a live popup (click, type, keyboard; Reset per frame).
-- `npm run build` → icons + `tsc --noEmit` + `vite build` to `dist/`. `npm test` runs Vitest (DOM tests opt in with `// @vitest-environment happy-dom`).
+- `npm run build` → icons + `tsc --noEmit` + `vite build` to `dist/`, as the **unpacked dev copy** (name "ATO 3 (dev)", version_name `-dev`, ⇧⌘U) so it can sit beside the installed store 2.x build. `npm run build:store` (used by `npm run zip`) keeps `src/manifest.json` as written ("ATO", ⌘U). Chrome 157 is the minimum (`minimum_chrome_version`). `npm test` runs Vitest (DOM tests opt in with `// @vitest-environment happy-dom`).
 - Flow: event → `Action` → `update` → new state (+ `Effect`s run by `app.ts` against `BrowserPort`) → `deriveModel` → `renderPopup` → `morph`.
 - UI rules: rendering is a pure function of `PopupModel`; text goes in as text nodes (never `innerHTML` with data); motion is decorative only (state never waits on an animation; reduced-motion disables it).
 - Commits: keep them small and focused (one concern each) so they can be rolled back individually.

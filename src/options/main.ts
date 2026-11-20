@@ -11,7 +11,7 @@ followSystemTheme(() => theme);
 
 async function main(): Promise<void> {
   const page = await mountSettings(root, new ChromeSettings(), {
-    version: chrome.runtime.getManifest().version,
+    version: chrome.runtime.getManifest().version_name ?? chrome.runtime.getManifest().version,
     onChange: (settings) => {
       theme = settings.theme;
       applyTheme(theme);
