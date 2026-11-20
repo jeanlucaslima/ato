@@ -91,11 +91,11 @@ function siteGroups(tabs: Tab[], rows: Map<number, TabRow>, ui: UiState, snapsho
     domain,
     favIconUrl: ts.find((t) => t.favIconUrl)?.favIconUrl,
     expanded: ui.expanded.has(domain),
-    tabs: ts.flatMap((t) => {
-      const row = rows.get(t.id);
-      const spansWindows = new Set(ts.map((x) => x.windowId)).size > 1;
-      return row ? [{ ...row, detail: nestedDetail(t, row, spansWindows, windowOf) }] : [];
-    }),
+    tabs: ((spansWindows) =>
+      ts.flatMap((t) => {
+        const row = rows.get(t.id);
+        return row ? [{ ...row, detail: nestedDetail(t, row, spansWindows, windowOf) }] : [];
+      }))(new Set(ts.map((x) => x.windowId)).size > 1),
   }));
 }
 
