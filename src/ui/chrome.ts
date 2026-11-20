@@ -143,7 +143,14 @@ export function duplicateStrip(m: PopupModel): HTMLElement {
     state === 'clean' &&
       h('span', { class: 'txt' }, h('strong', null, 'No duplicates'), ` · ${plural(m.tabCount, 'tab')} in ${plural(m.windowCount, 'window')}`),
     state === 'dupes' && h('span', { class: 'txt' }, h('strong', null, plural(extra, 'duplicate')), ` · ${plural(sets, 'set')}`),
-    state === 'dupes' && h('button', { class: 'btn', type: 'button', 'data-action': 'open-review' }, 'Review', h('kbd', { class: 'k k--box' }, 'D')),
+    // Show the key that works right now: in the search field, D would type a "d".
+    state === 'dupes' &&
+      h(
+        'button',
+        { class: 'btn', type: 'button', 'data-action': 'open-review', title: 'Review duplicates (D, or ⌘D from search)' },
+        'Review',
+        h('kbd', { class: 'k k--box' }, m.searchFocused ? '⌘D' : 'D'),
+      ),
   );
 }
 

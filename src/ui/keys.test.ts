@@ -17,6 +17,13 @@ const action = (e: KeyLike, c = ctx()) => {
 };
 
 describe('resolveKey', () => {
+  it('opens review with ⌘D / Ctrl+D even while typing; plain d types', () => {
+    expect(action({ key: 'd', metaKey: true }, ctx({ typing: true }))).toEqual({ type: 'openReview' });
+    expect(action({ key: 'd', ctrlKey: true }, ctx({ typing: true }))).toEqual({ type: 'openReview' });
+    expect(action({ key: 'd' }, ctx({ typing: true }))).toBeNull();
+    expect(action({ key: 'd' })).toEqual({ type: 'openReview' });
+  });
+
   it('navigates with arrows, j/k, paging and Home/End', () => {
     expect(action({ key: 'ArrowDown' })).toEqual({ type: 'moveCursor', delta: 1 });
     expect(action({ key: 'k' })).toEqual({ type: 'moveCursor', delta: -1 });
@@ -79,6 +86,7 @@ const DISPLAY: Record<string, KeyLike> = {
   '⌫': { key: 'Backspace' },
   Space: { key: ' ' },
   '⌘Z': { key: 'z', metaKey: true },
+  '⌘D': { key: 'd', metaKey: true },
   Esc: { key: 'Escape' },
 };
 

@@ -69,6 +69,8 @@ export function resolveKey(e: KeyLike, ctx: KeyContext): KeyCommand | null {
       return ctx.typing ? { kind: 'blurSearch' } : { kind: 'focusSearch' };
   }
   if (mod && key.toLowerCase() === 'f') return { kind: 'focusSearch' };
+  // Plain D types into search; ⌘D reaches review from anywhere (the popup opens in search).
+  if (mod && !e.shiftKey && key.toLowerCase() === 'd') return act({ type: 'openReview' });
   if (mod && key === 'Backspace' && ctx.typing && ctx.hasQuery) return act({ type: 'closeResults' });
   if (key === 'Backspace' && !mod && ctx.typing && ctx.fieldChip && ctx.caretAtStart) return act({ type: 'clearField' });
 
@@ -153,7 +155,7 @@ export const KEY_HELP: HelpSection[] = [
     entries: [
       { keys: ['/'], label: 'Search (or just start typing) · start with url: or title: to narrow' },
       { keys: ['S'], label: 'Switch Tabs / Sites' },
-      { keys: ['D'], label: 'Review duplicates' },
+      { keys: ['D', '⌘D'], label: 'Review duplicates (⌘D also while typing)' },
       { keys: ['X'], label: 'Select mode (⇧↑↓ to extend, ⌘A all)' },
       { keys: ['Esc'], label: 'Clear search · leave mode · back' },
       { keys: ['?'], label: 'This panel' },
