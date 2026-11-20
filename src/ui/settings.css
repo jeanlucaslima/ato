@@ -16,7 +16,8 @@
 .ico-tilt { transform: rotateZ(-20deg) rotateX(-6deg); }
 .ico-face { position: absolute; left: 50%; top: 50%; width: 100px; height: 86.6px; transform-origin: 0 0; transform-style: preserve-3d; }
 .ico-face svg { position: absolute; inset: 0; overflow: visible; backface-visibility: hidden; }
-.ico-back { transform: rotateY(180deg); }
+/* Depth: edges on the far side are fainter and very slightly out of focus. */
+.ico-back { transform: rotateY(180deg); opacity: 0.45; filter: blur(0.45px); }
 .ico line { stroke: var(--ink-2); stroke-width: 3.6; stroke-linecap: round; }
 /* 6 dashes + 5 gaps fill an edge exactly (6×7.5 + 5×11 = 100), so the pattern is
    symmetric and the two faces sharing an edge draw the same dashes. */
