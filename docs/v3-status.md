@@ -27,7 +27,7 @@ _Last updated 2026-11-20._ This is the hand-off note for the `v3` branch: what w
 ## What's built
 
 - **Popup:** Tabs, Sites and Windows views (S cycles); search with `url:`, `title:` and `dupe:` chips (first 150 results drawn, actions cover all); Select mode; Now playing card with mute; undo toast; `?` shortcuts panel.
-- **Duplicates:** review with tab-like rows under the shared address, big sets folded, stays open after Close and ends on "No duplicates left"; "Close N" on the front screen; ⌘D opens review, ⌘D again closes; playing, current, pinned and grouped copies protected.
+- **Duplicates:** review works like Sites: each set is a header (page, which copy stays, its own "Close N") with its copies under it as tab rows; small sets start open, big ones folded; ←→ fold, ↵ goes to a copy, Space flips keep/close, ⌫ on a header closes that set's extras. Stays open after Close and ends on "No duplicates left". ↓ from search visits the duplicates bar (↵ opens review) and Now playing before the list. ⌘D opens review, ⌘D again closes all; playing, current, pinned and grouped copies protected.
 - **Windows view:** each window with a map of its tab strip (a dot per tab, tab groups bracketed in their colour, collapsed groups as a pill); opened, its tabs under their groups; Focus, Merge into this window (whole groups move as groups), Close, Unload.
 - **Moving tabs:** a site's tabs, search results or a selection to a new window (M).
 - **Settings page:** 10 themes (incl. Cyber), the 3D logo, pinned status, badge preview; changes reach an open popup immediately; `system` theme follows the OS.
