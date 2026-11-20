@@ -246,10 +246,12 @@ describe('update', () => {
     expect(closeEffects(effects).some((id) => pinnedIds.includes(id))).toBe(false);
   });
 
-  it('moves the cursor within the visible list and clamps at the ends', () => {
+  it('wraps ↑↓ around the ends of the list; paging stops at them', () => {
     const order = navOrder(deriveModel(start()));
-    const [s] = run(start(), [{ type: 'moveCursor', delta: 1 }, { type: 'moveCursor', delta: -1 }, { type: 'moveCursor', delta: -1 }]);
-    expect(s.ui.cursor).toBe(order[0]);
+    expect(run(start(), [{ type: 'moveCursor', delta: 1 }, { type: 'moveCursor', delta: -1 }])[0].ui.cursor).toBe(order.at(-1));
+    expect(run(start({ cursor: order.at(-1) }), [{ type: 'moveCursor', delta: 1 }])[0].ui.cursor).toBe(order[0]);
+    expect(run(start({ cursor: order[1] }), [{ type: 'moveCursor', delta: -8 }])[0].ui.cursor).toBe(order[0]);
+    expect(run(start({ cursor: order.at(-2) }), [{ type: 'moveCursor', delta: 8 }])[0].ui.cursor).toBe(order.at(-1));
   });
 
   it('moves the cursor to the next row when the cursor row is closed', () => {

@@ -400,7 +400,10 @@ function step(state: AppState, action: Action): Result {
       const order = navOrder(deriveModel(state));
       if (order.length === 0) return [state, []];
       const at = ui.cursor ? order.indexOf(ui.cursor) : -1;
-      const target = at === -1 ? (action.delta > 0 ? 0 : order.length - 1) : Math.min(order.length - 1, Math.max(0, at + action.delta));
+      const n = order.length;
+      // ↑↓ wrap around the ends; paging stops at them.
+      const target =
+        at === -1 ? (action.delta > 0 ? 0 : n - 1) : Math.abs(action.delta) === 1 ? (at + action.delta + n) % n : Math.min(n - 1, Math.max(0, at + action.delta));
       return [setUi(state, { cursor: order[target] }), []];
     }
     case 'cursorTo': {
