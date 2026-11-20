@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { domainOf, duplicateKey, formatAge } from './tabs';
+import { domainOf, duplicateKey, formatAge, pathOf } from './tabs';
 
 describe('domainOf', () => {
   it.each([
@@ -29,4 +29,13 @@ describe('formatAge', () => {
     [5 * 86_400_000, '5d'],
     [21 * 86_400_000, '3w'],
   ])('%i ms → %s', (ms, expected) => expect(formatAge(ms)).toBe(expected));
+});
+
+describe('pathOf', () => {
+  it.each([
+    ['https://news.ycombinator.com/', '/'],
+    ['https://news.ycombinator.com/item?id=4242', '/item?id=4242'],
+    ['https://a.test/docs#intro', '/docs#intro'],
+    ['not a url', ''],
+  ])('%s → %s', (url, path) => expect(pathOf(url)).toBe(path));
 });

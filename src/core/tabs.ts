@@ -22,6 +22,19 @@ export function duplicateKey(tab: Pick<Tab, 'url'>): string | null {
   return tab.url && COMPARABLE.test(tab.url) ? tab.url : null;
 }
 
+/**
+ * The part of a URL after the site: path, query and hash (`/item?id=1`), `/`
+ * for the home page, `''` when there is no URL to read.
+ */
+export function pathOf(url: string): string {
+  try {
+    const u = new URL(url);
+    return `${u.pathname}${u.search}${u.hash}` || '/';
+  } catch {
+    return '';
+  }
+}
+
 /** Copies per duplicate key, for every key seen at least once. */
 export function countCopies(tabs: readonly Tab[]): Map<string, number> {
   const counts = new Map<string, number>();
