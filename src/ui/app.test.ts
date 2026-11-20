@@ -77,6 +77,20 @@ describe('mountApp keyboard + a11y', () => {
     expect(input.value).toBe('g');
   });
 
+  it('keeps the keyboard working after review opens from the search field (which review removes)', () => {
+    const { container, input, press } = mount();
+    press('ArrowDown', input); // the duplicates bar
+    press('Enter', input);
+    expect(container.querySelector('[data-screen="review"]')).not.toBeNull();
+    // Focus must stay inside the popup, or no key reaches it.
+    expect(container.contains(document.activeElement)).toBe(true);
+    const first = container.querySelector('.is-cursor')?.getAttribute('data-key');
+    press('ArrowDown');
+    const next = container.querySelector('.is-cursor')?.getAttribute('data-key');
+    expect(next).toBeTruthy();
+    expect(next).not.toBe(first);
+  });
+
   it('opens and closes the shortcuts panel', () => {
     const { container, input, press } = mount();
     press('Escape', input);

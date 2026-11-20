@@ -87,6 +87,10 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
   }
 
   function afterRender(root: HTMLElement): void {
+    // A render can remove the focused element (review replaces the search field):
+    // keep focus in the popup, or keys stop reaching it.
+    const active = document.activeElement;
+    if (!active || active === document.body || !active.isConnected) root.focus();
     // The shortcuts panel takes the keyboard: move focus off the search field behind it.
     if (state.ui.helpOpen && root.contains(document.activeElement) && document.activeElement !== root) root.focus();
     const cursor = state.ui.cursor ? root.querySelector<HTMLElement>(`[data-key="${CSS.escape(state.ui.cursor)}"]`) : null;
