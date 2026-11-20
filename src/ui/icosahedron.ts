@@ -144,26 +144,29 @@ export interface Spin {
 
 /** One turn every two minutes. */
 export const AUTO_SPEED = 3;
-/** How long a fling takes to settle back to the slow turn (s, time constant). */
-const SETTLE_S = 1;
+/** How long a fling takes to wind down to the slow turn (s, time constant): a light, well-oiled globe. */
+const SETTLE_S = 5;
 const DEG_PER_PX = 0.6;
 const MAX_FLING = 360;
 
-/** Advance a free spin by `dt` seconds: any fling eases back to `auto`. */
+/** Advance a free spin by `dt` seconds: any fling eases toward the steady `auto` speed. */
 export function coast(spin: Spin, dt: number, auto: number): Spin {
   const velocity = auto + (spin.velocity - auto) * Math.exp(-dt / SETTLE_S);
   return { angle: (spin.angle + ((spin.velocity + velocity) / 2) * dt) % 360, velocity };
 }
 
 /**
- * Turn the solid: slowly on its own, and with the pointer (drag sideways to
- * spin it; let go mid-swipe to fling). With reduced motion it only moves while
- * dragged. Returns a stop function.
+ * Turn the solid: slowly on its own, and with the pointer. Drag sideways to
+ * spin it; let go mid-swipe and it keeps spinning that way, slowing over a few
+ * seconds into the slow turn in the same direction. With reduced motion it only
+ * moves while dragged. Returns a stop function.
  */
 export function attachSpin(stage: HTMLElement, reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches): () => void {
   const solid = stage.querySelector<HTMLElement>('.ico-spin');
   if (!solid) return () => {};
-  const auto = reducedMotion ? 0 : AUTO_SPEED;
+  const speed = reducedMotion ? 0 : AUTO_SPEED;
+  /** Steady speed to settle to; follows the direction of the last fling. */
+  let auto = speed;
   let spin: Spin = { angle: 18, velocity: auto };
   let drag: { x: number; t: number } | null = null;
   let frame = 0;
@@ -201,8 +204,10 @@ export function attachSpin(stage: HTMLElement, reducedMotion = matchMedia('(pref
   const onUp = (e: PointerEvent) => {
     if (!drag) return;
     // Holding still before letting go means "stop here", not "fling".
-    const held = e.timeStamp - drag.t > 90;
+    const held = e.timeStamp - drag.t > 150;
     const fling = held || reducedMotion ? 0 : Math.max(-MAX_FLING, Math.min(MAX_FLING, spin.velocity));
+    // It keeps turning the way it was thrown, winding down to the slow turn.
+    if (fling !== 0) auto = Math.sign(fling) * speed;
     spin = { ...spin, velocity: fling };
     drag = null;
     stage.classList.remove('is-dragging');
