@@ -2,17 +2,16 @@ import '../ui/tokens.css';
 import '../ui/popup.css';
 import '../ui/settings.css';
 import './screens.css';
-import { DEFAULT_SETTINGS } from '../core/settings';
+import { CHOICES, DEFAULT_SETTINGS, readSettings, type Settings } from '../core/settings';
 import { mountApp, type App } from '../ui/app';
 import { h } from '../ui/dom';
 import { mountSettings } from '../ui/settings-page';
-import { applyTheme } from '../ui/theme';
+import { applyTheme, THEME_INFO } from '../ui/theme';
 import { FakeBrowser } from './fake-browser';
 import { FIXTURES, type Fixture } from './fixtures';
 import { MemorySettings } from './memory-settings';
 
-const startLight = new URLSearchParams(location.search).get('theme') === 'light';
-const startSettings = { ...DEFAULT_SETTINGS, theme: startLight ? 'light' : 'dark' } as const;
+const startSettings: Settings = readSettings({ ...DEFAULT_SETTINGS, theme: new URLSearchParams(location.search).get('theme') ?? DEFAULT_SETTINGS.theme });
 /** One settings store for the whole gallery: its theme is the gallery's theme. */
 const settings = new MemorySettings(startSettings);
 
@@ -26,16 +25,17 @@ function mountFixture(slot: HTMLElement, fixture: Fixture): App {
 }
 
 const themeButton = h('button', { class: 'btn', type: 'button' });
+/** Cycles through every theme; the settings page's picker does the same. */
 themeButton.addEventListener('click', async () => {
   const current = await settings.load();
-  await settings.save({ ...current, theme: document.documentElement.dataset.theme === 'light' ? 'dark' : 'light' });
+  const themes = CHOICES.theme;
+  await settings.save({ ...current, theme: themes[(themes.indexOf(current.theme) + 1) % themes.length]! });
 });
 
-function onSettings(s: { theme: 'system' | 'dark' | 'light' }): void {
+function onSettings(s: Settings): void {
   applyTheme(s.theme);
-  const light = document.documentElement.dataset.theme === 'light';
-  themeButton.textContent = light ? 'Dark theme' : 'Light theme';
-  history.replaceState(null, '', light ? '?theme=light' : location.pathname);
+  themeButton.textContent = `Theme: ${THEME_INFO[s.theme].name} →`;
+  history.replaceState(null, '', s.theme === DEFAULT_SETTINGS.theme ? location.pathname : `?theme=${s.theme}`);
 }
 
 const figures = FIXTURES.map((fixture, i) => {

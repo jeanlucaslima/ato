@@ -1,5 +1,5 @@
-body { padding: 32px; background: #17191b; }
-:root[data-theme='light'] body { background: #e2e3e0; }
+/* The backdrop is a shade darker than the theme's canvas, so frames stand out in any theme. */
+body { padding: 32px; background: color-mix(in srgb, var(--canvas), black 22%); }
 .gallery-head { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 24px; }
 .gallery-head h1 { margin: 0; font-size: 20px; }
 .gallery-head p { margin: 0; flex-basis: 100%; font-size: 13px; color: var(--ink-2); }
