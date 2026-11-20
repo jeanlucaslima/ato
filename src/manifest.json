@@ -39,6 +39,7 @@
     "tabs",
     "storage",
     "sessions",
-    "tabGroups"
+    "tabGroups",
+    "contextMenus"
   ]
 }

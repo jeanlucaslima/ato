@@ -9,7 +9,8 @@ On the `v3` branch the 2.x code (`background/`, `popup/`, `options/`, `shared/`,
 ```
 src/
 ├── manifest.json        # popup → popup/index.html, options → options/index.html, worker → background/worker.js
-├── background/worker.ts # MV3 service worker: toolbar badge (core/badge.ts) on tab events + settings changes
+├── background/worker.ts # MV3 service worker: toolbar badge (core/badge.ts) on tab events + settings changes;
+│                        # tab right-click menu (core/tab-menu.ts: close duplicates of / other tabs from site)
 ├── core/                # Pure logic, no DOM/Chrome: types, tabs (domain/age), duplicates (keep/close
 │                        # planner + safety rules), search, settings (defaults + safe read of stored data).
 │                        # fast-check property tests live beside them.
@@ -314,6 +315,7 @@ See "Settings" above — touch `options.js` (`DEFAULT_SETTINGS` + `SETTING_TYPES
 
 - `tabs` — read tab info (title, URL incl. `file://`, favicon) for all tabs
 - `tabGroups` (v3) — read group names/colours and move whole groups (Windows view, merge)
+- `contextMenus` (v3) — the tab right-click menu (no install warning)
 - `storage` — persist user settings (`chrome.storage.sync`)
 - `sessions` — restore (undo) closed tabs
 
