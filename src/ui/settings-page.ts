@@ -17,6 +17,8 @@ export interface SettingsView {
   version: string;
   /** Whether ATO's icon is pinned to the toolbar; `null` when unknown. Only the user can pin it. */
   pinned?: boolean | null;
+  /** The theme grid shows every theme (otherwise a row and a half). */
+  themesOpen?: boolean;
   /** A change has been saved since the page opened. */
   saved: boolean;
 }
@@ -88,12 +90,40 @@ function themeCard(s: Settings, value: Settings['theme']): HTMLElement {
   );
 }
 
-function themePicker(s: Settings): HTMLElement {
+/** Cards fully shown while the grid is folded: the first row (the half row below stays clickable). */
+const FOLDED_CARDS = 6;
+
+/**
+ * Folded, the grid shows a row and a half and fades out; a button opens the
+ * rest. Cards out of sight are inert so the keyboard can't land on them.
+ */
+function themePicker(s: Settings, open: boolean): HTMLElement {
+  const current = THEME_INFO[s.theme].name;
+  const hiddenCurrent = !open && CHOICES.theme.indexOf(s.theme) >= FOLDED_CARDS;
   return h(
     'section',
     null,
     h('h2', { id: 'theme-title' }, 'Theme'),
-    h('div', { class: 'theme-grid', role: 'radiogroup', 'aria-labelledby': 'theme-title' }, CHOICES.theme.map((t) => themeCard(s, t))),
+    h(
+      'div',
+      { class: cls('theme-fold', open && 'is-open'), id: 'theme-fold' },
+      h(
+        'div',
+        { class: 'theme-grid', role: 'radiogroup', 'aria-labelledby': 'theme-title' },
+        CHOICES.theme.map((t, i) => {
+          const card = themeCard(s, t);
+          if (!open && i >= FOLDED_CARDS) card.setAttribute('inert', '');
+          return card;
+        }),
+      ),
+    ),
+    h(
+      'button',
+      { class: 'theme-more', type: 'button', 'data-action': 'toggle-themes', 'aria-expanded': String(open), 'aria-controls': 'theme-fold' },
+      open ? 'Show fewer' : `Show all ${CHOICES.theme.length} themes`,
+      hiddenCurrent && h('span', { class: 'theme-more-current' }, ` · using ${current}`),
+      icon('chevron', 10),
+    ),
   );
 }
 
@@ -188,7 +218,7 @@ function swatches(s: Settings): HTMLElement {
 }
 
 /** Render the whole settings page. Pure: same view, same DOM. */
-export function renderSettings({ settings: s, version, saved, pinned = null }: SettingsView): HTMLElement {
+export function renderSettings({ settings: s, version, saved, pinned = null, themesOpen = false }: SettingsView): HTMLElement {
   return h(
     'div',
     { class: 'settings' },
@@ -213,7 +243,7 @@ export function renderSettings({ settings: s, version, saved, pinned = null }: S
       choice(s, 'view', 'Show', { tabs: 'Tabs', sites: 'Sites' }),
       choice(s, 'scope', 'From', { all: 'All windows', current: 'This window' }, 'Search always covers every window.'),
     ),
-    themePicker(s),
+    themePicker(s, themesOpen),
     section(
       'Toolbar',
       'Preview: the number on the toolbar icon arrives with the background worker.',
@@ -253,10 +283,11 @@ export async function mountSettings(container: HTMLElement, store: SettingsStore
   let settings = await store.load();
   let saved = false;
   let pinned: boolean | null = null;
+  let themesOpen = false;
   let root: HTMLElement | null = null;
 
   function render(): void {
-    const next = renderSettings({ settings, version: options.version, saved, pinned });
+    const next = renderSettings({ settings, version: options.version, saved, pinned, themesOpen });
     if (root) morph(root, next);
     else container.replaceChildren((root = next));
   }
@@ -275,7 +306,15 @@ export async function mountSettings(container: HTMLElement, store: SettingsStore
     void store.save(settings);
   };
 
+  const onClick = (event: MouseEvent) => {
+    if ((event.target as HTMLElement).closest('[data-action="toggle-themes"]')) {
+      themesOpen = !themesOpen;
+      render();
+    }
+  };
+
   container.addEventListener('change', onChange);
+  container.addEventListener('click', onClick);
   const unsubscribe = store.subscribe(set);
   set(settings);
   const logo = container.querySelector<HTMLElement>('.ico');
@@ -290,6 +329,7 @@ export async function mountSettings(container: HTMLElement, store: SettingsStore
       stopSpin();
       unsubscribe();
       container.removeEventListener('change', onChange);
+      container.removeEventListener('click', onClick);
     },
   };
 }

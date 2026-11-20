@@ -53,7 +53,15 @@
 .switch:checked::before { translate: 16px 0; background: var(--ok); }
 
 /* Theme picker: each card shows a tiny popup in the theme's own colours */
-.theme-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.theme-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 2px; }
+/* Folded: a row and a half, fading out; opening animates to the full height. */
+.theme-fold { interpolate-size: allow-keywords; height: 252px; overflow: hidden; margin: -2px; mask-image: linear-gradient(to bottom, #000 62%, transparent); transition: height var(--t-slow, 240ms) cubic-bezier(0.2, 0.7, 0.2, 1); }
+.theme-fold.is-open { height: auto; mask-image: none; }
+.theme-more { display: flex; align-items: center; gap: 6px; margin: 6px auto 0; height: 30px; padding: 0 14px; border: 1px solid var(--line); border-radius: 15px; background: var(--surface); color: var(--ink-2); font-size: 12.5px; font-weight: 600; }
+.theme-more:hover { color: var(--ink); border-color: var(--ink-3); }
+.theme-more svg { transition: rotate var(--t, 180ms); }
+.theme-more[aria-expanded='true'] svg { rotate: 180deg; }
+.theme-more-current { font-weight: 400; color: var(--ink-3); }
 .theme-card { position: relative; display: flex; flex-direction: column; gap: 2px; padding: 8px 8px 10px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); cursor: pointer; transition: border-color 120ms, translate 160ms cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 160ms; }
 .theme-card:hover { translate: 0 -2px; box-shadow: var(--shadow); }
 .theme-card input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }

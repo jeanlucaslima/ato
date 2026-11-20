@@ -58,6 +58,18 @@ describe('settings page', () => {
     expect(off.querySelector('.tb-badge')).toBeNull();
   });
 
+  it('folds the theme grid to a row and a half until opened', async () => {
+    const container = document.createElement('div');
+    await mountSettings(container, new MemorySettings({ ...DEFAULT_SETTINGS, theme: 'dune' }), { version: '3' });
+    const more = () => container.querySelector<HTMLButtonElement>('.theme-more')!;
+    expect(more().getAttribute('aria-expanded')).toBe('false');
+    expect(more().textContent).toContain('using Dune');
+    expect(container.querySelector('.theme-card input[value="dune"]')!.closest('.theme-card')!.hasAttribute('inert')).toBe(true);
+    more().click();
+    expect(more().getAttribute('aria-expanded')).toBe('true');
+    expect(container.querySelectorAll('.theme-card[inert]')).toHaveLength(0);
+  });
+
   it('follows changes saved elsewhere', async () => {
     const store = new MemorySettings();
     const container = document.createElement('div');
