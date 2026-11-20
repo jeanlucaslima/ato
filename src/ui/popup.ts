@@ -20,7 +20,7 @@ function hintsFor(m: PopupModel): Hint[] {
     case 'search':
       return [['↑↓', 'move'], ['↵', 'go'], ['⌘⌫', 'close all'], ['Esc', 'clear']];
     case 'review':
-      return m.screen.sets.length === 0 ? [['Esc', 'back']] : [['←→', 'fold'], ['Space', 'keep/close'], ['⌫', 'close set'], ['⌘D', `close ${closeCount(m.screen.sets)}`]];
+      return m.screen.sets.length === 0 ? [['Esc', 'back']] : [['←→', 'fold'], ['Space', 'keep/close'], ['⌫', 'close'], ['U', 'unload'], ['⌘D', `close ${closeCount(m.screen.sets)}`]];
   }
 }
 

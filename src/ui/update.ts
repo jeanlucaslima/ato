@@ -153,6 +153,7 @@ function onCursorKey(state: AppState, key: Extract<Action, { type: 'cursorKey' }
       if (key === 'enter' || key === 'space') return update(state, { type: 'toggleSet', key: setKey });
       if (key === 'right' || key === 'left') return update(state, { type: 'toggleSet', key: setKey, open: key === 'right' });
       if (key === 'delete') return update(state, { type: 'closeSet', key: setKey });
+      if (key === 'unload') return update(state, { type: 'unloadSet', key: setKey });
       return [state, []];
     }
     const id = tabIdOf(cursor);
@@ -288,6 +289,11 @@ function step(state: AppState, action: Action): Result {
       const shown = screen.kind === 'review' ? screen.sets.find((s) => s.key === action.key)?.expanded : undefined;
       const open = action.open ?? !shown;
       return [setUi(state, { setOpen: new Map(ui.setOpen).set(action.key, open), cursor: `set:${action.key}` }), []];
+    }
+    case 'unloadSet': {
+      if (!state.snapshot) return [state, []];
+      const set = duplicatePlan(state.snapshot, ui).find((s) => s.key === action.key);
+      return startUnload(state, set ? set.copies.map((c) => c.tab) : []);
     }
     case 'closeSet': {
       if (!state.snapshot) return [state, []];

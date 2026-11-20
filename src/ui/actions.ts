@@ -21,6 +21,8 @@ export type Action =
   | { type: 'toggleSet'; key: string; open?: boolean }
   /** Review: close one set's extra copies (one stays, as planned). */
   | { type: 'closeSet'; key: string }
+  /** Review: unload every copy in a set (the current tab stays loaded). */
+  | { type: 'unloadSet'; key: string }
   | { type: 'confirmReview' }
   /** Close every duplicate the planner would, without opening review. */
   | { type: 'closeDuplicates' }

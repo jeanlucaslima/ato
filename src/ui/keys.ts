@@ -148,7 +148,7 @@ export const KEY_HELP: HelpSection[] = [
     entries: [
       { keys: ['↵'], label: 'Go to tab or window · toggle site · open review from the duplicates bar' },
       { keys: ['⌫'], label: 'Close tab, site or selection · a set\'s extra copies in review' },
-      { keys: ['U'], label: 'Unload (free memory, keep the tab)' },
+      { keys: ['U'], label: 'Unload (free memory, keep the tab) · a whole set in review' },
       { keys: ['M'], label: 'Move a site, the results or the selection to a new window · merge a window into this one' },
       { keys: ['Space'], label: 'Select · flip keep/close in review' },
       { keys: ['⌘Z'], label: 'Undo the last close' },

@@ -70,6 +70,11 @@ describe('update', () => {
     expect(review(refolded).expanded).toBe(false);
     expect(refolded.ui.cursor).toBe(`set:${hn}`);
 
+    const [, unloadFx] = run(refolded, [{ type: 'cursorKey', key: 'unload' }]);
+    const unloaded = unloadFx.flatMap((e) => (e.kind === 'discard' ? e.tabIds : []));
+    expect(unloaded.length).toBeGreaterThan(0);
+    expect(unloaded.every((id) => { const t = MANY_COPIES.tabs.find((x) => x.id === id)!; return t.url === hn && !t.active; })).toBe(true);
+
     const [after, fx] = run(refolded, [{ type: 'cursorKey', key: 'delete' }]);
     const closed = closeEffects(fx);
     expect(closed).toHaveLength(total - 1);
