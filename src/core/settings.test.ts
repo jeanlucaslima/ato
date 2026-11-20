@@ -9,6 +9,8 @@ const validSettings: fc.Arbitrary<Settings> = fc.record({
   view: fc.constantFrom(...CHOICES.view),
   scope: fc.constantFrom(...CHOICES.scope),
   theme: fc.constantFrom(...CHOICES.theme),
+  badge: fc.constantFrom(...CHOICES.badge),
+  badgeColor: fc.constantFrom(...CHOICES.badgeColor),
 });
 
 function isValid(s: Settings): boolean {
@@ -26,8 +28,13 @@ describe('readSettings', () => {
     for (const raw of [undefined, null, 42, 'dark', []]) expect(readSettings(raw)).toEqual(DEFAULT_SETTINGS);
   });
 
+  it('reads the old dark/light theme names', () => {
+    expect(readSettings({ theme: 'dark' }).theme).toBe('graphite');
+    expect(readSettings({ theme: 'light' }).theme).toBe('paper');
+  });
+
   it('keeps valid fields and defaults the invalid ones', () => {
-    expect(readSettings({ keep: 'newest', theme: 'neon', protectPinned: 'yes', scope: 'current' })).toEqual({
+    expect(readSettings({ keep: 'newest', theme: 'disco', protectPinned: 'yes', scope: 'current' })).toEqual({
       ...DEFAULT_SETTINGS,
       keep: 'newest',
       scope: 'current',

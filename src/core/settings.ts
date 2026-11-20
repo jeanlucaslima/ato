@@ -5,6 +5,14 @@
  */
 import type { DuplicatePolicy } from './duplicates';
 
+/** Named colour themes. `system` (a setting, not a theme) follows the OS: Paper or Graphite. */
+export const THEMES = ['graphite', 'paper', 'nebula', 'ember', 'neon', 'lagoon', 'sakura', 'dune'] as const;
+export type ThemeId = (typeof THEMES)[number];
+
+/** Badge background colours on offer. */
+export const BADGE_COLORS = ['#dc2626', '#ea580c', '#ca8a04', '#16a34a', '#0891b2', '#2563eb', '#7c3aed', '#db2777', '#475569'] as const;
+export type BadgeColor = (typeof BADGE_COLORS)[number];
+
 export interface Settings {
   /** Which copy survives cleanup when no copy is protected. */
   keep: 'oldest' | 'newest';
@@ -14,7 +22,10 @@ export interface Settings {
   view: 'tabs' | 'sites';
   /** Windows the popup shows when it opens. Search always covers every window. */
   scope: 'all' | 'current';
-  theme: 'system' | 'dark' | 'light';
+  theme: 'system' | ThemeId;
+  /** What the number on the toolbar icon counts. */
+  badge: 'duplicates' | 'all' | 'off';
+  badgeColor: BadgeColor;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -23,7 +34,9 @@ export const DEFAULT_SETTINGS: Settings = {
   protectGroups: true,
   view: 'tabs',
   scope: 'all',
-  theme: 'dark',
+  theme: 'graphite',
+  badge: 'duplicates',
+  badgeColor: '#dc2626',
 };
 
 export type ChoiceKey = { [K in keyof Settings]: Settings[K] extends string ? K : never }[keyof Settings];
@@ -34,8 +47,13 @@ export const CHOICES: { readonly [K in ChoiceKey]: readonly Settings[K][] } = {
   keep: ['oldest', 'newest'],
   view: ['tabs', 'sites'],
   scope: ['all', 'current'],
-  theme: ['system', 'dark', 'light'],
+  theme: ['system', ...THEMES],
+  badge: ['duplicates', 'all', 'off'],
+  badgeColor: BADGE_COLORS,
 };
+
+/** Earlier names still found in storage. */
+const THEME_ALIASES: Record<string, ThemeId> = { dark: 'graphite', light: 'paper' };
 
 const TOGGLES: readonly ToggleKey[] = ['protectPinned', 'protectGroups'];
 
@@ -43,6 +61,7 @@ const TOGGLES: readonly ToggleKey[] = ['protectPinned', 'protectGroups'];
 export function readSettings(raw: unknown): Settings {
   const data = raw !== null && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
   const out: Record<string, unknown> = { ...DEFAULT_SETTINGS };
+  if (typeof data.theme === 'string' && THEME_ALIASES[data.theme]) out.theme = THEME_ALIASES[data.theme];
   for (const [key, allowed] of Object.entries(CHOICES)) {
     if ((allowed as readonly unknown[]).includes(data[key])) out[key] = data[key];
   }
