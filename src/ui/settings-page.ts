@@ -3,9 +3,9 @@
  * Rendering is a pure function of `SettingsView`; `mountSettings` owns the
  * state and re-renders with `morph` so focus survives a change.
  */
-import logoUrl from '../assets/icons/ato-logo.svg';
 import { CHOICES, readSettings, type ChoiceKey, type Settings, type ToggleKey } from '../core/settings';
 import { cls, h } from './dom';
+import { icosahedron } from './icosahedron';
 import { morph } from './morph';
 import type { SettingsStore } from './settings-store';
 
@@ -62,8 +62,9 @@ export function renderSettings({ settings: s, version, saved }: SettingsView): H
     h(
       'header',
       { class: 'settings-head' },
-      h('img', { src: logoUrl, alt: '', width: 44, height: 44 }),
-      h('div', null, h('h1', null, 'ATO'), h('p', null, 'Advanced Tab Organizer · Settings')),
+      icosahedron(64),
+      h('h1', null, 'ATO'),
+      h('p', null, 'Advanced Tab Organizer · Settings'),
       h('span', { class: cls('saved', saved && 'is-saved'), role: 'status' }, saved ? 'Saved' : 'Changes save automatically'),
     ),
     section(

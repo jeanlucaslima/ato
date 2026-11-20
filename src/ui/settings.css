@@ -1,11 +1,28 @@
 /* Options page. Uses the tokens from tokens.css. */
 .settings { max-width: 640px; margin: 0 auto; padding: 36px 24px 48px; }
 
-.settings-head { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
-.settings-head img { width: 44px; height: 44px; border-radius: 12px; flex: none; }
-.settings-head h1 { margin: 0; font-size: 22px; letter-spacing: 0.04em; }
-.settings-head p { margin: 2px 0 0; font-size: 13px; color: var(--ink-3); }
-.saved { margin-left: auto; font-size: 12px; color: var(--ink-3); }
+.settings-head { display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: 32px; }
+.settings-head h1 { margin: 18px 0 0; font-size: 26px; letter-spacing: 0.12em; }
+.settings-head p { margin: 4px 0 0; font-size: 13px; color: var(--ink-3); }
+.saved { margin-top: 10px; font-size: 12px; color: var(--ink-3); }
+
+/* Logo: a 3D icosahedron turning slowly on a tilted axis, like a globe.
+   Decorative only; reduced motion leaves it still. */
+.ico { position: relative; width: var(--ico-size); height: var(--ico-size); perspective: 700px; margin-top: 8px; }
+.ico-tilt, .ico-spin { position: absolute; inset: 0; transform-style: preserve-3d; }
+.ico-tilt { transform: rotateX(-14deg) rotateZ(23.5deg); }
+.ico-spin { animation: ico-turn 48s linear infinite; }
+.ico-face { position: absolute; left: 50%; top: 50%; width: 100px; height: 86.6px; transform-origin: 0 0; }
+.ico-face svg { display: block; overflow: visible; }
+.ico-face polygon {
+  fill: color-mix(in srgb, var(--focus) 7%, transparent);
+  stroke: var(--ink-2);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+.ico-shadow { position: absolute; left: 18%; right: 18%; bottom: -14px; height: 10px; border-radius: 50%; background: radial-gradient(closest-side, rgb(0 0 0 / 0.35), transparent); }
+:root[data-theme='light'] .ico-shadow { background: radial-gradient(closest-side, rgb(0 0 0 / 0.12), transparent); }
+@keyframes ico-turn { to { transform: rotateY(-360deg); } }
 .saved.is-saved { color: var(--ok); }
 .saved.is-saved::before { content: '✓ '; }
 
