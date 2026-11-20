@@ -125,13 +125,15 @@ This is groundwork for steps 4 and 5. It is not a feature by itself.
 
 ## Order
 
-| # | Step | Depends on | New permission |
-|---|---|---|---|
-| 1 | Never break a split view | — | — |
-| 2 | Undo for any number of tabs | — (simplest version in the popup first) | — |
-| 3 | Service worker and badge | — | — |
-| 4 | Tab right-click menu | 3, 2 | `contextMenus` |
-| 5 | Two-level grouping by site | — | `publicSuffix` |
+| # | Step | Depends on | New permission | Status (2026-11-19) |
+|---|---|---|---|---|
+| 1 | Never break a split view | — | — | Deferred |
+| 2 | Undo for any number of tabs | — (simplest version in the popup first) | — | Deferred |
+| 3 | Service worker and badge | — | — | Built (badge); `browser.*` switch not done |
+| 4 | Tab right-click menu | 3, 2 | `contextMenus` | Built, without ATO undo (needs 2) |
+| 5 | Two-level grouping by site | — | `publicSuffix` | Deferred |
+
+Current state, decisions and open items: [v3-status.md](v3-status.md).
 
 ## Not adopting (yet)
 

@@ -4,6 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## ⚠️ `v3` branch: ground-up rewrite in progress
 
+**Start with [docs/v3-status.md](docs/v3-status.md)**: decisions, how we work, what's built, what's open.
+
 On the `v3` branch the 2.x code (`background/`, `popup/`, `options/`, `shared/`, `engine/`) is gone; everything below this section describes 2.x as it still exists on `main`. The rewrite is **vanilla TypeScript** (Vite + Vitest, no UI framework). Scope of the first release is still being decided — don't build features beyond what's asked.
 
 ```
