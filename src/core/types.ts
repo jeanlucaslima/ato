@@ -12,6 +12,8 @@ export interface Tab {
   active: boolean;
   pinned: boolean;
   audible: boolean;
+  /** Muted by the user; a muted tab can still be `audible` (playing, unheard). */
+  muted?: boolean;
   discarded: boolean;
   /** Native tab group id, or -1 when ungrouped. */
   groupId: number;
