@@ -20,6 +20,7 @@ export interface TabRow {
   current?: boolean;
   pinned?: boolean;
   audible?: boolean;
+  muted?: boolean;
   /** Discarded by the browser or by ATO; still in the tab strip. */
   unloaded?: boolean;
   /** Number of copies when this tab is part of a duplicate set (≥ 2). */
@@ -105,6 +106,8 @@ export interface PopupModel {
   /** Present while in Select mode; holds the selected tab ids. */
   selection?: ReadonlySet<number>;
   toast?: { id: number; message: string; undo: boolean };
+  /** Tabs making sound, in any window, most recent first. */
+  playing: TabRow[];
 }
 
 export function loadingModel(): PopupModel {
@@ -117,5 +120,6 @@ export function loadingModel(): PopupModel {
     screen: { kind: 'loading' },
     searchFocused: true,
     helpOpen: false,
+    playing: [],
   };
 }

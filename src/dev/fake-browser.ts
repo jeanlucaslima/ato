@@ -57,6 +57,10 @@ export class FakeBrowser implements BrowserPort {
     this.commit(this.state.tabs.map((t) => (ids.has(t.id) ? { ...t, windowId, index: index++, active: index === 1 } : t)));
   }
 
+  async setMuted(tabId: number, muted: boolean): Promise<void> {
+    this.commit(this.state.tabs.map((t) => (t.id === tabId ? { ...t, muted } : t)));
+  }
+
   async openSettings(): Promise<void> {
     this.onOpenSettings?.();
   }

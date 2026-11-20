@@ -109,6 +109,9 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
       case 'openSettings':
         void browser.openSettings();
         return;
+      case 'mute':
+        void browser.setMuted(effect.tabId, effect.muted);
+        return;
     }
   }
 
@@ -176,6 +179,8 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
         return { type: 'undo' };
       case 'settings':
         return { type: 'openSettings' };
+      case 'toggle-mute':
+        return { type: 'toggleMute', tabId: id };
       case 'toggle-help':
         return { type: 'toggleHelp' };
       case 'close-selected':

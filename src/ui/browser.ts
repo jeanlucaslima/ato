@@ -16,4 +16,5 @@ export interface BrowserPort {
   discard(tabIds: number[]): Promise<void>;
   moveToNewWindow(tabIds: number[]): Promise<void>;
   openSettings(): Promise<void>;
+  setMuted(tabId: number, muted: boolean): Promise<void>;
 }

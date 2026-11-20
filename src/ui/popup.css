@@ -44,6 +44,28 @@
 .strip--idle { border-color: var(--line); background: var(--surface); }
 .strip--idle .dot { background: var(--ink-3); }
 
+/* Now playing: audible tabs from any window */
+.playing { flex: none; margin: 0 12px 10px; padding: 3px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+.play-row { display: flex; align-items: center; gap: 2px; }
+.play-row + .play-row { border-top: 1px solid var(--line-soft); }
+.play-go { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; height: 38px; padding: 0 8px; border: 0; border-radius: 7px; background: transparent; text-align: left; }
+.play-go:hover { background: var(--raised); }
+.play-text { min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+.play-title { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.play-sub { font-size: 11px; color: var(--ink-3); }
+.play-mute { color: var(--ok); }
+.is-muted .play-mute { color: var(--ink-3); }
+.is-muted .play-title { color: var(--ink-2); }
+.play-more { margin: 0; padding: 2px 8px 5px 34px; font-size: 11px; color: var(--ink-3); }
+.eq { flex: none; display: flex; align-items: flex-end; gap: 2px; width: 16px; height: 14px; color: var(--ok); }
+.eq i { flex: 1; height: 40%; border-radius: 1px; background: currentColor; animation: eq 820ms ease-in-out infinite alternate; }
+.eq i:nth-child(2) { animation-duration: 640ms; animation-delay: -200ms; }
+.eq i:nth-child(3) { animation-duration: 940ms; animation-delay: -420ms; }
+.eq i:nth-child(4) { animation-duration: 720ms; animation-delay: -120ms; }
+.is-muted .eq { color: var(--ink-3); }
+.is-muted .eq i { height: 20%; animation-play-state: paused; }
+@keyframes eq { from { height: 18%; } to { height: 100%; } }
+
 /* Buttons */
 .btn { height: 30px; padding: 0 10px; border: 1px solid var(--line); border-radius: 7px; background: transparent; font-size: 12px; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
 .btn:hover:not(:disabled) { background: var(--surface); }

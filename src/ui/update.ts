@@ -317,6 +317,10 @@ function step(state: AppState, action: Action): Result {
       return [setUi(state, { helpOpen: !ui.helpOpen }), []];
     case 'cursorKey':
       return onCursorKey(state, action.key);
+    case 'toggleMute': {
+      const tab = state.snapshot?.tabs.find((t) => t.id === action.tabId);
+      return [state, tab ? [{ kind: 'mute', tabId: tab.id, muted: !tab.muted }] : []];
+    }
     case 'openSettings': {
       const [s, effects] = withToast(state, 'Settings open in a new tab');
       return [s, [{ kind: 'openSettings' }, ...effects]];

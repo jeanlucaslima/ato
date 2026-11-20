@@ -17,6 +17,6 @@ describe('fromChromeTab', () => {
 
   it('keeps what Chrome reports', () => {
     const tab = fromChromeTab({ ...base, id: 3, url: 'https://b.test/', title: 'B', audible: true, pinned: true, groupId: 4, lastAccessed: 5, favIconUrl: 'x.png' }, 99);
-    expect(tab).toEqual({ id: 3, windowId: 1, index: 0, title: 'B', url: 'https://b.test/', favIconUrl: 'x.png', active: false, pinned: true, audible: true, discarded: false, groupId: 4, lastAccessed: 5 });
+    expect(tab).toEqual({ id: 3, windowId: 1, index: 0, title: 'B', url: 'https://b.test/', favIconUrl: 'x.png', active: false, pinned: true, audible: true, muted: false, discarded: false, groupId: 4, lastAccessed: 5 });
   });
 });

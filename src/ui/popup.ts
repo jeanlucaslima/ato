@@ -1,4 +1,4 @@
-import { brandBar, duplicateStrip, hintFooter, searchBar, searchTips, selectionBar, toast, viewBar, type Hint } from './chrome';
+import { brandBar, duplicateStrip, nowPlaying, hintFooter, searchBar, searchTips, selectionBar, toast, viewBar, type Hint } from './chrome';
 import { h, type Child } from './dom';
 import { helpPanel } from './help';
 import { plural } from './format';
@@ -93,6 +93,7 @@ export function renderPopup(m: PopupModel): HTMLElement {
     brandBar(),
     m.screen.kind === 'review' ? reviewHeader(m.screen) : searchBar(m),
     kind !== 'review' && kind !== 'search' && duplicateStrip(m),
+    (kind === 'tabs' || kind === 'sites') && nowPlaying(m.playing),
     body(m),
     m.toast && toast(m.toast),
     m.helpOpen && helpPanel(),

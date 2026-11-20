@@ -92,5 +92,17 @@ export const FIXTURES: Fixture[] = [
   { name: 'Search · url: chip', state: at({ query: 'url:github', cursor: `tab:${idOf('Issues · ato')}` }) },
   { name: 'url: just typed (chip, no text yet)', state: at({ query: 'url:' }) },
   { name: 'Search · title: chip', state: at({ query: 'title:chrome', cursor: `tab:${idOf('chrome.tabs — Chrome for Developers')}` }) },
+  {
+    name: 'Playing media (one muted)',
+    state: at(
+      { searchFocused: false },
+      {
+        ...SNAPSHOT,
+        tabs: TABS.map((t) =>
+          t.title === 'Conference talk: building fast extensions' ? { ...t, audible: true, muted: true } : t.title === 'Hacker News' && t.windowId === 2 ? { ...t, audible: true } : t,
+        ),
+      },
+    ),
+  },
   { name: 'Loading', state: at({}, null) },
 ];

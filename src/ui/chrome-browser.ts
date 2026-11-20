@@ -23,6 +23,7 @@ export function fromChromeTab(t: chrome.tabs.Tab, now: number): Tab | null {
     active: t.active,
     pinned: t.pinned,
     audible: t.audible ?? false,
+    muted: t.mutedInfo?.muted ?? false,
     discarded: t.discarded,
     groupId: t.groupId ?? -1,
     lastAccessed: t.lastAccessed ?? now,
@@ -116,6 +117,10 @@ export class ChromeBrowser implements BrowserPort {
     if (first === undefined) return;
     const win = await chrome.windows.create({ tabId: first, focused: false });
     if (rest.length > 0 && win?.id !== undefined) await chrome.tabs.move(rest, { windowId: win.id, index: -1 });
+  }
+
+  async setMuted(tabId: number, muted: boolean): Promise<void> {
+    await chrome.tabs.update(tabId, { muted });
   }
 
   async openSettings(): Promise<void> {

@@ -28,6 +28,7 @@ function toRow(tab: Tab, snapshot: Snapshot, copies: Map<string, number>, ui: Ui
     current: tab.active && tab.windowId === snapshot.focusedWindowId,
     pinned: tab.pinned,
     audible: tab.audible,
+    muted: tab.muted,
     unloaded: tab.discarded,
     copies: count > 1 ? count : undefined,
     age: formatAge(snapshot.now - tab.lastAccessed),
@@ -122,6 +123,10 @@ export function deriveModel({ snapshot, ui }: AppState): PopupModel {
     cursor: ui.cursor,
     selection: ui.selection,
     toast: ui.toast && { id: ui.toast.id, message: ui.toast.message, undo: Boolean(ui.toast.undo?.length) },
+    playing: snapshot.tabs
+      .filter((t) => t.audible)
+      .sort((a, b) => b.lastAccessed - a.lastAccessed)
+      .map((t) => toRow(t, snapshot, copies, ui)),
   };
 
   if (ui.reviewOpen) {

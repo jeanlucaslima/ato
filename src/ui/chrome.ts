@@ -3,7 +3,7 @@ import { cls, h } from './dom';
 import { plural } from './format';
 import { icon } from './icons';
 import { logoSvg } from './logo-svg';
-import type { PopupModel, Scope, SearchField, SearchMode, SiteSort, TabSort } from './model';
+import type { PopupModel, Scope, SearchField, SearchMode, SiteSort, TabRow, TabSort } from './model';
 
 /**
  * The logo at header size: the 3D icosahedron in the text colour (so it follows
@@ -90,6 +90,45 @@ export function searchTips(mode: SearchMode, field: SearchField | null): HTMLEle
     field
       ? [h('span', null, `${field === 'url' ? 'URLs' : 'Titles'} only ·`), h('kbd', { class: 'k' }, '⌫'), h('span', null, 'at the start removes it')]
       : [h('span', null, 'Try'), ['"exact"', 'url:', 'title:'].map((s) => h('code', { class: 'k' }, s))],
+  );
+}
+
+/** Equalizer bars: move while a tab plays, rest while it's muted. */
+function eq(): HTMLElement {
+  return h('span', { class: 'eq', 'aria-hidden': 'true' }, h('i'), h('i'), h('i'), h('i'));
+}
+
+/** How many playing tabs get a row; the rest are counted. */
+const PLAYING_ROWS = 2;
+
+/**
+ * Tabs making sound, from any window: click one to go there, mute or unmute
+ * it in place. Hidden when nothing plays.
+ */
+export function nowPlaying(rows: readonly TabRow[]): HTMLElement | null {
+  if (rows.length === 0) return null;
+  const extra = rows.length - PLAYING_ROWS;
+  return h(
+    'section',
+    { class: 'playing', 'aria-label': 'Playing audio', 'data-key': 'playing' },
+    rows.slice(0, PLAYING_ROWS).map((r) =>
+      h(
+        'div',
+        { class: cls('play-row', r.muted && 'is-muted') },
+        h(
+          'button',
+          { class: 'play-go', type: 'button', 'data-action': 'activate', 'data-id': r.id, title: 'Go to this tab' },
+          eq(),
+          h('span', { class: 'play-text' }, h('span', { class: 'play-title' }, r.title), h('span', { class: 'play-sub' }, r.muted ? `${r.domain} · muted` : r.domain)),
+        ),
+        h(
+          'button',
+          { class: 'icon-btn play-mute', type: 'button', 'data-action': 'toggle-mute', 'data-id': r.id, 'aria-pressed': String(Boolean(r.muted)), 'aria-label': r.muted ? 'Unmute' : 'Mute', title: r.muted ? 'Unmute' : 'Mute' },
+          icon(r.muted ? 'muted' : 'audio', 16),
+        ),
+      ),
+    ),
+    extra > 0 && h('p', { class: 'play-more' }, `+${extra} more playing`),
   );
 }
 

@@ -43,7 +43,8 @@ export type Action =
   | { type: 'toggleHelp' }
   /** Enter / Space / Delete / U / ←→ on whatever the cursor is on. */
   | { type: 'cursorKey'; key: 'enter' | 'space' | 'delete' | 'unload' | 'left' | 'right' }
-  | { type: 'openSettings' };
+  | { type: 'openSettings' }
+  | { type: 'toggleMute'; tabId: number };
 
 /** Side effects the runtime performs; results come back as actions. */
 export type Effect =
@@ -53,4 +54,5 @@ export type Effect =
   | { kind: 'discard'; tabIds: number[] }
   | { kind: 'move'; tabIds: number[] }
   | { kind: 'expireToast'; id: number }
-  | { kind: 'openSettings' };
+  | { kind: 'openSettings' }
+  | { kind: 'mute'; tabId: number; muted: boolean };
