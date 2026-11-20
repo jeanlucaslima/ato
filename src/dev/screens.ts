@@ -50,6 +50,11 @@ const figures = FIXTURES.map((fixture, i) => {
 });
 
 const resetSettings = h('button', { class: 'btn btn--ghost', type: 'button', title: 'Back to the default settings' }, 'Reset');
+/** Pinning happens in Chrome's own menu; here a button stands in for it. */
+let pinned = true;
+const pinButton = h('button', { class: 'btn btn--ghost', type: 'button', title: 'Pretend to pin or unpin ATO in Chrome' });
+const syncPin = () => (pinButton.textContent = pinned ? 'Simulate: unpin ATO' : 'Simulate: pin ATO');
+syncPin();
 resetSettings.addEventListener('click', () => void settings.save(startSettings));
 
 document.body.replaceChildren(
@@ -64,8 +69,15 @@ document.body.replaceChildren(
   h(
     'section',
     { class: 'gallery-settings' },
-    h('figure', null, h('figcaption', null, h('span', null, 'Settings page (options page, opened in a tab)'), resetSettings), settingsFrame),
+    h('figure', null, h('figcaption', null, h('span', null, 'Settings page (options page, opened in a tab)'), h('span', null, pinButton, resetSettings)), settingsFrame),
   ),
 );
 
-void mountSettings(settingsFrame, settings, { version: '3.0.0-dev', onChange: onSettings });
+void mountSettings(settingsFrame, settings, { version: '3.0.0-dev', onChange: onSettings }).then((page) => {
+  page.setPinned(pinned);
+  pinButton.addEventListener('click', () => {
+    pinned = !pinned;
+    page.setPinned(pinned);
+    syncPin();
+  });
+});
