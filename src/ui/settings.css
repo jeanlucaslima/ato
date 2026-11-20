@@ -6,23 +6,23 @@
 .settings-head p { margin: 4px 0 0; font-size: 13px; color: var(--ink-3); }
 .saved { margin-top: 10px; font-size: 12px; color: var(--ink-3); }
 
-/* Logo: a 3D icosahedron turning slowly on a tilted axis, like a globe.
-   Decorative only; reduced motion leaves it still. */
-.ico { position: relative; width: var(--ico-size); height: var(--ico-size); perspective: 700px; margin-top: 8px; }
+/* Logo: a 3D icosahedron turning slowly on a tilted axis through two face
+   centres, like a globe. icosahedron.ts builds it and drives the turn (drag to
+   spin). Front edges are solid, edges facing away are dashed, as in the logo. */
+.ico { position: relative; width: var(--ico-size); height: var(--ico-size); perspective: 900px; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+.ico.is-dragging { cursor: grabbing; }
 .ico-tilt, .ico-spin { position: absolute; inset: 0; transform-style: preserve-3d; }
-.ico-tilt { transform: rotateX(-14deg) rotateZ(23.5deg); }
-.ico-spin { animation: ico-turn 48s linear infinite; }
-.ico-face { position: absolute; left: 50%; top: 50%; width: 100px; height: 86.6px; transform-origin: 0 0; }
-.ico-face svg { display: block; overflow: visible; }
-.ico-face polygon {
-  fill: color-mix(in srgb, var(--focus) 7%, transparent);
-  stroke: var(--ink-2);
-  stroke-width: 1.6;
-  stroke-linejoin: round;
-}
-.ico-shadow { position: absolute; left: 18%; right: 18%; bottom: -14px; height: 10px; border-radius: 50%; background: radial-gradient(closest-side, rgb(0 0 0 / 0.35), transparent); }
-:root[data-theme='light'] .ico-shadow { background: radial-gradient(closest-side, rgb(0 0 0 / 0.12), transparent); }
-@keyframes ico-turn { to { transform: rotateY(-360deg); } }
+.ico-tilt { transform: rotateX(-12deg) rotateZ(23.5deg); }
+.ico-face { position: absolute; left: 50%; top: 50%; width: 100px; height: 86.6px; transform-origin: 0 0; transform-style: preserve-3d; }
+.ico-face svg { position: absolute; inset: 0; overflow: visible; backface-visibility: hidden; }
+.ico-back { transform: rotateY(180deg); }
+.ico line { stroke: var(--ink-2); stroke-width: 3.6; stroke-linecap: round; }
+/* 6 dashes + 5 gaps fill an edge exactly (6×7.5 + 5×11 = 100), so the pattern is
+   symmetric and the two faces sharing an edge draw the same dashes. */
+.ico-back line { stroke-dasharray: 7.5 11; }
+.ico-axis { position: absolute; left: 50%; top: 50%; translate: -50% -50%; overflow: visible; }
+.ico-axis line { stroke: var(--ink-3); stroke-width: 1.5; }
+.ico-axis line.is-hidden { stroke-dasharray: 3 5; }
 .saved.is-saved { color: var(--ok); }
 .saved.is-saved::before { content: '✓ '; }
 

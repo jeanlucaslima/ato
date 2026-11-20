@@ -5,7 +5,7 @@
  */
 import { CHOICES, readSettings, type ChoiceKey, type Settings, type ToggleKey } from '../core/settings';
 import { cls, h } from './dom';
-import { icosahedron } from './icosahedron';
+import { attachSpin, icosahedron } from './icosahedron';
 import { morph } from './morph';
 import type { SettingsStore } from './settings-store';
 
@@ -62,7 +62,7 @@ export function renderSettings({ settings: s, version, saved }: SettingsView): H
     h(
       'header',
       { class: 'settings-head' },
-      icosahedron(64),
+      icosahedron(72),
       h('h1', null, 'ATO'),
       h('p', null, 'Advanced Tab Organizer · Settings'),
       h('span', { class: cls('saved', saved && 'is-saved'), role: 'status' }, saved ? 'Saved' : 'Changes save automatically'),
@@ -134,9 +134,12 @@ export async function mountSettings(container: HTMLElement, store: SettingsStore
   container.addEventListener('change', onChange);
   const unsubscribe = store.subscribe(set);
   set(settings);
+  const logo = container.querySelector<HTMLElement>('.ico');
+  const stopSpin = logo ? attachSpin(logo) : () => {};
 
   return {
     destroy() {
+      stopSpin();
       unsubscribe();
       container.removeEventListener('change', onChange);
     },
