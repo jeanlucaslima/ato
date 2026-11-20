@@ -4,7 +4,7 @@ import { applyOverrides, planDuplicates, protection, tabsToClose, type Duplicate
 import { duplicateKey } from './tabs';
 import type { Tab } from './types';
 
-const URLS = ['https://a.test/', 'https://b.test/x', 'http://c.test/?q=1', 'file:///tmp/f.txt', 'chrome://settings/', 'about:blank', ''];
+const URLS = ['https://a.test/', 'https://a.test/?q=2', 'https://a.test/#top', 'https://b.test/x', 'http://c.test/?q=1', 'file:///tmp/f.txt', 'chrome://settings/', 'about:blank', ''];
 
 /** Arbitrary browser state: unique ids, small URL pool so duplicates are common. */
 const tabsArb = fc
@@ -37,6 +37,7 @@ const policyArb = fc.record<DuplicatePolicy>({
   keep: fc.constantFrom('oldest', 'newest'),
   protectPinned: fc.boolean(),
   protectGroups: fc.boolean(),
+  match: fc.constantFrom('exact' as const, 'ignoreHash' as const, 'ignoreQuery' as const, 'ignoreBoth' as const),
 });
 
 const overridesArb = fc
@@ -65,10 +66,10 @@ describe('duplicate cleanup safety rules', () => {
 
   it('only closes real duplicates', () => {
     fc.assert(
-      fc.property(plannedArb, ({ tabs, sets }) =>
+      fc.property(plannedArb, ({ tabs, sets, policy }) =>
         tabsToClose(sets).every((t) => {
-          const key = duplicateKey(t);
-          return key !== null && tabs.filter((o) => duplicateKey(o) === key).length >= 2;
+          const key = duplicateKey(t, policy.match);
+          return key !== null && tabs.filter((o) => duplicateKey(o, policy.match) === key).length >= 2;
         }),
       ),
     );
@@ -119,7 +120,7 @@ describe('planDuplicates', () => {
   });
 
   it('keeps the current tab instead of the oldest (issue #49)', () => {
-    const [set] = planDuplicates([tab(1), tab(2, { active: true }), tab(3)], { keep: 'oldest', protectPinned: true, protectGroups: false });
+    const [set] = planDuplicates([tab(1), tab(2, { active: true }), tab(3)], { keep: 'oldest', protectPinned: true, protectGroups: false, match: 'exact' });
     expect(set?.copies.map((c) => [c.tab.id, c.decision.action])).toEqual([
       [1, 'close'],
       [2, 'keep'],
@@ -128,12 +129,12 @@ describe('planDuplicates', () => {
   });
 
   it('honours keep = newest', () => {
-    const [set] = planDuplicates([tab(1), tab(2), tab(3)], { keep: 'newest', protectPinned: false, protectGroups: false });
+    const [set] = planDuplicates([tab(1), tab(2), tab(3)], { keep: 'newest', protectPinned: false, protectGroups: false, match: 'exact' });
     expect(set?.copies.map((c) => c.decision.action)).toEqual(['close', 'close', 'keep']);
   });
 
   it('ignores an override that would leave a set with nothing kept', () => {
-    const policy: DuplicatePolicy = { keep: 'oldest', protectPinned: false, protectGroups: false };
+    const policy: DuplicatePolicy = { keep: 'oldest', protectPinned: false, protectGroups: false, match: 'exact' };
     const plan = planDuplicates([tab(1), tab(2)], policy);
     const [set] = applyOverrides(plan, new Map([[1, 'close']]), policy);
     expect(set?.copies.map((c) => c.decision.action)).toEqual(['keep', 'close']);

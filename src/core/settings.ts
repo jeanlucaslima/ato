@@ -4,6 +4,7 @@
  * machine), so every field is checked and falls back to its default.
  */
 import type { DuplicatePolicy } from './duplicates';
+import type { MatchMode } from './tabs';
 
 /** Named colour themes. `system` (a setting, not a theme) follows the OS: Paper or Graphite. */
 export const THEMES = ['graphite', 'paper', 'cyber', 'nebula', 'ember', 'neon', 'lagoon', 'sakura', 'dune'] as const;
@@ -16,6 +17,8 @@ export type BadgeColor = (typeof BADGE_COLORS)[number];
 export interface Settings {
   /** Which copy survives cleanup when no copy is protected. */
   keep: 'oldest' | 'newest';
+  /** What counts as the same page. */
+  match: MatchMode;
   protectPinned: boolean;
   protectGroups: boolean;
   /** View the popup opens on. */
@@ -30,6 +33,7 @@ export interface Settings {
 
 export const DEFAULT_SETTINGS: Settings = {
   keep: 'oldest',
+  match: 'exact',
   protectPinned: true,
   protectGroups: true,
   view: 'tabs',
@@ -45,6 +49,7 @@ export type ToggleKey = { [K in keyof Settings]: Settings[K] extends boolean ? K
 /** Allowed values of every multiple-choice setting. */
 export const CHOICES: { readonly [K in ChoiceKey]: readonly Settings[K][] } = {
   keep: ['oldest', 'newest'],
+  match: ['exact', 'ignoreHash', 'ignoreQuery', 'ignoreBoth'],
   view: ['tabs', 'sites', 'windows'],
   scope: ['all', 'current'],
   theme: ['system', ...THEMES],
@@ -73,5 +78,5 @@ export function readSettings(raw: unknown): Settings {
 
 /** The duplicate cleanup rules these settings ask for. */
 export function policyOf(settings: Settings): DuplicatePolicy {
-  return { keep: settings.keep, protectPinned: settings.protectPinned, protectGroups: settings.protectGroups };
+  return { keep: settings.keep, protectPinned: settings.protectPinned, protectGroups: settings.protectGroups, match: settings.match };
 }

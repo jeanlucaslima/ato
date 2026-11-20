@@ -229,7 +229,7 @@ describe('update', () => {
   });
 
   it('follows a policy change while open: newly protected tabs are no longer closed', () => {
-    const unprotected = { keep: 'oldest', protectPinned: false, protectGroups: false } as const;
+    const unprotected = { keep: 'oldest', protectPinned: false, protectGroups: false, match: 'exact' } as const;
     const [s] = run(start({ policy: unprotected }), [{ type: 'policy', policy: { ...unprotected, protectPinned: true } }]);
     expect(s.ui.policy.protectPinned).toBe(true);
     const [, effects] = run(s, [{ type: 'closeSite', domain: 'mail.proton.me' }]);

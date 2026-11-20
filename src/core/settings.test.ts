@@ -4,6 +4,7 @@ import { CHOICES, DEFAULT_SETTINGS, policyOf, readSettings, type Settings } from
 
 const validSettings: fc.Arbitrary<Settings> = fc.record({
   keep: fc.constantFrom(...CHOICES.keep),
+  match: fc.constantFrom(...CHOICES.match),
   protectPinned: fc.boolean(),
   protectGroups: fc.boolean(),
   view: fc.constantFrom(...CHOICES.view),

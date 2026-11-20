@@ -9,7 +9,7 @@
  *  5. A tab playing audio is never closed: it's what the user is listening to.
  *  6. A tab in a split view is never closed: that would break the side-by-side pair.
  */
-import { duplicateKey } from './tabs';
+import { duplicateKey, type MatchMode } from './tabs';
 import type { Tab } from './types';
 
 export interface DuplicatePolicy {
@@ -17,9 +17,11 @@ export interface DuplicatePolicy {
   keep: 'oldest' | 'newest';
   protectPinned: boolean;
   protectGroups: boolean;
+  /** What counts as the same page (2.x's "match mode"). */
+  match: MatchMode;
 }
 
-export const DEFAULT_POLICY: DuplicatePolicy = { keep: 'oldest', protectPinned: true, protectGroups: true };
+export const DEFAULT_POLICY: DuplicatePolicy = { keep: 'oldest', protectPinned: true, protectGroups: true, match: 'exact' };
 
 export type KeepReason = 'current' | 'playing' | 'split' | 'pinned' | 'grouped' | 'oldest' | 'newest' | 'chosen';
 
@@ -58,7 +60,7 @@ export function isSplit(tab: Pick<Tab, 'splitViewId'>): boolean {
 export function planDuplicates(tabs: readonly Tab[], policy: DuplicatePolicy): DuplicateSet[] {
   const byKey = new Map<string, Tab[]>();
   for (const tab of tabs) {
-    const key = duplicateKey(tab);
+    const key = duplicateKey(tab, policy.match);
     if (key === null) continue;
     const group = byKey.get(key);
     if (group) group.push(tab);

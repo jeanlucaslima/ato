@@ -5,7 +5,7 @@
  * Chrome through the dev server: `(await import('/dev/perf.ts')).runPerf()`.
  */
 import { badgeFor } from '../core/badge';
-import { planDuplicates } from '../core/duplicates';
+import { DEFAULT_POLICY, planDuplicates } from '../core/duplicates';
 import { DEFAULT_SETTINGS } from '../core/settings';
 import type { GroupColor, Snapshot, Tab, TabGroup } from '../core/types';
 import type { Action } from '../ui/actions';
@@ -108,7 +108,7 @@ export function runPerf({ sizes = [500, 1000, 2000, 5000], runs = 15, render }: 
     const allWindows = new Set(snapshot.tabs.map((t) => t.windowId));
     const add = (name: string, budget: number, fn: () => unknown) => out.push({ n, name, ms: time(fn, runs), budget });
 
-    add('planDuplicates', FRAME, () => planDuplicates(snapshot.tabs, { keep: 'oldest', protectPinned: true, protectGroups: true }));
+    add('planDuplicates', FRAME, () => planDuplicates(snapshot.tabs, DEFAULT_POLICY));
     add('badgeFor (worker)', FRAME, () => badgeFor(snapshot.tabs, DEFAULT_SETTINGS));
     add('derive · tabs', FRAME, () => deriveModel(at({})));
     add('derive · sites (all open)', FRAME, () => deriveModel(at({ view: 'sites', expanded: new Set(snapshot.tabs.map((t) => t.url.split('/')[2]!)) })));

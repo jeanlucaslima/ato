@@ -14,12 +14,24 @@ export function domainOf(url: string): string {
 
 const COMPARABLE = /^(https?|file):/i;
 
+/** What makes two tabs the same page: the whole URL, or the URL without its `#hash` and/or `?query`. */
+export type MatchMode = 'exact' | 'ignoreHash' | 'ignoreQuery' | 'ignoreBoth';
+
 /**
  * Key that identifies duplicates. Only web and file pages take part; browser
  * pages (`chrome://`, extensions, `about:`) and loading tabs never do.
  */
-export function duplicateKey(tab: Pick<Tab, 'url'>): string | null {
-  return tab.url && COMPARABLE.test(tab.url) ? tab.url : null;
+export function duplicateKey(tab: Pick<Tab, 'url'>, match: MatchMode = 'exact'): string | null {
+  if (!tab.url || !COMPARABLE.test(tab.url)) return null;
+  if (match === 'exact') return tab.url;
+  try {
+    const u = new URL(tab.url);
+    if (match !== 'ignoreQuery') u.hash = '';
+    if (match !== 'ignoreHash') u.search = '';
+    return u.href;
+  } catch {
+    return tab.url;
+  }
 }
 
 /**
@@ -36,10 +48,10 @@ export function pathOf(url: string): string {
 }
 
 /** Copies per duplicate key, for every key seen at least once. */
-export function countCopies(tabs: readonly Tab[]): Map<string, number> {
+export function countCopies(tabs: readonly Tab[], match: MatchMode = 'exact'): Map<string, number> {
   const counts = new Map<string, number>();
   for (const tab of tabs) {
-    const key = duplicateKey(tab);
+    const key = duplicateKey(tab, match);
     if (key !== null) counts.set(key, (counts.get(key) ?? 0) + 1);
   }
   return counts;

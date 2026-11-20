@@ -1,4 +1,4 @@
-import { countCopies, domainOf, duplicateKey } from './tabs';
+import { countCopies, domainOf, duplicateKey, type MatchMode } from './tabs';
 import type { Tab } from './types';
 
 export type Range = readonly [start: number, end: number];
@@ -68,10 +68,10 @@ export interface SearchHit {
  * `dupe:` searches only tabs that have a copy; with no terms it lists them all,
  * copies side by side, biggest sets first.
  */
-export function searchTabs(tabs: readonly Tab[], query: ParsedQuery): SearchHit[] {
+export function searchTabs(tabs: readonly Tab[], query: ParsedQuery, match: MatchMode = 'exact'): SearchHit[] {
   if (query.field === 'dupe') {
-    const counts = countCopies(tabs);
-    const copiesOf = (t: Tab) => counts.get(duplicateKey(t) ?? '') ?? 0;
+    const counts = countCopies(tabs, match);
+    const copiesOf = (t: Tab) => counts.get(duplicateKey(t, match) ?? '') ?? 0;
     const duplicated = tabs.filter((t) => copiesOf(t) > 1);
     if (query.terms.length === 0) {
       return duplicated

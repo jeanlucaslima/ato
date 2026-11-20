@@ -5,7 +5,7 @@ import { duplicatesOf, othersFromSite } from './tab-menu';
 import { domainOf, duplicateKey } from './tabs';
 import type { Tab } from './types';
 
-const URLS = ['https://a.test/', 'https://a.test/x', 'https://b.test/x', 'http://a.test/', 'chrome://settings/', ''];
+const URLS = ['https://a.test/', 'https://a.test/x', 'https://a.test/x?y=1', 'https://a.test/x#h', 'https://b.test/x', 'http://a.test/', 'chrome://settings/', ''];
 
 const tabsArb = fc
   .array(
@@ -21,7 +21,7 @@ const tabsArb = fc
   )
   .map((rows) => rows.map((r, i): Tab => ({ id: i + 1, index: i, title: r.url, discarded: false, lastAccessed: i, ...r })));
 
-const policyArb = fc.record<DuplicatePolicy>({ keep: fc.constantFrom('oldest', 'newest'), protectPinned: fc.boolean(), protectGroups: fc.boolean() });
+const policyArb = fc.record<DuplicatePolicy>({ keep: fc.constantFrom('oldest', 'newest'), protectPinned: fc.boolean(), protectGroups: fc.boolean(), match: fc.constantFrom('exact', 'ignoreHash', 'ignoreQuery', 'ignoreBoth') });
 
 /** Browser state, a policy, and the tab that was right-clicked. */
 const caseArb = fc.tuple(tabsArb, policyArb).chain(([tabs, policy]) => fc.nat(tabs.length - 1).map((i) => ({ tabs, policy, clicked: tabs[i]! })));
@@ -44,9 +44,9 @@ describe('tab menu safety rules', () => {
     fc.assert(
       fc.property(caseArb, ({ tabs, policy, clicked }) => {
         const closing = new Set(duplicatesOf(clicked, tabs, policy).map((t) => t.id));
-        const key = duplicateKey(clicked);
+        const key = duplicateKey(clicked, policy.match);
         return tabs.every((t) => {
-          const copy = key !== null && t.id !== clicked.id && duplicateKey(t) === key;
+          const copy = key !== null && t.id !== clicked.id && duplicateKey(t, policy.match) === key;
           return closing.has(t.id) === (copy && protection(t, policy) === null);
         });
       }),
@@ -61,7 +61,7 @@ describe('tab menu safety rules', () => {
 
   it('a tab with nothing comparable (new tab, settings) closes nothing', () => {
     const blank: Tab = { id: 1, windowId: 1, index: 0, title: '', url: 'chrome://newtab/', active: false, pinned: false, audible: false, discarded: false, groupId: -1, lastAccessed: 0 };
-    const policy = { keep: 'oldest', protectPinned: true, protectGroups: true } as const;
+    const policy = { keep: 'oldest', protectPinned: true, protectGroups: true, match: 'exact' } as const;
     expect(duplicatesOf(blank, [blank, { ...blank, id: 2 }], policy)).toEqual([]);
   });
 });

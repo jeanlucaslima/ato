@@ -9,9 +9,9 @@ import type { Tab } from './types';
 
 /** "Close duplicates of this tab": its other copies, protected ones aside. */
 export function duplicatesOf(clicked: Tab, tabs: readonly Tab[], policy: DuplicatePolicy): Tab[] {
-  const key = duplicateKey(clicked);
+  const key = duplicateKey(clicked, policy.match);
   if (key === null) return [];
-  return tabs.filter((t) => t.id !== clicked.id && duplicateKey(t) === key && protection(t, policy) === null);
+  return tabs.filter((t) => t.id !== clicked.id && duplicateKey(t, policy.match) === key && protection(t, policy) === null);
 }
 
 /** "Close other tabs from this site": the rest of its site, protected ones aside. */

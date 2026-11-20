@@ -39,3 +39,15 @@ describe('pathOf', () => {
     ['not a url', ''],
   ])('%s → %s', (url, path) => expect(pathOf(url)).toBe(path));
 });
+
+describe('duplicateKey match modes', () => {
+  const key = (url: string, match: Parameters<typeof duplicateKey>[1]) => duplicateKey({ url }, match);
+  it('ignores the #hash and/or ?query as asked; never mixes different pages', () => {
+    expect(key('https://a.test/p?x=1#top', 'exact')).toBe('https://a.test/p?x=1#top');
+    expect(key('https://a.test/p?x=1#top', 'ignoreHash')).toBe('https://a.test/p?x=1');
+    expect(key('https://a.test/p?x=1#top', 'ignoreQuery')).toBe('https://a.test/p#top');
+    expect(key('https://a.test/p?x=1#top', 'ignoreBoth')).toBe('https://a.test/p');
+    expect(key('https://a.test/p?x=1', 'ignoreBoth')).not.toBe(key('https://a.test/q?x=1', 'ignoreBoth'));
+    expect(key('chrome://settings/', 'ignoreBoth')).toBeNull();
+  });
+});

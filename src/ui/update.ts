@@ -134,7 +134,7 @@ function siteTabs(state: AppState, domain: string): Tab[] {
 }
 
 function resultTabs(state: AppState): Tab[] {
-  return state.snapshot ? searchTabs(state.snapshot.tabs, parseQuery(state.ui.query)).map((h) => h.tab) : [];
+  return state.snapshot ? searchTabs(state.snapshot.tabs, parseQuery(state.ui.query), state.ui.policy.match).map((h) => h.tab) : [];
 }
 
 function toggleInSet<T>(set: ReadonlySet<T>, value: T, on = !set.has(value)): Set<T> {

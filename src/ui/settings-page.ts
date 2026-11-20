@@ -233,6 +233,13 @@ export function renderSettings({ settings: s, version, saved, pinned = null, the
     section(
       'Closing duplicates',
       'The tab you’re on in each window is always kept.',
+      choice(
+        s,
+        'match',
+        'Same page when',
+        { exact: 'Whole URL matches', ignoreHash: 'Ignoring #hash', ignoreQuery: 'Ignoring ?query', ignoreBoth: 'Ignoring both' },
+        'With ?query ignored, page?a=1 and page?a=2 count as copies.',
+      ),
       choice(s, 'keep', 'Keep', { oldest: 'Oldest copy', newest: 'Newest copy' }, 'When no copy is protected, this one stays and the rest close.'),
       toggle(s, 'protectPinned', 'Protect pinned tabs', 'Pinned copies are never closed.'),
       toggle(s, 'protectGroups', 'Protect tab groups', 'Copies inside a tab group are never closed.'),

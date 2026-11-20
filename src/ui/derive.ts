@@ -20,7 +20,7 @@ export function duplicatePlan(snapshot: Snapshot, ui: UiState): PlanSet[] {
 
 function toRow(tab: Tab, snapshot: Snapshot, copies: Map<string, number>, ui: UiState): TabRow {
   const domain = domainOf(tab.url);
-  const key = duplicateKey(tab);
+  const key = duplicateKey(tab, ui.policy.match);
   const count = key ? (copies.get(key) ?? 0) : 0;
   return {
     id: tab.id,
@@ -42,7 +42,8 @@ function toRow(tab: Tab, snapshot: Snapshot, copies: Map<string, number>, ui: Ui
 const byTitle = (a: Tab, b: Tab) => a.title.localeCompare(b.title);
 
 function sortTabs(tabs: Tab[], ui: UiState, copies: Map<string, number>): Tab[] {
-  const copiesOf = (t: Tab) => copies.get(duplicateKey(t) ?? '') ?? 0;
+  const key = (t: Tab) => duplicateKey(t, ui.policy.match) ?? '';
+  const copiesOf = (t: Tab) => copies.get(key(t)) ?? 0;
   switch (ui.tabSort) {
     case 'recent':
       return tabs.sort((a, b) => b.lastAccessed - a.lastAccessed);
@@ -53,7 +54,7 @@ function sortTabs(tabs: Tab[], ui: UiState, copies: Map<string, number>): Tab[] 
     case 'site':
       return tabs.sort((a, b) => domainOf(a.url).localeCompare(domainOf(b.url)) || byTitle(a, b));
     case 'copies':
-      return tabs.sort((a, b) => copiesOf(b) - copiesOf(a) || (duplicateKey(a) ?? '').localeCompare(duplicateKey(b) ?? ''));
+      return tabs.sort((a, b) => copiesOf(b) - copiesOf(a) || key(a).localeCompare(key(b)));
   }
 }
 
@@ -107,7 +108,7 @@ function siteGroups(tabs: Tab[], rows: Map<number, TabRow>, ui: UiState, snapsho
  * into runs: a tab group, or the ungrouped tabs between groups.
  */
 function windowGroups(snapshot: Snapshot, ui: UiState): WindowGroup[] {
-  const copies = countCopies(snapshot.tabs);
+  const copies = countCopies(snapshot.tabs, ui.policy.match);
   const extras = new Set(tabsToClose(planDuplicates(snapshot.tabs, ui.policy)).map((t) => t.id));
   const groups = new Map((snapshot.groups ?? []).map((g): [number, GroupLabel] => [g.id, { id: g.id, title: g.title, color: g.color, collapsed: g.collapsed }]));
   const byWindow = new Map<number, Tab[]>();
@@ -215,7 +216,7 @@ export function deriveModel({ snapshot, ui }: AppState): PopupModel {
   if (!snapshot) return { ...loadingModel(), searchFocused: ui.searchFocused, helpOpen: ui.helpOpen, scope: ui.scope };
 
   const tabs = scopedTabs(snapshot, ui);
-  const copies = countCopies(tabs);
+  const copies = countCopies(tabs, ui.policy.match);
   const rows = new Map(tabs.map((t) => [t.id, toRow(t, snapshot, copies, ui)]));
   const plan = duplicatePlan(snapshot, ui);
   const base = {
@@ -242,8 +243,8 @@ export function deriveModel({ snapshot, ui }: AppState): PopupModel {
 
   if (ui.query.trim()) {
     const parsed = parseQuery(ui.query);
-    const allCopies = countCopies(snapshot.tabs);
-    const hits = searchTabs(snapshot.tabs, parsed);
+    const allCopies = countCopies(snapshot.tabs, ui.policy.match);
+    const hits = searchTabs(snapshot.tabs, parsed, ui.policy.match);
     return {
       ...base,
       screen: {
