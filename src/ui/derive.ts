@@ -108,11 +108,13 @@ function reviewSets(plan: PlanSet[], snapshot: Snapshot, ui: UiState, rows: Read
       title: first?.title || set.key,
       domain: first ? domainOf(first.url) : '',
       address: displayUrl(set.key, []).text,
+      resolving: set.copies.some((c) => c.decision.action === 'close') && set.copies.every((c) => c.decision.action === 'keep' || ui.closing.has(c.tab.id)),
       copies: set.copies.map(({ tab, decision }) => ({
         tabId: tab.id,
         row: rows.get(tab.id) ?? toRow(tab, snapshot, new Map(), ui),
         location: where(tab),
         locked: protection(tab, ui.policy) !== null,
+        closing: ui.closing.has(tab.id),
         verdict:
           decision.action === 'keep'
             ? { action: 'keep' as const, reason: decision.reason }

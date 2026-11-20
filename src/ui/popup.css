@@ -167,6 +167,11 @@ mark.hl { background: var(--match); color: var(--ink); border-radius: 2px; }
 .copy .row-title { font-size: 13px; }
 .copy--close .row-title { color: var(--ink-3); text-decoration: line-through; text-decoration-color: var(--danger-line); }
 .copy--close .fav { opacity: 0.5; }
+.done { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 48px 24px; text-align: center; }
+.done-mark { width: 44px; height: 44px; margin-bottom: 8px; border-radius: 50%; display: grid; place-items: center; background: var(--ok-fill); color: var(--ok); }
+.done-mark svg { display: block; }
+.done-title { margin: 0; font-size: 15px; font-weight: 600; }
+.done-sub { margin: 0 0 14px; font-size: 12.5px; color: var(--ink-3); }
 .verdict { flex: none; min-width: 64px; display: flex; flex-direction: column; align-items: center; gap: 0; padding: 3px 8px; border-radius: 6px; line-height: 1.25; }
 .verdict b { font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
 .verdict span { font-size: 11px; white-space: nowrap; }
@@ -215,10 +220,19 @@ mark.hl { background: var(--match); color: var(--ink); border-radius: 2px; }
 /* Rows enter (restored tabs, new results) and leave (closing) */
 .row { transition-property: background-color, opacity, translate; transition-duration: var(--t-fast), var(--t), var(--t); }
 @starting-style { .row { opacity: 0; translate: 0 -4px; } }
-.row.is-closing { pointer-events: none; animation: row-out var(--t) var(--ease) forwards; }
+.row.is-closing, .copy.is-closing { pointer-events: none; animation: row-out var(--t) var(--ease) forwards; }
 @keyframes row-out {
   to { height: 0; opacity: 0; translate: 24px 0; border-bottom-width: 0; }
 }
+
+/* Review after Close: copies leave (above), then a set with nothing left to close
+   folds away. Height animates from auto (interpolate-size, Chrome 129+). */
+.set { interpolate-size: allow-keywords; }
+.set.is-resolving { overflow: hidden; animation: set-out var(--t-slow) var(--ease) var(--t) forwards; }
+@keyframes set-out {
+  to { height: 0; opacity: 0; padding-block: 0; border-bottom-width: 0; }
+}
+.done { animation: fade-in var(--t-slow) var(--ease); }
 
 /* Screens: lists fade in; review slides in from the right */
 .list { animation: fade-in var(--t) var(--ease); }

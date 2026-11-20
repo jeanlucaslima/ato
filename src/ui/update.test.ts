@@ -23,6 +23,27 @@ const activeIds = TABS.filter((t) => t.active).map((t) => t.id);
 const pinnedIds = TABS.filter((t) => t.pinned).map((t) => t.id);
 
 describe('update', () => {
+  it('stays in review after Close: copies animate out, a second ↵ closes nothing twice, and it ends on done', () => {
+    const [s, fx] = run(start({ reviewOpen: true }), [{ type: 'confirmReview' }]);
+    const ids = closeEffects(fx);
+    expect(ids.length).toBeGreaterThan(0);
+    expect(s.ui.reviewOpen).toBe(true);
+    expect([...s.ui.closing].sort()).toEqual([...ids].sort());
+    const [again, fx2] = run(s, [{ type: 'confirmReview' }]);
+    expect(fx2).toEqual([]);
+    const during = deriveModel(again).screen;
+    if (during.kind !== 'review') throw new Error('expected review');
+    expect(during.sets.every((set) => set.resolving)).toBe(true);
+    const closedTabs = TABS.filter((t) => ids.includes(t.id));
+    const [done] = run(again, [
+      { type: 'closed', tabs: closedTabs, message: 'Closed' },
+      { type: 'snapshot', snapshot: { ...SNAPSHOT, tabs: TABS.filter((t) => !ids.includes(t.id)) } },
+    ]);
+    const after = deriveModel(done).screen;
+    expect(after.kind === 'review' && after.sets.length).toBe(0);
+    expect(done.ui.toast?.undo).toHaveLength(ids.length);
+  });
+
   it('follows a policy change while open: newly protected tabs are no longer closed', () => {
     const unprotected = { keep: 'oldest', protectPinned: false, protectGroups: false } as const;
     const [s] = run(start({ policy: unprotected }), [{ type: 'policy', policy: { ...unprotected, protectPinned: true } }]);

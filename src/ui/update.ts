@@ -211,9 +211,11 @@ function step(state: AppState, action: Action): Result {
     }
     case 'confirmReview': {
       if (!state.snapshot) return [state, []];
-      const tabs = tabsToClose(duplicatePlan(state.snapshot, ui));
-      const [s, effects] = startClose(setUi(state, { reviewOpen: false, overrides: new Map(), cursor: undefined }), tabs, 'duplicate', true);
-      return [s, effects];
+      // Review stays open: the copies animate out in place and the sets fold away,
+      // ending on "No duplicates left". Copies already on their way out aren't closed twice.
+      const tabs = tabsToClose(duplicatePlan(state.snapshot, ui)).filter((t) => !ui.closing.has(t.id));
+      if (tabs.length === 0) return [state, []];
+      return startClose(state, tabs, 'duplicate', true);
     }
 
     case 'activate': {

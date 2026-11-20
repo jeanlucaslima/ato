@@ -57,6 +57,8 @@ export interface DuplicateCopy {
   verdict: CopyVerdict;
   /** Protected (current, playing, pinned, grouped): always kept, can't be flipped. */
   locked: boolean;
+  /** Confirmed and animating out; the browser is closing it. */
+  closing: boolean;
 }
 
 export interface DuplicateSet {
@@ -64,6 +66,8 @@ export interface DuplicateSet {
   domain: string;
   /** The address every copy shares, without the scheme: what makes them duplicates. */
   address: string;
+  /** Every copy it closes is on its way out: the set folds away once they're gone. */
+  resolving: boolean;
   copies: DuplicateCopy[];
 }
 

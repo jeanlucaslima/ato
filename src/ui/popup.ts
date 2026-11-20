@@ -3,7 +3,7 @@ import { h, type Child } from './dom';
 import { helpPanel } from './help';
 import { plural } from './format';
 import type { PopupModel } from './model';
-import { closeCount, reviewHeader, reviewPolicy, reviewSets } from './review';
+import { closeCount, reviewDone, reviewHeader, reviewPolicy, reviewSets } from './review';
 import { siteGroup, tabRow } from './rows';
 
 function hintsFor(m: PopupModel): Hint[] {
@@ -17,7 +17,7 @@ function hintsFor(m: PopupModel): Hint[] {
     case 'search':
       return [['↑↓', 'move'], ['↵', 'go'], ['⌘⌫', 'close all'], ['Esc', 'clear']];
     case 'review':
-      return [['↵', `close ${closeCount(m.screen.sets)}`], ['Space', 'keep/close'], ['Esc', 'back']];
+      return m.screen.sets.length === 0 ? [['Esc', 'back']] : [['↵', `close ${closeCount(m.screen.sets)}`], ['Space', 'keep/close'], ['Esc', 'back']];
   }
 }
 
@@ -73,12 +73,12 @@ function body(m: PopupModel): Child[] {
     }
     case 'review':
       return [
-        reviewPolicy(s),
+        s.sets.length > 0 && reviewPolicy(s),
         list(
           'review',
           { role: 'listbox', 'aria-label': 'Duplicate copies: Space switches keep and close' },
           reviewSets(s, m.cursor),
-          s.sets.length === 0 && h('p', { class: 'empty' }, 'No duplicates left.'),
+          s.sets.length === 0 && reviewDone(),
         ),
       ];
   }

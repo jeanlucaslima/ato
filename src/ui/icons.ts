@@ -17,6 +17,7 @@ const ICONS = {
   close: { viewBox: '0 0 12 12', body: '<path d="m2.5 2.5 7 7m0-7-7 7"/>' },
   chevron: { viewBox: '0 0 12 12', body: '<path d="m3 4.5 3 3 3-3"/>' },
   back: { viewBox: '0 0 12 12', body: '<path d="M7.5 2.5 4 6l3.5 3.5"/>' },
+  check: { viewBox: '0 0 24 24', body: '<path d="m5 12.5 4.5 4.5L19 7.5"/>' },
   audio: {
     viewBox: '0 0 24 24',
     strokeWidth: 1.8,

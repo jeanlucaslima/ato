@@ -8,7 +8,7 @@ type ReviewScreen = Extract<Screen, { kind: 'review' }>;
 
 /** How many tabs the current review would close. */
 export function closeCount(sets: readonly DuplicateSet[]): number {
-  return sets.reduce((n, s) => n + s.copies.filter((c) => c.verdict.action === 'close').length, 0);
+  return sets.reduce((n, s) => n + s.copies.filter((c) => c.verdict.action === 'close' && !c.closing).length, 0);
 }
 
 export function reviewHeader(screen: ReviewScreen): HTMLElement {
@@ -17,8 +17,9 @@ export function reviewHeader(screen: ReviewScreen): HTMLElement {
     'div',
     { class: 'head head--review' },
     h('button', { class: 'btn btn--ghost', type: 'button', 'data-action': 'close-review' }, icon('back', 12), 'Back'),
-    h('h2', null, 'Duplicates ', h('span', null, `· ${plural(screen.sets.length, 'set')}`)),
-    h('button', { class: 'btn btn--solid-danger', type: 'button', disabled: n === 0, 'data-action': 'confirm-review' }, `Close ${n}`, h('kbd', { class: 'k' }, '↵')),
+    h('h2', null, 'Duplicates ', screen.sets.length > 0 && h('span', null, `· ${plural(screen.sets.length, 'set')}`)),
+    screen.sets.length > 0 &&
+      h('button', { class: 'btn btn--solid-danger', type: 'button', disabled: n === 0, 'data-action': 'confirm-review' }, `Close ${n}`, h('kbd', { class: 'k' }, '↵')),
   );
 }
 
@@ -62,14 +63,14 @@ function copyRow(copy: DuplicateCopy, cursor: ItemKey | undefined): HTMLElement 
     'button',
     {
       type: 'button',
-      class: cls('copy', keep ? 'copy--keep' : 'copy--close', cursor === `copy:${copy.tabId}` && 'is-cursor'),
+      class: cls('copy', keep ? 'copy--keep' : 'copy--close', cursor === `copy:${copy.tabId}` && 'is-cursor', copy.closing && 'is-closing'),
       'data-key': `copy:${copy.tabId}`,
       role: 'option',
       'aria-selected': String(cursor === `copy:${copy.tabId}`),
       'aria-label': `${keep ? 'Keep' : 'Close'}: ${row.title}, ${copy.location}${row.audible ? ', playing' : ''}${copy.locked ? ', protected' : ''}`,
       'data-action': 'flip',
       'data-id': copy.tabId,
-      disabled: copy.locked,
+      disabled: copy.locked || copy.closing,
       title: copy.locked ? 'Protected — always kept' : keep ? 'Close this copy instead' : 'Keep this copy',
       tabindex: -1,
     },
@@ -90,11 +91,23 @@ function copyRow(copy: DuplicateCopy, cursor: ItemKey | undefined): HTMLElement 
   );
 }
 
+/** What review ends on once every duplicate is closed: it stays put, so you see it worked. */
+export function reviewDone(): HTMLElement {
+  return h(
+    'div',
+    { class: 'done', role: 'status' },
+    h('span', { class: 'done-mark', 'aria-hidden': 'true' }, icon('check', 22)),
+    h('p', { class: 'done-title' }, 'No duplicates left'),
+    h('p', { class: 'done-sub' }, 'Every tab is open once.'),
+    h('button', { class: 'btn', type: 'button', 'data-action': 'close-review' }, icon('back', 12), 'Back to tabs', h('kbd', { class: 'k' }, 'Esc')),
+  );
+}
+
 export function reviewSets(screen: ReviewScreen, cursor: ItemKey | undefined): HTMLElement[] {
   return screen.sets.map((set) =>
     h(
       'section',
-      { class: 'set', role: 'group', 'aria-label': `${set.title}, ${set.copies.length} copies` },
+      { class: cls('set', set.resolving && 'is-resolving'), 'data-key': `set:${set.address}`, role: 'group', 'aria-label': `${set.title}, ${set.copies.length} copies` },
       h('h3', { class: 'set-title', title: set.address }, h('span', null, set.address), h('span', { class: 'k' }, plural(set.copies.length, 'copy', 'copies'))),
       set.copies.map((c) => copyRow(c, cursor)),
     ),

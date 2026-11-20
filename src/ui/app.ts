@@ -271,7 +271,7 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
     // Mouse users get the cursor where they point, so keys act on what they see.
     const el = (event.target as HTMLElement).closest<HTMLElement>('[data-key]');
     const key = el?.dataset.key as ItemKey | undefined;
-    if (key && key !== state.ui.cursor && !key.startsWith('list:')) dispatch({ type: 'setCursor', key });
+    if (key && key !== state.ui.cursor && /^(tab|site|copy):/.test(key)) dispatch({ type: 'setCursor', key });
   };
 
   container.addEventListener('click', onClick);
