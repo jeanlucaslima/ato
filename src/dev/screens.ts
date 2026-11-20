@@ -10,7 +10,6 @@ import { applyTheme, THEME_INFO } from '../ui/theme';
 import { FakeBrowser } from './fake-browser';
 import { FIXTURES, type Fixture } from './fixtures';
 import { MemorySettings } from './memory-settings';
-import { windowPrototypes } from './windows-prototype';
 
 const startSettings: Settings = readSettings({ ...DEFAULT_SETTINGS, theme: new URLSearchParams(location.search).get('theme') ?? DEFAULT_SETTINGS.theme });
 /** One settings store for the whole gallery: its theme is the gallery's theme. */
@@ -72,7 +71,6 @@ document.body.replaceChildren(
     { class: 'gallery-settings' },
     h('figure', null, h('figcaption', null, h('span', null, 'Settings page (options page, opened in a tab)'), h('span', null, pinButton, resetSettings)), settingsFrame),
   ),
-  windowPrototypes(),
 );
 
 void mountSettings(settingsFrame, settings, { version: '3.0.0-dev', onChange: onSettings }).then((page) => {
