@@ -130,6 +130,21 @@ export class ChromeBrowser implements BrowserPort {
     if (rest.length > 0 && win?.id !== undefined) await chrome.tabs.move(rest, { windowId: win.id, index: -1 });
   }
 
+  async moveToWindow(tabIds: number[], windowId: number): Promise<void> {
+    const { tabs, groups = [] } = await this.snapshot();
+    const moving = new Set(tabIds);
+    // A group whose every tab is moving goes as a group (tabs.move alone would ungroup them).
+    const whole = groups.filter((g) => g.windowId !== windowId && tabs.some((t) => t.groupId === g.id) && tabs.every((t) => t.groupId !== g.id || moving.has(t.id)));
+    const inWhole = new Set(whole.map((g) => g.id));
+    for (const g of whole) await chrome.tabGroups.move(g.id, { windowId, index: -1 });
+    const loose = tabs.filter((t) => moving.has(t.id) && t.windowId !== windowId && !inWhole.has(t.groupId)).map((t) => t.id);
+    if (loose.length > 0) await chrome.tabs.move(loose, { windowId, index: -1 });
+  }
+
+  async focusWindow(windowId: number): Promise<void> {
+    await chrome.windows.update(windowId, { focused: true });
+  }
+
   async setMuted(tabId: number, muted: boolean): Promise<void> {
     await chrome.tabs.update(tabId, { muted });
   }

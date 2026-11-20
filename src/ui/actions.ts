@@ -63,6 +63,8 @@ export type Effect =
   | { kind: 'activate'; tabId: number }
   | { kind: 'discard'; tabIds: number[] }
   | { kind: 'move'; tabIds: number[] }
+  | { kind: 'moveTo'; tabIds: number[]; windowId: number }
+  | { kind: 'focusWindow'; windowId: number }
   | { kind: 'expireToast'; id: number }
   | { kind: 'openSettings' }
   | { kind: 'mute'; tabId: number; muted: boolean };

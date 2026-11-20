@@ -103,6 +103,12 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
       case 'move':
         void browser.moveToNewWindow(effect.tabIds);
         return;
+      case 'moveTo':
+        void browser.moveToWindow(effect.tabIds, effect.windowId);
+        return;
+      case 'focusWindow':
+        void browser.focusWindow(effect.windowId);
+        return;
       case 'expireToast':
         later(TOAST_MS, () => dispatch({ type: 'dismissToast', id: effect.id }));
         return;

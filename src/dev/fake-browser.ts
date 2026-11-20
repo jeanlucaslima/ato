@@ -57,6 +57,20 @@ export class FakeBrowser implements BrowserPort {
     this.commit(this.state.tabs.map((t) => (ids.has(t.id) ? { ...t, windowId, index: index++, active: index === 1 } : t)));
   }
 
+  async moveToWindow(tabIds: number[], windowId: number): Promise<void> {
+    const ids = new Set(tabIds);
+    const staying = this.state.tabs.filter((t) => !ids.has(t.id));
+    const moving = this.state.tabs.filter((t) => ids.has(t.id)).map((t) => ({ ...t, windowId, active: false }));
+    const groups = this.state.groups?.map((g) => (moving.some((t) => t.groupId === g.id) ? { ...g, windowId } : g));
+    this.state = { ...this.state, groups };
+    this.commit([...staying, ...moving].sort((a, b) => a.windowId - b.windowId || (ids.has(a.id) ? 1 : 0) - (ids.has(b.id) ? 1 : 0) || a.index - b.index));
+  }
+
+  async focusWindow(windowId: number): Promise<void> {
+    this.state = { ...this.state, focusedWindowId: windowId };
+    this.commit([...this.state.tabs]);
+  }
+
   async setMuted(tabId: number, muted: boolean): Promise<void> {
     this.commit(this.state.tabs.map((t) => (t.id === tabId ? { ...t, muted } : t)));
   }

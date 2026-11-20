@@ -15,6 +15,10 @@ export interface BrowserPort {
   activate(tabId: number): Promise<void>;
   discard(tabIds: number[]): Promise<void>;
   moveToNewWindow(tabIds: number[]): Promise<void>;
+  /** Move tabs to the end of an existing window; groups moved whole stay groups. */
+  moveToWindow(tabIds: number[], windowId: number): Promise<void>;
+  /** Bring a window to the front. */
+  focusWindow(windowId: number): Promise<void>;
   openSettings(): Promise<void>;
   setMuted(tabId: number, muted: boolean): Promise<void>;
 }
