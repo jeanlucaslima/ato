@@ -132,6 +132,10 @@ mark.hl { background: var(--match); color: var(--ink); border-radius: 2px; }
 /* Sites — the body is always rendered; collapsed = zero-height grid row (animatable). */
 .site { border-bottom: 1px solid var(--line-soft); }
 
+/* Long lists: Chrome skips style and layout for rows out of view (opening with
+   2,000 tabs: ~110 → ~50 ms). The size is a guess until a row is first drawn. */
+.list > .row, .list > .site, .list > .win, .list > .set { content-visibility: auto; contain-intrinsic-size: auto 52px; }
+
 /* Windows view: a row per window, a map of its tab strip, its tabs under their groups */
 .win { border-bottom: 1px solid var(--line-soft); }
 .win-row { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 6px 8px 0 0; }
