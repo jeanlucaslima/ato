@@ -1,16 +1,29 @@
 /** The popup's fixed frame parts: search bar, duplicate strip, view bar, footers. */
-import logoUrl from '../assets/icons/ato-logo.svg';
 import { cls, h } from './dom';
 import { plural } from './format';
 import { icon } from './icons';
+import { logoSvg } from './logo-svg';
 import type { PopupModel, Scope, SearchMode, SiteSort, TabSort } from './model';
+
+/**
+ * The logo at header size: the 3D icosahedron in the text colour (so it follows
+ * the theme), with heavier lines and fewer dashes than the big renders. Static,
+ * trusted markup computed once.
+ */
+const MARK = logoSvg({ size: 28, spin: 100, pitch: -18, background: null, color: 'currentColor', weight: 2.4, dashes: 3, hiddenOpacity: 0.5 });
+
+function brandMark(): HTMLElement {
+  const el = h('span', { class: 'brand-logo', 'aria-hidden': 'true' });
+  el.innerHTML = MARK;
+  return el;
+}
 
 /** Logo, name and settings: the popup's identity row. */
 export function brandBar(): HTMLElement {
   return h(
     'header',
     { class: 'brand' },
-    h('img', { class: 'brand-logo', src: logoUrl, alt: '', width: 28, height: 28 }),
+    brandMark(),
     h('span', { class: 'brand-name' }, 'ATO'),
     h('span', { class: 'brand-tag' }, 'Advanced Tab Organizer'),
     h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Settings', title: 'Settings', 'data-action': 'settings' }, icon('gear', 18)),
