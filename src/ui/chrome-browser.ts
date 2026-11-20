@@ -3,7 +3,7 @@
  * Everything Chrome-specific stays in this file; the rest of the popup only
  * sees plain `Snapshot`s and `Tab`s.
  */
-import type { Snapshot, Tab } from '../core/types';
+import type { Snapshot, Tab, TabGroup } from '../core/types';
 import type { BrowserPort } from './browser';
 
 /** Batch bursts of tab events (a page load fires several) into one refresh. */
@@ -33,15 +33,22 @@ export function fromChromeTab(t: chrome.tabs.Tab, now: number): Tab | null {
 /** `chrome.tabs.TAB_ID_NONE`, inlined so this module loads outside the extension (tests). */
 const chrome_TAB_ID_NONE = -1;
 
+/** ATO's view of a Chrome tab group. */
+export function fromChromeGroup(g: chrome.tabGroups.TabGroup): TabGroup {
+  return { id: g.id, windowId: g.windowId, title: g.title ?? '', color: g.color as TabGroup['color'], collapsed: g.collapsed };
+}
+
 export class ChromeBrowser implements BrowserPort {
   async snapshot(): Promise<Snapshot> {
-    const [tabs, focused] = await Promise.all([
+    const [tabs, groups, focused] = await Promise.all([
       chrome.tabs.query({ windowType: 'normal' }),
+      chrome.tabGroups.query({}).catch(() => []),
       chrome.windows.getLastFocused({ windowTypes: ['normal'] }).catch(() => undefined),
     ]);
     const now = Date.now();
     return {
       tabs: tabs.flatMap((t) => fromChromeTab(t, now) ?? []),
+      groups: groups.map(fromChromeGroup),
       focusedWindowId: focused?.id ?? -1,
       now,
     };
@@ -63,6 +70,10 @@ export class ChromeBrowser implements BrowserPort {
       chrome.tabs.onDetached,
       chrome.tabs.onReplaced,
       chrome.windows.onFocusChanged,
+      chrome.tabGroups.onCreated,
+      chrome.tabGroups.onUpdated,
+      chrome.tabGroups.onRemoved,
+      chrome.tabGroups.onMoved,
     ];
     for (const event of events) event.addListener(changed);
     return () => {

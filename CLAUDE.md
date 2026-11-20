@@ -312,6 +312,7 @@ See "Settings" above — touch `options.js` (`DEFAULT_SETTINGS` + `SETTING_TYPES
 ```
 
 - `tabs` — read tab info (title, URL incl. `file://`, favicon) for all tabs
+- `tabGroups` (v3) — read group names/colours and move whole groups (Windows view, merge)
 - `storage` — persist user settings (`chrome.storage.sync`)
 - `sessions` — restore (undo) closed tabs
 

@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { fromChromeTab } from './chrome-browser';
+import { fromChromeGroup, fromChromeTab } from './chrome-browser';
 
 const base = { index: 0, windowId: 1, active: false, pinned: false, highlighted: false, incognito: false, discarded: false, autoDiscardable: true, groupId: -1, selected: false, frozen: false } as unknown as chrome.tabs.Tab;
+
+describe('fromChromeGroup', () => {
+  it('keeps id, window, colour and fold; an unnamed group gets an empty title', () => {
+    const g = { id: 3, windowId: 2, color: 'cyan', collapsed: true } as chrome.tabGroups.TabGroup;
+    expect(fromChromeGroup(g)).toEqual({ id: 3, windowId: 2, title: '', color: 'cyan', collapsed: true });
+  });
+});
 
 describe('fromChromeTab', () => {
   it('skips tabs without an id', () => {

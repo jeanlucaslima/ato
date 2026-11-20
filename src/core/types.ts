@@ -21,8 +21,24 @@ export interface Tab {
   lastAccessed: number;
 }
 
+/** Chrome's tab group colours. */
+export type GroupColor = 'grey' | 'blue' | 'red' | 'yellow' | 'green' | 'pink' | 'purple' | 'cyan' | 'orange';
+
+/** A native tab group: its tabs carry its id in `Tab.groupId`. */
+export interface TabGroup {
+  id: number;
+  windowId: number;
+  /** May be empty: Chrome groups don't need a name. */
+  title: string;
+  color: GroupColor;
+  /** Folded in the tab strip. */
+  collapsed: boolean;
+}
+
 export interface Snapshot {
   tabs: readonly Tab[];
+  /** Tab groups by id order; absent when unknown (tests, old fixtures). */
+  groups?: readonly TabGroup[];
   focusedWindowId: number;
   /** Epoch ms the snapshot was taken; used for relative ages. */
   now: number;
