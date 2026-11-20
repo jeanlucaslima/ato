@@ -1,8 +1,21 @@
 /** The popup's fixed frame parts: search bar, duplicate strip, view bar, footers. */
+import logoUrl from '../assets/icons/ato-logo.svg';
 import { cls, h } from './dom';
 import { plural } from './format';
 import { icon } from './icons';
 import type { PopupModel, Scope, SearchMode, SiteSort, TabSort } from './model';
+
+/** Logo, name and settings: the popup's identity row. */
+export function brandBar(): HTMLElement {
+  return h(
+    'header',
+    { class: 'brand' },
+    h('img', { class: 'brand-logo', src: logoUrl, alt: '', width: 28, height: 28 }),
+    h('span', { class: 'brand-name' }, 'ATO'),
+    h('span', { class: 'brand-tag' }, 'Advanced Tab Organizer'),
+    h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Settings', title: 'Settings', 'data-action': 'settings' }, icon('gear', 18)),
+  );
+}
 
 export function searchBar(m: PopupModel): HTMLElement {
   const query = m.screen.kind === 'search' ? m.screen.query : '';
@@ -30,7 +43,6 @@ export function searchBar(m: PopupModel): HTMLElement {
         ? h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Clear search', 'data-action': 'clear-query' }, icon('close', 12))
         : h('kbd', { class: 'k k--box' }, '/'),
     ),
-    h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Settings', 'data-action': 'settings' }, icon('gear', 18)),
   );
 }
 
