@@ -28,3 +28,14 @@ export function resolveTheme(theme: Settings['theme'], prefersLight = matchMedia
 export function applyTheme(theme: Settings['theme'], root: HTMLElement = document.documentElement): void {
   root.dataset.theme = resolveTheme(theme);
 }
+
+/**
+ * Re-apply the theme when the OS switches light/dark, so `system` follows it on
+ * a page that stays open. `current` reads the setting at that moment.
+ */
+export function followSystemTheme(current: () => Settings['theme'], root: HTMLElement = document.documentElement): () => void {
+  const query = matchMedia('(prefers-color-scheme: light)');
+  const onChange = () => applyTheme(current(), root);
+  query.addEventListener('change', onChange);
+  return () => query.removeEventListener('change', onChange);
+}

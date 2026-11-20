@@ -1,15 +1,21 @@
 import '../ui/tokens.css';
 import '../ui/settings.css';
+import type { Settings } from '../core/settings';
 import { ChromeSettings } from '../ui/chrome-settings';
 import { mountSettings } from '../ui/settings-page';
-import { applyTheme } from '../ui/theme';
+import { applyTheme, followSystemTheme } from '../ui/theme';
 
 const root = document.getElementById('app') ?? document.body;
+let theme: Settings['theme'] = 'system';
+followSystemTheme(() => theme);
 
 async function main(): Promise<void> {
   const page = await mountSettings(root, new ChromeSettings(), {
     version: chrome.runtime.getManifest().version,
-    onChange: (settings) => applyTheme(settings.theme),
+    onChange: (settings) => {
+      theme = settings.theme;
+      applyTheme(theme);
+    },
   });
   // Chrome tells us whether ATO is pinned, and when that changes; only the user can change it.
   const action = chrome.action as typeof chrome.action & {
