@@ -1,10 +1,15 @@
-/* ATO design tokens + base. Dark is the default; light via [data-theme="light"]. */
+/* ATO design tokens + base. Graphite (dark) is the default; every theme is a
+   [data-theme] block, here and in themes.css. Themes are plain attribute
+   selectors, so any element (a theme preview card) can wear one. */
 
 /* Manrope (variable, OFL), bundled from @fontsource-variable/manrope: the
    woff2 files ship inside the extension, so nothing loads from the network. */
 @import '@fontsource-variable/manrope';
+@import './themes.css';
 
-:root {
+/* :where() keeps the default at zero specificity, so any theme block wins. */
+:where(:root),
+[data-theme='graphite'] {
   color-scheme: dark;
   --canvas: #202325;
   --surface: #2a2e30;
@@ -35,7 +40,7 @@
   --r: 10px;
 }
 
-:root[data-theme='light'] {
+[data-theme='paper'] {
   color-scheme: light;
   --canvas: #f5f5f2;
   --surface: #ffffff;

@@ -1,0 +1,171 @@
+/* Themes with personality. Each block is a complete palette over the tokens
+   in tokens.css (Graphite and Paper live there). Order of keys matches tokens.css. */
+
+/* Nebula — violet deep space */
+[data-theme='nebula'] {
+  color-scheme: dark;
+  --canvas: #17142a;
+  --surface: #211d3a;
+  --raised: #312b54;
+  --line: #2f2950;
+  --line-soft: #241f40;
+  --ink: #efeaff;
+  --ink-2: #b4abd6;
+  --ink-3: #8f86b5;
+  --key: #cfc6f0;
+  --focus: #b49cff;
+  --focus-fill: #33295c;
+  --match: #4b3a80;
+  --select-fill: #2a3550;
+  --amber: #ffc46b;
+  --amber-fill: #2c2333;
+  --amber-line: #5a4640;
+  --danger: #ff8fa8;
+  --danger-ink: #2a0f1a;
+  --danger-line: #6b3350;
+  --danger-fill: #3a1d33;
+  --ok: #7ee0c3;
+  --ok-fill: #1d3135;
+  --ok-line: #2f5a55;
+  --shadow: 0 8px 24px rgb(5 0 20 / 0.5);
+}
+/* Ember — campfire, low and warm */
+[data-theme='ember'] {
+  color-scheme: dark;
+  --canvas: #1c1613;
+  --surface: #261e1a;
+  --raised: #3a2d26;
+  --line: #362a23;
+  --line-soft: #2b221d;
+  --ink: #f6ece4;
+  --ink-2: #c2ada0;
+  --ink-3: #9c887b;
+  --key: #dccabd;
+  --focus: #ff9f5a;
+  --focus-fill: #45291a;
+  --match: #6a3a1e;
+  --select-fill: #2e2a20;
+  --amber: #ffd166;
+  --amber-fill: #2f261a;
+  --amber-line: #5c4a2a;
+  --danger: #ff8a7a;
+  --danger-ink: #2a0e0a;
+  --danger-line: #6a3128;
+  --danger-fill: #3d1f1a;
+  --ok: #a8d38f;
+  --ok-fill: #262f1e;
+  --ok-line: #46583a;
+  --shadow: 0 8px 24px rgb(10 4 0 / 0.5);
+}
+/* Neon — arcade after midnight */
+[data-theme='neon'] {
+  color-scheme: dark;
+  --canvas: #0d0d14;
+  --surface: #161624;
+  --raised: #24243a;
+  --line: #24243a;
+  --line-soft: #1a1a2b;
+  --ink: #f4f4ff;
+  --ink-2: #a9a9d0;
+  --ink-3: #8080aa;
+  --key: #c9c9f2;
+  --focus: #22e6ff;
+  --focus-fill: #0f3340;
+  --match: #533070;
+  --select-fill: #1d2c3a;
+  --amber: #ffe14d;
+  --amber-fill: #2a2614;
+  --amber-line: #5c5420;
+  --danger: #ff4fa3;
+  --danger-ink: #1a0010;
+  --danger-line: #6e2050;
+  --danger-fill: #36122a;
+  --ok: #5dffb0;
+  --ok-fill: #0f2e22;
+  --ok-line: #1f5c42;
+  --shadow: 0 8px 28px rgb(255 79 163 / 0.12);
+}
+/* Lagoon — shallow water at noon */
+[data-theme='lagoon'] {
+  color-scheme: light;
+  --canvas: #eef7f6;
+  --surface: #ffffff;
+  --raised: #d6ebe8;
+  --line: #cfe3e0;
+  --line-soft: #e2f0ee;
+  --ink: #12332f;
+  --ink-2: #3d625d;
+  --ink-3: #56766f;
+  --key: #234a44;
+  --focus: #0e8a7e;
+  --focus-fill: #d3f0ec;
+  --match: #b5e6df;
+  --select-fill: #dcefe4;
+  --amber: #8a5a00;
+  --amber-fill: #fff1d6;
+  --amber-line: #ecd29a;
+  --danger: #c2413a;
+  --danger-ink: #ffffff;
+  --danger-line: #f0bdb8;
+  --danger-fill: #fdeceb;
+  --ok: #2c7a4f;
+  --ok-fill: #e1f3e8;
+  --ok-line: #b4dcc3;
+  --shadow: 0 8px 24px rgb(14 60 55 / 0.12);
+}
+/* Sakura — blossom and plum */
+[data-theme='sakura'] {
+  color-scheme: light;
+  --canvas: #fbf3f4;
+  --surface: #ffffff;
+  --raised: #f2dfe3;
+  --line: #ecd6db;
+  --line-soft: #f5e8eb;
+  --ink: #3a2030;
+  --ink-2: #6e4a5c;
+  --ink-3: #8a6577;
+  --key: #4f2d40;
+  --focus: #b8336a;
+  --focus-fill: #fbe0ea;
+  --match: #f6c9d9;
+  --select-fill: #ece6f3;
+  --amber: #8a5300;
+  --amber-fill: #fff0dc;
+  --amber-line: #eccf9f;
+  --danger: #b3261e;
+  --danger-ink: #ffffff;
+  --danger-line: #f0bab5;
+  --danger-fill: #fdebea;
+  --ok: #3b7a57;
+  --ok-fill: #e4f2ea;
+  --ok-line: #b8d9c5;
+  --shadow: 0 8px 24px rgb(80 20 50 / 0.12);
+}
+/* Dune — sand, sun and terracotta */
+[data-theme='dune'] {
+  color-scheme: light;
+  --canvas: #f6efe3;
+  --surface: #fffaf2;
+  --raised: #e9dcc6;
+  --line: #e3d4bc;
+  --line-soft: #efe4d2;
+  --ink: #33261a;
+  --ink-2: #66503c;
+  --ink-3: #7d6650;
+  --key: #4a3726;
+  --focus: #c0532b;
+  --focus-fill: #f6dfcf;
+  --match: #f0cdb4;
+  --select-fill: #e7e6d0;
+  --amber: #8a5a00;
+  --amber-fill: #fbefd5;
+  --amber-line: #e6cf9c;
+  --danger: #b0322a;
+  --danger-ink: #ffffff;
+  --danger-line: #eab8b0;
+  --danger-fill: #fbe8e4;
+  --ok: #4f7a37;
+  --ok-fill: #e8f0dc;
+  --ok-line: #c2d6ae;
+  --shadow: 0 8px 24px rgb(70 40 10 / 0.12);
+}
