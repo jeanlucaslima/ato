@@ -24,7 +24,7 @@ src/
 │   ├── settings-store.ts # SettingsStore interface; chrome-settings.ts = chrome.storage.sync (key "settings")
 │   ├── settings-page.ts # options page render + mount (saves each change); settings.css; theme.ts
 │   ├── morph.ts         # keyed in-place DOM patching (keeps focus, transitions, scroll)
-│   ├── popup.ts chrome.ts rows.ts review.ts   # render functions (PopupModel → DOM, data-action attrs)
+│   ├── popup.ts chrome.ts rows.ts review.ts windows.ts   # render functions (PopupModel → DOM, data-action attrs)
 │   └── tokens.css popup.css                    # tokens + components + motion section
 ├── popup/               # extension popup entry: loads settings, mounts the app over ChromeBrowser
 ├── options/             # extension options page entry (settings page over ChromeSettings)
@@ -37,6 +37,7 @@ src/
 - Flow: event → `Action` → `update` → new state (+ `Effect`s run by `app.ts` against `BrowserPort`) → `deriveModel` → `renderPopup` → `morph`.
 - UI rules: rendering is a pure function of `PopupModel`; text goes in as text nodes (never `innerHTML` with data); motion is decorative only (state never waits on an animation; reduced-motion disables it).
 - Commits: keep them small and focused (one concern each) so they can be rolled back individually.
+- Performance: `npm run perf` times the pure paths at 500–5,000 tabs (`src/dev/perf.ts`; also importable in Chrome via the dev server to time render). Keep interactions under a frame at 2,000 tabs: morph skips unchanged keyed elements, hover/↑↓ patch two rows (`app.ts` fast path), search draws 150 results, list items use `content-visibility`.
 - Verification: `core/duplicates.test.ts` checks the safety rules as fast-check properties (never close an active tab or one playing audio; every set keeps ≥1; only real duplicates; protected tabs untouched); `ui/update.test.ts` checks review can't close active/pinned tabs whatever the user flips.
 
 ## Project Overview
