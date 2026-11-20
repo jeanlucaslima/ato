@@ -363,7 +363,7 @@ function step(state: AppState, action: Action): Result {
       return [setUi(state, { toast: undefined }), [{ kind: 'restore', tabs }]];
     }
     case 'restored':
-      return withToast(state, `Restored ${plural(action.count, 'tab')}`);
+      return withToast(state, `Restored ${plural(action.count, 'tab')}${action.fresh ? ` (${action.fresh} without back history)` : ''}`);
     case 'dismissToast':
       return ui.toast?.id === action.id ? [setUi(state, { toast: undefined }), []] : [state, []];
 

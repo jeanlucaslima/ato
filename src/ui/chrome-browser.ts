@@ -5,6 +5,7 @@
  */
 import type { Snapshot, Tab, TabGroup } from '../core/types';
 import type { BrowserPort } from './browser';
+import { RESTORE_MESSAGE, restoreTabs, type Restored } from './chrome-restore';
 
 /** Batch bursts of tab events (a page load fires several) into one refresh. */
 const REFRESH_DEBOUNCE_MS = 120;
@@ -92,27 +93,15 @@ export class ChromeBrowser implements BrowserPort {
     return closing;
   }
 
-  /**
-   * Bring closed tabs back: through `sessions` when Chrome still remembers them
-   * (keeps back/forward history; it remembers 25), otherwise by reopening the URL
-   * where the tab was.
-   */
-  async restore(tabs: readonly Tab[]): Promise<number> {
-    const recent = (await chrome.sessions.getRecentlyClosed({ maxResults: chrome.sessions.MAX_SESSION_RESULTS }))
-      .flatMap((s) => (s.tab?.sessionId ? [s.tab] : []));
-    let count = 0;
-    for (const tab of tabs) {
-      const i = recent.findIndex((s) => s.url === tab.url);
-      const session = i >= 0 ? recent.splice(i, 1)[0] : undefined;
-      try {
-        if (session?.sessionId) await chrome.sessions.restore(session.sessionId);
-        else await reopen(tab);
-        count++;
-      } catch {
-        // A tab that can't come back (its URL is no longer allowed, say) is skipped.
-      }
+  /** Undo runs in the service worker so it finishes even if the popup closes; here only if the worker can't be reached. */
+  async restore(tabs: readonly Tab[]): Promise<Restored> {
+    try {
+      const reply = (await chrome.runtime.sendMessage({ type: RESTORE_MESSAGE, tabs })) as Restored | undefined;
+      if (reply && typeof reply.count === 'number') return reply;
+    } catch {
+      // No worker listening: restore from here.
     }
-    return count;
+    return restoreTabs(tabs);
   }
 
   async activate(tabId: number): Promise<void> {
@@ -153,14 +142,5 @@ export class ChromeBrowser implements BrowserPort {
 
   async openSettings(): Promise<void> {
     await chrome.runtime.openOptionsPage();
-  }
-}
-
-async function reopen(tab: Tab): Promise<void> {
-  const props = { url: tab.url, pinned: tab.pinned, active: false };
-  try {
-    await chrome.tabs.create({ ...props, windowId: tab.windowId, index: tab.index });
-  } catch {
-    await chrome.tabs.create(props); // its window is gone: use the current one
   }
 }

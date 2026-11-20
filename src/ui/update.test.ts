@@ -254,6 +254,8 @@ describe('update', () => {
     expect(done.ui.toast?.undo).toEqual([TABS[3]]);
     const [, undoFx] = run(done, [{ type: 'undo' }]);
     expect(undoFx).toContainEqual({ kind: 'restore', tabs: [TABS[3]] });
+    const [back] = run(done, [{ type: 'undo' }, { type: 'restored', count: 40, fresh: 15 }]);
+    expect(back.ui.toast?.message).toBe('Restored 40 tabs (15 without back history)');
   });
 
   it('skips protected tabs when closing a whole site', () => {

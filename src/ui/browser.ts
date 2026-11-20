@@ -1,4 +1,5 @@
 import type { Snapshot, Tab } from '../core/types';
+import type { Restored } from './chrome-restore';
 
 /**
  * What the popup needs from the browser. The extension implements it over
@@ -10,8 +11,8 @@ export interface BrowserPort {
   subscribe(listener: () => void): () => void;
   /** Resolves with the tabs that were actually closed. */
   close(tabIds: number[]): Promise<Tab[]>;
-  /** Reopens closed tabs; resolves with how many came back. */
-  restore(tabs: readonly Tab[]): Promise<number>;
+  /** Reopens closed tabs, any number; resolves with how many came back (and how many without history). */
+  restore(tabs: readonly Tab[]): Promise<Restored>;
   activate(tabId: number): Promise<void>;
   discard(tabIds: number[]): Promise<void>;
   moveToNewWindow(tabIds: number[]): Promise<void>;

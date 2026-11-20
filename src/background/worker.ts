@@ -9,6 +9,7 @@ import { DEFAULT_SETTINGS, policyOf } from '../core/settings';
 import { duplicatesOf, othersFromSite } from '../core/tab-menu';
 import type { Tab } from '../core/types';
 import { fromChromeTab } from '../ui/chrome-browser';
+import { RESTORE_MESSAGE, restoreTabs } from '../ui/chrome-restore';
 import { ChromeSettings } from '../ui/chrome-settings';
 
 /** Batch bursts of tab events (opening a window fires dozens) into one recount. */
@@ -53,6 +54,16 @@ chrome.tabs.onUpdated.addListener((_id, change) => {
   if (COUNTED.some((key) => key in change)) scheduleRefresh();
 });
 settings.subscribe(scheduleRefresh);
+
+// --- Undo ------------------------------------------------------------------------
+
+// The popup asks the worker to restore: Chrome may close the popup as tabs come
+// back, and the worker keeps going. Only ATO's own pages may ask.
+chrome.runtime.onMessage.addListener((message: { type?: string; tabs?: Tab[] }, sender, reply) => {
+  if (sender.id !== chrome.runtime.id || message?.type !== RESTORE_MESSAGE || !Array.isArray(message.tabs)) return false;
+  void restoreTabs(message.tabs).then(reply, () => reply({ count: 0, fresh: 0 }));
+  return true; // reply comes later
+});
 
 // --- Tab right-click menu -------------------------------------------------------
 

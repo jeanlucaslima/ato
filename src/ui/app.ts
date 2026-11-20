@@ -132,7 +132,7 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
         });
         return;
       case 'restore':
-        void browser.restore(effect.tabs).then((count) => dispatch({ type: 'restored', count }));
+        void browser.restore(effect.tabs).then(({ count, fresh }) => dispatch({ type: 'restored', count, fresh }));
         return;
       case 'activate':
         void browser.activate(effect.tabId);

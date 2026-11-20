@@ -45,7 +45,7 @@ export type Action =
   | { type: 'unloadResults' }
   | { type: 'closed'; tabs: readonly Tab[]; message: string }
   | { type: 'undo' }
-  | { type: 'restored'; count: number }
+  | { type: 'restored'; count: number; fresh?: number }
   | { type: 'dismissToast'; id: number }
   | { type: 'toggleSelectMode' }
   | { type: 'exitSelect' }

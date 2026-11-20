@@ -1,5 +1,6 @@
 import type { Snapshot, Tab } from '../core/types';
 import type { BrowserPort } from '../ui/browser';
+import type { Restored } from '../ui/chrome-restore';
 
 /** In-memory browser for the gallery and tests. Mutations notify subscribers. */
 export class FakeBrowser implements BrowserPort {
@@ -27,11 +28,12 @@ export class FakeBrowser implements BrowserPort {
     return closed;
   }
 
-  async restore(tabs: readonly Tab[]): Promise<number> {
+  /** Like Chrome: the last 25 come back whole, older ones are reopened fresh. */
+  async restore(tabs: readonly Tab[]): Promise<Restored> {
     const present = new Set(this.state.tabs.map((t) => t.id));
     const back = tabs.filter((t) => !present.has(t.id)).map((t) => ({ ...t, active: false }));
     this.commit([...this.state.tabs, ...back].sort((a, b) => a.windowId - b.windowId || a.index - b.index));
-    return back.length;
+    return { count: back.length, fresh: Math.max(0, back.length - 25) };
   }
 
   async activate(tabId: number): Promise<void> {
