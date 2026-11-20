@@ -7,7 +7,7 @@ import { parseQuery, searchTabs, splitField } from '../core/search';
 import { domainOf } from '../core/tabs';
 import type { Tab } from '../core/types';
 import type { Action, Effect } from './actions';
-import { deriveModel, duplicatePlan, scopedTabs } from './derive';
+import { deriveModel, duplicatePlan, extraCopies, scopedTabs } from './derive';
 import { plural } from './format';
 import type { ItemKey, PopupModel, SiteSort, TabSort } from './model';
 import type { AppState, Toast, UiState } from './state';
@@ -251,6 +251,8 @@ function step(state: AppState, action: Action): Result {
     case 'unloadSite':
       return startUnload(state, siteTabs(state, action.domain));
     case 'closeResults':
+      // dupe: results close only the extra copies: every page keeps one tab.
+      if (parseQuery(ui.query).field === 'dupe') return state.snapshot ? startClose(state, extraCopies(state.snapshot, ui, resultTabs(state)), 'duplicate', true) : [state, []];
       return startClose(state, resultTabs(state), 'tab', true);
     case 'unloadResults':
       return startUnload(state, resultTabs(state));

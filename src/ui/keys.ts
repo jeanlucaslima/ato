@@ -153,7 +153,7 @@ export const KEY_HELP: HelpSection[] = [
   {
     title: 'Views',
     entries: [
-      { keys: ['/'], label: 'Search (or just start typing) · start with url: or title: to narrow' },
+      { keys: ['/'], label: 'Search (or just start typing) · start with url:, title: or dupe: to narrow' },
       { keys: ['S'], label: 'Switch Tabs / Sites' },
       { keys: ['D', '⌘D'], label: 'Review duplicates (⌘D also while typing)' },
       { keys: ['X'], label: 'Select mode (⇧↑↓ to extend, ⌘A all)' },

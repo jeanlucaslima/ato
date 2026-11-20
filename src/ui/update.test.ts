@@ -71,6 +71,19 @@ describe('update', () => {
     expect(closeEffects(fx).filter((id) => MANY_COPIES.tabs.find((t) => t.id === id)?.url === hn)).toHaveLength(total - 1);
   });
 
+  it('dupe: Close closes only the extra copies: every duplicated page keeps a tab', () => {
+    fc.assert(
+      fc.property(fc.constantFrom('dupe:', 'dupe: hacker', 'dupe: inbox', 'dupe: chrome'), (query) => {
+        const [, fx] = run(start({ query }), [{ type: 'closeResults' }]);
+        const closed = new Set(closeEffects(fx));
+        const urls = new Set(TABS.filter((t) => closed.has(t.id)).map((t) => t.url));
+        return [...urls].every((url) => TABS.some((t) => t.url === url && !closed.has(t.id))) && TABS.every((t) => !(t.active && closed.has(t.id)));
+      }),
+    );
+    const [, fx] = run(start({ query: 'dupe:' }), [{ type: 'closeResults' }]);
+    expect(closeEffects(fx)).toHaveLength(4);
+  });
+
   it('follows a policy change while open: newly protected tabs are no longer closed', () => {
     const unprotected = { keep: 'oldest', protectPinned: false, protectGroups: false } as const;
     const [s] = run(start({ policy: unprotected }), [{ type: 'policy', policy: { ...unprotected, protectPinned: true } }]);

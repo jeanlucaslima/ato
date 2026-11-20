@@ -1,9 +1,10 @@
-import { domainOf } from './tabs';
+import { countCopies, domainOf, duplicateKey } from './tabs';
 import type { Tab } from './types';
 
 export type Range = readonly [start: number, end: number];
 
-export type SearchField = 'url' | 'title';
+/** `url:` / `title:` narrow where terms match; `dupe:` narrows to tabs open more than once. */
+export type SearchField = 'url' | 'title' | 'dupe';
 
 export interface ParsedQuery {
   mode: 'contains' | 'exact';
@@ -11,7 +12,7 @@ export interface ParsedQuery {
   terms: string[];
 }
 
-const FIELD_PREFIX = /^\s*(url|title):\s*/i;
+const FIELD_PREFIX = /^\s*(url|title|dupe):\s*/i;
 
 /**
  * Split a leading `url:` / `title:` off a query; the popup shows it as a chip
@@ -62,8 +63,23 @@ export interface SearchHit {
   urlRanges: Range[];
 }
 
-/** Tabs where every term appears in the searched fields; title hits rank first. */
+/**
+ * Tabs where every term appears in the searched fields; title hits rank first.
+ * `dupe:` searches only tabs that have a copy; with no terms it lists them all,
+ * copies side by side, biggest sets first.
+ */
 export function searchTabs(tabs: readonly Tab[], query: ParsedQuery): SearchHit[] {
+  if (query.field === 'dupe') {
+    const counts = countCopies(tabs);
+    const copiesOf = (t: Tab) => counts.get(duplicateKey(t) ?? '') ?? 0;
+    const duplicated = tabs.filter((t) => copiesOf(t) > 1);
+    if (query.terms.length === 0) {
+      return duplicated
+        .sort((a, b) => copiesOf(b) - copiesOf(a) || a.url.localeCompare(b.url) || b.lastAccessed - a.lastAccessed)
+        .map((tab) => ({ tab, titleRanges: [], urlRanges: [] }));
+    }
+    return searchTabs(duplicated, { ...query, field: 'all' });
+  }
   if (query.terms.length === 0) return [];
   const hits: (SearchHit & { score: number })[] = [];
   for (const tab of tabs) {

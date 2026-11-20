@@ -30,11 +30,12 @@ export function brandBar(): HTMLElement {
   );
 }
 
-const FIELD_LABEL: Record<SearchField, string> = { url: 'URL', title: 'Title' };
-const FIELD_PLACEHOLDER: Record<SearchField, string> = { url: 'Search URLs', title: 'Search titles' };
+const FIELD_LABEL: Record<SearchField, string> = { url: 'URL', title: 'Title', dupe: 'Duplicates' };
+const FIELD_PLACEHOLDER: Record<SearchField, string> = { url: 'Search URLs', title: 'Search titles', dupe: 'Filter duplicated tabs' };
+const FIELD_TIP: Record<SearchField, string> = { url: 'URLs only', title: 'Titles only', dupe: 'Tabs open more than once' };
 
 /**
- * `url:` / `title:` typed at the start of search turns into this chip. Always
+ * `url:` / `title:` / `dupe:` typed at the start of search turns into this chip. Always
  * rendered (hidden when unused) so the field's children keep their places and
  * the input never gets replaced mid-typing.
  */
@@ -88,8 +89,8 @@ export function searchTips(mode: SearchMode, field: SearchField | null): HTMLEle
     { class: 'search-tips' },
     h('span', { class: 'chip' }, MODE_LABEL[mode]),
     field
-      ? [h('span', null, `${field === 'url' ? 'URLs' : 'Titles'} only ·`), h('kbd', { class: 'k' }, '⌫'), h('span', null, 'at the start removes it')]
-      : [h('span', null, 'Try'), ['"exact"', 'url:', 'title:'].map((s) => h('code', { class: 'k' }, s))],
+      ? [h('span', null, `${FIELD_TIP[field]} ·`), h('kbd', { class: 'k' }, '⌫'), h('span', null, 'at the start removes it')]
+      : [h('span', null, 'Try'), ['"exact"', 'url:', 'title:', 'dupe:'].map((s) => h('code', { class: 'k' }, s))],
   );
 }
 

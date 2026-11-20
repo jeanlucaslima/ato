@@ -57,13 +57,22 @@ function body(m: PopupModel): Child[] {
           { class: 'head head--results' },
           h('h2', null, plural(n, 'match', 'matches'), n > 0 && h('span', null, ` · ${plural(s.windowCount, 'window')}`)),
           n > 0 && h('button', { class: 'btn', type: 'button', 'data-action': 'unload-results' }, `Unload ${n}`),
-          n > 0 && h('button', { class: 'btn btn--danger', type: 'button', 'data-action': 'close-results' }, `Close ${n}`),
+          n > 0 &&
+            (s.extra === undefined
+              ? h('button', { class: 'btn btn--danger', type: 'button', 'data-action': 'close-results' }, `Close ${n}`)
+              : h(
+                  'button',
+                  { class: 'btn btn--danger', type: 'button', 'data-action': 'close-results', disabled: s.extra === 0, title: 'Closes the extra copies; one of each stays' },
+                  `Close ${plural(s.extra, 'extra', 'extras')}`,
+                )),
         ),
         list(
           'search',
           { role: 'listbox', 'aria-label': 'Search results' },
           s.results.map((r) => tabRow(r, { cursor: m.cursor === `tab:${r.id}` })),
-          n === 0 && !s.text.trim()
+          n === 0 && s.field === 'dupe'
+            ? h('p', { class: 'empty' }, s.text.trim() ? `No duplicated tabs match “${s.text.trim()}”.` : 'No duplicates. Every tab is open once.')
+            : n === 0 && !s.text.trim()
             ? h('p', { class: 'empty' }, `Type to search ${s.field === 'title' ? 'tab titles' : 'URLs'}.`)
             : n === 0
             ? h('p', { class: 'empty' }, `No tabs match “${s.query}”.`)

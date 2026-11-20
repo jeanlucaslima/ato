@@ -51,7 +51,7 @@ describe('splitField', () => {
   it('splits back what was joined', () => {
     const rest = fc.string().filter((s) => !/^\s/.test(s));
     fc.assert(
-      fc.property(fc.constantFrom('url' as const, 'title' as const, null), rest, (field, text) => {
+      fc.property(fc.constantFrom('url' as const, 'title' as const, 'dupe' as const, null), rest, (field, text) => {
         const back = splitField(joinField(field, text));
         return field === null ? back.rest === joinField(field, text) : back.field === field && back.rest === text;
       }),
@@ -65,6 +65,19 @@ describe('searchTabs', () => {
   it('requires every term', () => {
     expect(searchTabs(tabs, parseQuery('chrome tabs')).map((h) => h.tab.id)).toEqual([2]);
     expect(searchTabs(tabs, parseQuery('chrome news'))).toEqual([]);
+  });
+
+  it('dupe: lists only tabs open more than once, biggest sets first, and narrows by any field', () => {
+    const dup = [
+      ...tabs,
+      tab(3, 'Hacker News', 'https://news.ycombinator.com/'),
+      tab(4, 'Lofi', 'https://youtube.com/watch?v=a'),
+      tab(5, 'Lofi', 'https://youtube.com/watch?v=a'),
+      tab(6, 'Lofi', 'https://youtube.com/watch?v=a'),
+    ];
+    expect(searchTabs(dup, parseQuery('dupe:')).map((h) => h.tab.id)).toEqual([6, 5, 4, 3, 1]);
+    expect(searchTabs(dup, parseQuery('dupe: ycombinator')).map((h) => h.tab.id).sort()).toEqual([1, 3]);
+    expect(searchTabs(dup, parseQuery('dupe: chrome'))).toEqual([]);
   });
 
   it('scopes to a field', () => {

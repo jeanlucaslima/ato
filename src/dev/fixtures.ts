@@ -109,6 +109,7 @@ export const FIXTURES: Fixture[] = [
   { name: 'Search, no matches', state: at({ query: 'kubernetes' }) },
   { name: 'Search · url: chip', state: at({ query: 'url:github', cursor: `tab:${idOf('Issues · ato')}` }) },
   { name: 'url: just typed (chip, no text yet)', state: at({ query: 'url:' }) },
+  { name: 'Search · dupe: chip (every duplicated tab)', state: at({ query: 'dupe:' }) },
   { name: 'Search · title: chip', state: at({ query: 'title:chrome', cursor: `tab:${idOf('chrome.tabs — Chrome for Developers')}` }) },
   {
     name: 'Playing media (one muted)',

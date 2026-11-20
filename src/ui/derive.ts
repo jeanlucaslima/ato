@@ -142,6 +142,15 @@ function reviewSets(plan: PlanSet[], snapshot: Snapshot, ui: UiState, rows: Read
   });
 }
 
+/**
+ * Of `among`, the copies duplicate cleanup would close: planned over every tab
+ * (so each page's keeper is chosen as usual and stays), then limited to `among`.
+ */
+export function extraCopies(snapshot: Snapshot, ui: UiState, among: readonly Tab[]): Tab[] {
+  const ids = new Set(among.map((t) => t.id));
+  return tabsToClose(planDuplicates(snapshot.tabs, ui.policy)).filter((t) => ids.has(t.id) && !ui.closing.has(t.id));
+}
+
 /** Sets with more copies than this fold their Close copies into one row. */
 const FOLD_ABOVE = 3;
 
@@ -205,6 +214,7 @@ export function deriveModel({ snapshot, ui }: AppState): PopupModel {
         ...(({ field, rest }) => ({ field, text: rest }))(splitField(ui.query)),
         mode: parsed.mode,
         windowCount: new Set(hits.map((h) => h.tab.windowId)).size,
+        extra: parsed.field === 'dupe' ? extraCopies(snapshot, ui, hits.map((h) => h.tab)).length : undefined,
         results: hits.map(({ tab, titleRanges, urlRanges }) => {
           const { text, ranges } = displayUrl(tab.url, urlRanges);
           return { ...toRow(tab, snapshot, allCopies, ui), detail: text, titleMatches: titleRanges, detailMatches: ranges };

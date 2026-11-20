@@ -114,6 +114,8 @@ export type Screen =
       mode: SearchMode;
       results: TabRow[];
       windowCount: number;
+      /** `dupe:` only: extra copies among the results, what "Close" there closes (one of each stays). */
+      extra?: number;
     }
   | { kind: 'review'; keep: 'oldest' | 'newest'; protectGroups: boolean; sets: DuplicateSet[] };
 
