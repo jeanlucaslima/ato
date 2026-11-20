@@ -29,6 +29,29 @@ export interface MountOptions {
 
 let mounts = 0;
 
+/**
+ * The most frequent change, pointer moves and ↑↓, only moves the cursor: patch
+ * the two rows (class and aria-selected, exactly what a full render would set)
+ * instead of rebuilding the list. Anything else, or Select mode (where
+ * aria-selected means "selected"), returns false for a full render.
+ */
+function moveCursorOnly(prev: AppState, next: AppState, root: HTMLElement): boolean {
+  if (prev.snapshot !== next.snapshot || next.ui.selection || prev.ui.cursor === next.ui.cursor) return false;
+  for (const key of Object.keys(next.ui) as (keyof AppState['ui'])[]) {
+    if (key !== 'cursor' && prev.ui[key] !== next.ui[key]) return false;
+  }
+  const find = (key: string | undefined) => (key ? root.querySelector<HTMLElement>(`[data-key="${CSS.escape(key)}"]`) : null);
+  const from = find(prev.ui.cursor);
+  const to = find(next.ui.cursor);
+  if ((prev.ui.cursor && !from) || (next.ui.cursor && !to)) return false;
+  for (const [el, on] of [[from, false], [to, true]] as const) {
+    if (!el) continue;
+    el.classList.toggle('is-cursor', on);
+    if (el.hasAttribute('aria-selected')) el.setAttribute('aria-selected', String(on));
+  }
+  return true;
+}
+
 export function mountApp(container: HTMLElement, browser: BrowserPort | null, initial: AppState, options: MountOptions = {}): App {
   let state = initial;
   let root: HTMLElement | null = null;
@@ -43,7 +66,16 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
     timers.add(id);
   };
 
+  /** What the DOM shows now; lets a cursor-only change skip the full render. */
+  let shown: AppState | null = null;
+
   function render(): void {
+    if (root && shown && moveCursorOnly(shown, state, root)) {
+      shown = state;
+      afterRender(root);
+      return;
+    }
+    shown = state;
     const next = renderPopup(deriveModel(state));
     if (!root) {
       root = next;
@@ -51,6 +83,10 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
     } else {
       morph(root, next);
     }
+    afterRender(root);
+  }
+
+  function afterRender(root: HTMLElement): void {
     // The shortcuts panel takes the keyboard: move focus off the search field behind it.
     if (state.ui.helpOpen && root.contains(document.activeElement) && document.activeElement !== root) root.focus();
     const cursor = state.ui.cursor ? root.querySelector<HTMLElement>(`[data-key="${CSS.escape(state.ui.cursor)}"]`) : null;
