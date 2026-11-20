@@ -154,23 +154,25 @@ mark.hl { background: var(--match); color: var(--ink); border-radius: 2px; }
 /* Duplicate review */
 .policy { margin: 0; padding: 10px 14px; font-size: 12px; line-height: 1.5; color: var(--ink-3); border-bottom: 1px solid var(--line); }
 .policy b { color: var(--ink-2); font-weight: 600; }
-.set { padding: 10px 12px 12px 14px; border-bottom: 1px solid var(--line); }
-.set-title { display: flex; align-items: baseline; gap: 8px; margin: 0 0 8px; font-size: 13px; font-weight: 600; }
+.set { padding: 10px 8px 10px; border-bottom: 1px solid var(--line); }
+.set-title { display: flex; align-items: baseline; gap: 8px; margin: 0 6px 6px; font-family: var(--mono); font-size: 11.5px; font-weight: 500; color: var(--ink-2); }
 .set-title span:first-child { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.set-title .k { color: var(--ink-3); font-weight: 400; }
-.copy { width: 100%; border: 0; text-align: left; font: inherit; cursor: pointer; display: flex; align-items: center; gap: 10px; height: 32px; padding: 0 8px; border-radius: 6px; font-size: 12px; color: var(--ink-2); }
+.set-title .k { flex: none; color: var(--ink-3); font-family: inherit; }
+/* A copy reads like a tab row; the decision is the pill on the right. */
+.copy { width: 100%; border: 0; text-align: left; font: inherit; color: var(--ink); background: transparent; cursor: pointer; display: flex; align-items: center; gap: 12px; height: 48px; padding: 0 8px 0 6px; border-radius: 8px; }
 .copy + .copy { margin-top: 2px; }
+.copy:hover { background: var(--surface); }
 .copy:disabled { cursor: default; opacity: 1; }
-.copy.is-cursor { outline: 2px solid var(--focus); outline-offset: -2px; }
-.copy .where { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.copy .why { color: var(--ink-3); }
-.copy .why--current { color: var(--focus); font-weight: 600; }
-.verdict { flex: none; width: 52px; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
-.copy--keep { background: var(--ok-fill); }
-.copy--keep .verdict { color: var(--ok); }
-.copy--close { background: var(--danger-fill); }
-.copy--close .verdict { color: var(--danger); }
-.copy--close .where { text-decoration: line-through; text-decoration-color: var(--danger-line); }
+.copy.is-cursor { background: var(--focus-fill); box-shadow: inset 3px 0 var(--focus); }
+.copy .row-title { font-size: 13px; }
+.copy--close .row-title { color: var(--ink-3); text-decoration: line-through; text-decoration-color: var(--danger-line); }
+.copy--close .fav { opacity: 0.5; }
+.verdict { flex: none; min-width: 64px; display: flex; flex-direction: column; align-items: center; gap: 0; padding: 3px 8px; border-radius: 6px; line-height: 1.25; }
+.verdict b { font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+.verdict span { font-size: 11px; white-space: nowrap; }
+.verdict--keep { background: var(--ok-fill); color: var(--ok); }
+.verdict--close { background: var(--danger-fill); color: var(--danger); }
+.verdict--current span { color: var(--focus); font-weight: 600; }
 
 /* Shortcuts panel */
 .help { position: absolute; inset: 0; z-index: 5; display: flex; align-items: flex-end; background: rgb(0 0 0 / 0.45); }
@@ -223,7 +225,7 @@ mark.hl { background: var(--match); color: var(--ink); border-radius: 2px; }
 [data-screen='review'] .list, .head--review, .policy { animation: slide-in var(--t-slow) var(--ease); }
 
 /* Review copies flip keep <-> close */
-.copy .verdict { transition: color var(--t); }
+.copy .verdict { transition: background-color var(--t), color var(--t); }
 .copy:not(:disabled):active { scale: 0.99; }
 
 /* Toast and selection bar rise in */

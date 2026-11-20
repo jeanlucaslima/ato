@@ -99,16 +99,18 @@ function siteGroups(tabs: Tab[], rows: Map<number, TabRow>, ui: UiState, snapsho
   }));
 }
 
-function reviewSets(plan: PlanSet[], snapshot: Snapshot, ui: UiState): DuplicateSet[] {
-  const windows = [...new Set(snapshot.tabs.map((t) => t.windowId))].sort((a, b) => a - b);
-  const where = (t: Tab) => `Window ${windows.indexOf(t.windowId) + 1} · tab ${t.index + 1}`;
+function reviewSets(plan: PlanSet[], snapshot: Snapshot, ui: UiState, rows: ReadonlyMap<number, TabRow>): DuplicateSet[] {
+  const windowOf = windowNumbers(snapshot);
+  const where = (t: Tab) => `Window ${windowOf(t)} · tab ${t.index + 1}`;
   return plan.map((set) => {
     const first = set.copies[0]?.tab;
     return {
       title: first?.title || set.key,
       domain: first ? domainOf(first.url) : '',
+      address: displayUrl(set.key, []).text,
       copies: set.copies.map(({ tab, decision }) => ({
         tabId: tab.id,
+        row: rows.get(tab.id) ?? toRow(tab, snapshot, new Map(), ui),
         location: where(tab),
         locked: protection(tab, ui.policy) !== null,
         verdict:
@@ -154,7 +156,7 @@ export function deriveModel({ snapshot, ui }: AppState): PopupModel {
   };
 
   if (ui.reviewOpen) {
-    return { ...base, screen: { kind: 'review', keep: ui.policy.keep, protectGroups: ui.policy.protectGroups, sets: reviewSets(plan, snapshot, ui) } };
+    return { ...base, screen: { kind: 'review', keep: ui.policy.keep, protectGroups: ui.policy.protectGroups, sets: reviewSets(plan, snapshot, ui, rows) } };
   }
 
   if (ui.query.trim()) {

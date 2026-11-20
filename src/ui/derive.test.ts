@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SNAPSHOT } from '../dev/fixtures';
+import { PLAYING_DUPLICATE, SNAPSHOT } from '../dev/fixtures';
 import { deriveModel, displayUrl } from './derive';
 import { initialUi } from './state';
 
@@ -17,6 +17,18 @@ describe('deriveModel', () => {
     expect(closes).toHaveLength(4);
     const active = SNAPSHOT.tabs.filter((t) => t.active).map((t) => t.id);
     expect(closes.some((c) => active.includes(c.tabId))).toBe(false);
+  });
+
+  it('review keeps the copy that is playing and shows each copy as a tab, under the shared address', () => {
+    const review = deriveModel({ snapshot: PLAYING_DUPLICATE, ui: initialUi({ reviewOpen: true }) }).screen;
+    if (review.kind !== 'review') throw new Error('expected review');
+    const set = review.sets.find((s) => s.address === 'youtube.com/watch?v=lofi');
+    const playing = set?.copies.find((c) => c.row.audible);
+    const silent = set?.copies.find((c) => !c.row.audible);
+    expect(playing?.verdict).toEqual({ action: 'keep', reason: 'playing' });
+    expect(playing?.locked).toBe(true);
+    expect(silent?.verdict.action).toBe('close');
+    expect(silent?.row.title).toBe('Lo-fi beats to code to');
   });
 
   it('tells apart every tab under a site, even exact copies', () => {

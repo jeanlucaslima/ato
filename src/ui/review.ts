@@ -1,4 +1,5 @@
 import { cls, h } from './dom';
+import { favicon } from './favicon';
 import { plural } from './format';
 import { icon } from './icons';
 import type { DuplicateCopy, DuplicateSet, ItemKey, Screen } from './model';
@@ -49,12 +50,14 @@ const REASON_LABEL: Record<string, string> = {
   chosen: 'your choice',
 };
 
+/**
+ * One copy, drawn like a tab row (favicon, its own title, where it is) so you can
+ * tell the copies apart, with the keep/close decision as a pill on the right.
+ */
 function copyRow(copy: DuplicateCopy, cursor: ItemKey | undefined): HTMLElement {
   const keep = copy.verdict.action === 'keep';
-  const why =
-    copy.verdict.action === 'keep'
-      ? h('span', { class: cls('why', copy.verdict.reason === 'current' && 'why--current') }, REASON_LABEL[copy.verdict.reason] ?? copy.verdict.reason)
-      : h('span', { class: 'why' }, copy.verdict.age);
+  const { row } = copy;
+  const why = copy.verdict.action === 'keep' ? (REASON_LABEL[copy.verdict.reason] ?? copy.verdict.reason) : copy.verdict.age;
   return h(
     'button',
     {
@@ -63,16 +66,27 @@ function copyRow(copy: DuplicateCopy, cursor: ItemKey | undefined): HTMLElement 
       'data-key': `copy:${copy.tabId}`,
       role: 'option',
       'aria-selected': String(cursor === `copy:${copy.tabId}`),
-      'aria-label': `${keep ? 'Keep' : 'Close'}: ${copy.location}${copy.locked ? ', protected' : ''}`,
+      'aria-label': `${keep ? 'Keep' : 'Close'}: ${row.title}, ${copy.location}${row.audible ? ', playing' : ''}${copy.locked ? ', protected' : ''}`,
       'data-action': 'flip',
       'data-id': copy.tabId,
       disabled: copy.locked,
       title: copy.locked ? 'Protected — always kept' : keep ? 'Close this copy instead' : 'Keep this copy',
       tabindex: -1,
     },
-    h('span', { class: 'verdict' }, keep ? 'Keep' : 'Close'),
-    h('span', { class: 'where' }, copy.location),
-    why,
+    favicon(row.domain, row.favIconUrl),
+    h('span', { class: 'row-text' }, h('span', { class: 'row-title' }, row.title), h('span', { class: 'row-sub' }, copy.location)),
+    h(
+      'span',
+      { class: 'meta' },
+      row.audible && h('span', { class: 'audio' }, icon(row.muted ? 'muted' : 'audio', 15, row.muted ? 'Playing, muted' : 'Playing audio')),
+      row.pinned && icon('pin', 14, 'Pinned'),
+    ),
+    h(
+      'span',
+      { class: cls('verdict', keep ? 'verdict--keep' : 'verdict--close', copy.verdict.action === 'keep' && copy.verdict.reason === 'current' && 'verdict--current') },
+      h('b', null, keep ? 'Keep' : 'Close'),
+      h('span', null, why),
+    ),
   );
 }
 
@@ -81,7 +95,7 @@ export function reviewSets(screen: ReviewScreen, cursor: ItemKey | undefined): H
     h(
       'section',
       { class: 'set', role: 'group', 'aria-label': `${set.title}, ${set.copies.length} copies` },
-      h('h3', { class: 'set-title' }, h('span', null, set.title), h('span', { class: 'k' }, set.domain)),
+      h('h3', { class: 'set-title', title: set.address }, h('span', null, set.address), h('span', { class: 'k' }, plural(set.copies.length, 'copy', 'copies'))),
       set.copies.map((c) => copyRow(c, cursor)),
     ),
   );

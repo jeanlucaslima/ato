@@ -63,6 +63,13 @@ const cleaned: Snapshot = {
   tabs: TABS.filter((t) => ![idOf('Hacker News', 1), idOf('Hacker News', 2), idOf('chrome.tabs — Chrome for Developers', 1), idOf('Inbox (3)', 1)].includes(t.id)),
 };
 
+/** An older, silent copy of the video that's playing: review must keep the playing one. */
+const lofi = TABS.find((t) => t.title === 'Lo-fi beats to code to')!;
+export const PLAYING_DUPLICATE: Snapshot = {
+  ...SNAPSHOT,
+  tabs: [...TABS, { ...lofi, id: 900, windowId: 2, index: 8, audible: false, lastAccessed: NOW - 3 * 24 * 60 * MIN }],
+};
+
 export interface Fixture {
   name: string;
   state: AppState;
@@ -78,6 +85,7 @@ export const FIXTURES: Fixture[] = [
     state: at({ view: 'sites', searchFocused: false, expanded: new Set(['news.ycombinator.com']), cursor: 'site:news.ycombinator.com' }),
   },
   { name: 'Duplicate review', state: at({ reviewOpen: true, searchFocused: false, cursor: `copy:${idOf('Hacker News', 1)}` }) },
+  { name: 'Duplicate review · a copy is playing', state: at({ reviewOpen: true, searchFocused: false }, PLAYING_DUPLICATE) },
   {
     name: 'Select mode',
     state: at({

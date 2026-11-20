@@ -50,16 +50,20 @@ export type CopyVerdict =
 
 export interface DuplicateCopy {
   tabId: number;
+  /** The copy as a tab: its own title, favicon and marks (current, playing, pinned). */
+  row: TabRow;
   /** Human location, e.g. `"Window 1 · tab 4"`. */
   location: string;
   verdict: CopyVerdict;
-  /** Protected (current, pinned, grouped): always kept, can't be flipped. */
+  /** Protected (current, playing, pinned, grouped): always kept, can't be flipped. */
   locked: boolean;
 }
 
 export interface DuplicateSet {
   title: string;
   domain: string;
+  /** The address every copy shares, without the scheme: what makes them duplicates. */
+  address: string;
   copies: DuplicateCopy[];
 }
 
