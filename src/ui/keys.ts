@@ -69,8 +69,9 @@ export function resolveKey(e: KeyLike, ctx: KeyContext): KeyCommand | null {
       return ctx.typing ? { kind: 'blurSearch' } : { kind: 'focusSearch' };
   }
   if (mod && key.toLowerCase() === 'f') return { kind: 'focusSearch' };
-  // Plain D types into search; ⌘D reaches review from anywhere (the popup opens in search).
-  if (mod && !e.shiftKey && key.toLowerCase() === 'd') return act({ type: 'openReview' });
+  // Plain D types into search; ⌘D reaches review from anywhere (the popup opens in search),
+  // and ⌘D again in review closes what it shows: ⌘D ⌘D closes every duplicate.
+  if (mod && !e.shiftKey && key.toLowerCase() === 'd') return act({ type: ctx.reviewOpen ? 'confirmReview' : 'openReview' });
   if (mod && key === 'Backspace' && ctx.typing && ctx.hasQuery) return act({ type: 'closeResults' });
   if (key === 'Backspace' && !mod && ctx.typing && ctx.fieldChip && ctx.caretAtStart) return act({ type: 'clearField' });
 
@@ -155,7 +156,7 @@ export const KEY_HELP: HelpSection[] = [
     entries: [
       { keys: ['/'], label: 'Search (or just start typing) · start with url:, title: or dupe: to narrow' },
       { keys: ['S'], label: 'Switch Tabs / Sites' },
-      { keys: ['D', '⌘D'], label: 'Review duplicates (⌘D also while typing)' },
+      { keys: ['D', '⌘D'], label: 'Review duplicates (⌘D also while typing) · ⌘D again closes them' },
       { keys: ['X'], label: 'Select mode (⇧↑↓ to extend, ⌘A all)' },
       { keys: ['Esc'], label: 'Clear search · leave mode · back' },
       { keys: ['?'], label: 'This panel' },

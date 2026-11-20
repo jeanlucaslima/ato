@@ -22,6 +22,7 @@ describe('resolveKey', () => {
     expect(action({ key: 'd', ctrlKey: true }, ctx({ typing: true }))).toEqual({ type: 'openReview' });
     expect(action({ key: 'd' }, ctx({ typing: true }))).toBeNull();
     expect(action({ key: 'd' })).toEqual({ type: 'openReview' });
+    expect(action({ key: 'd', metaKey: true }, ctx({ reviewOpen: true }))).toEqual({ type: 'confirmReview' });
   });
 
   it('navigates with arrows, j/k, paging and Home/End', () => {
