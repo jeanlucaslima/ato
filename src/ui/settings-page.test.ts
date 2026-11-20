@@ -20,7 +20,7 @@ describe('settings page', () => {
     const seen: string[] = [];
     await mountSettings(container, store, { version: '3', onChange: (s) => seen.push(s.theme) });
 
-    const light = container.querySelector<HTMLInputElement>('input[name="theme"][value="light"]')!;
+    const light = container.querySelector<HTMLInputElement>('input[name="theme"][value="nebula"]')!;
     light.checked = true;
     light.dispatchEvent(new Event('change', { bubbles: true }));
     const pinned = container.querySelector<HTMLInputElement>('input[name="protectPinned"]')!;
@@ -28,9 +28,25 @@ describe('settings page', () => {
     pinned.dispatchEvent(new Event('change', { bubbles: true }));
     await flush();
 
-    expect(await store.load()).toEqual({ ...DEFAULT_SETTINGS, theme: 'light', protectPinned: false });
-    expect(seen.at(-1)).toBe('light');
+    expect(await store.load()).toEqual({ ...DEFAULT_SETTINGS, theme: 'nebula', protectPinned: false });
+    expect(seen.at(-1)).toBe('nebula');
     expect(container.querySelector('.saved')!.textContent).toBe('Saved');
+  });
+
+  it('offers every theme, each card previewed in its own colours', () => {
+    const page = renderSettings({ settings: DEFAULT_SETTINGS, version: '3', saved: false });
+    const cards = page.querySelectorAll('.theme-card');
+    expect(cards).toHaveLength(9);
+    expect(page.querySelector('.theme-card input[value="ember"]')!.closest('.theme-card')!.querySelector('[data-theme="ember"]')).not.toBeNull();
+  });
+
+  it('previews the badge as set, and turns colours off with it', () => {
+    const on = renderSettings({ settings: { ...DEFAULT_SETTINGS, badge: 'all', badgeColor: '#7c3aed' }, version: '3', saved: false });
+    expect(on.querySelector<HTMLElement>('.tb-badge')!.textContent).toBe('128');
+    expect(on.querySelector<HTMLElement>('.tb-badge')!.getAttribute('style')).toContain('#7c3aed');
+    const off = renderSettings({ settings: { ...DEFAULT_SETTINGS, badge: 'off' }, version: '3', saved: false });
+    expect(off.querySelector('.tb-badge')).toBeNull();
+    expect(off.querySelector<HTMLInputElement>('input[name="badgeColor"]')!.disabled).toBe(true);
   });
 
   it('follows changes saved elsewhere', async () => {

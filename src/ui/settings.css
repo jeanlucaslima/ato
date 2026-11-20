@@ -52,6 +52,58 @@
 .switch:checked { background: var(--ok-fill); border-color: var(--ok-line); }
 .switch:checked::before { translate: 16px 0; background: var(--ok); }
 
+/* Theme picker: each card shows a tiny popup in the theme's own colours */
+.theme-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.theme-card { position: relative; display: flex; flex-direction: column; gap: 2px; padding: 8px 8px 10px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); cursor: pointer; transition: border-color 120ms, translate 160ms cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 160ms; }
+.theme-card:hover { translate: 0 -2px; box-shadow: var(--shadow); }
+.theme-card input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.theme-card:has(input:checked) { border-color: var(--focus); box-shadow: 0 0 0 1px var(--focus); }
+.theme-card:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
+.theme-name { margin-top: 8px; padding: 0 2px; font-size: 13.5px; font-weight: 700; }
+.theme-card:has(input:checked) .theme-name::after { content: ' ✓'; color: var(--focus); }
+.theme-tag { padding: 0 2px; font-size: 11.5px; color: var(--ink-3); }
+
+.theme-preview { position: relative; display: block; height: 96px; border-radius: 7px; overflow: hidden; }
+.theme-preview--split .mini { position: absolute; inset: 0; }
+.theme-preview--split .mini:first-child { clip-path: polygon(0 0, 62% 0, 38% 100%, 0 100%); }
+.theme-preview--split .mini:last-child { clip-path: polygon(62% 0, 100% 0, 100% 100%, 38% 100%); }
+.mini { display: flex; flex-direction: column; gap: 5px; height: 100%; padding: 8px; background: var(--canvas); color: var(--ink); }
+.mini-search { display: flex; align-items: center; height: 14px; padding: 0 5px; border: 1px solid var(--focus); border-radius: 4px; background: var(--surface); }
+.mini-caret { width: 1px; height: 7px; background: var(--focus); }
+.mini-strip { display: flex; align-items: center; gap: 4px; height: 12px; padding: 0 5px; border: 1px solid var(--amber-line); border-radius: 4px; background: var(--amber-fill); }
+.mini-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--amber); }
+.mini-strip-line { width: 34%; height: 3px; border-radius: 2px; background: var(--amber); }
+.mini-row { display: flex; align-items: center; gap: 5px; height: 12px; padding: 0 4px; border-radius: 3px; }
+.mini-row.is-cursor { background: var(--focus-fill); box-shadow: inset 2px 0 var(--focus); }
+.mini-fav { width: 7px; height: 7px; border-radius: 2px; flex: none; }
+.mini-fav--a { background: var(--focus); }
+.mini-fav--b { background: var(--ok); }
+.mini-fav--c { background: var(--danger); }
+.mini-line { height: 3px; border-radius: 2px; background: var(--ink-2); }
+.mini-line--a { width: 70%; background: var(--ink); }
+.mini-line--b { width: 52%; }
+.mini-line--c { width: 62%; }
+
+/* Toolbar badge preview: a mock browser toolbar with ATO's icon */
+.toolbar-mock { flex: none; display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 12px; border-radius: 20px; background: var(--canvas); border: 1px solid var(--line); }
+.tb-icon { width: 18px; height: 18px; border-radius: 50%; background: var(--raised); }
+.tb-icon--ato { border-radius: 0; background: none; color: var(--ink); }
+.tb-icon--ato svg { display: block; }
+.tb-slot { position: relative; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 6px; background: var(--surface); }
+.tb-badge { position: absolute; right: -7px; bottom: -4px; min-width: 16px; height: 14px; padding: 0 4px; border-radius: 4px; color: #fff; font-size: 9.5px; font-weight: 700; line-height: 14px; text-align: center; font-family: system-ui, sans-serif; box-shadow: 0 0 0 1.5px var(--canvas); transition: background-color 150ms; }
+@starting-style { .tb-badge { scale: 0.6; opacity: 0; } }
+.tb-badge { transition: background-color 150ms, scale 160ms cubic-bezier(0.2, 0.7, 0.2, 1), opacity 160ms; }
+
+.swatches { flex: none; display: flex; gap: 6px; }
+.swatch { position: relative; width: 22px; height: 22px; cursor: pointer; }
+.swatch input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.swatch span { display: block; width: 100%; height: 100%; border-radius: 50%; box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.15); transition: scale 120ms; }
+.swatch:hover span { scale: 1.12; }
+.swatch input:checked + span { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink); }
+.swatch input:focus-visible + span { outline: 2px solid var(--focus); outline-offset: 4px; }
+.is-disabled .swatches { opacity: 0.35; }
+.is-disabled .swatch, .is-disabled .swatch input { cursor: not-allowed; }
+
 .keys { flex: none; display: flex; gap: 6px; }
 .settings kbd { font-family: var(--mono); font-size: 12px; color: var(--key); border: 1px solid var(--line); border-radius: 5px; padding: 2px 7px; }
 
