@@ -37,6 +37,7 @@ export type Action =
   | { type: 'moveSite'; domain: string }
   | { type: 'moveResults' }
   | { type: 'closeResults' }
+  | { type: 'showAllResults' }
   | { type: 'unloadResults' }
   | { type: 'closed'; tabs: readonly Tab[]; message: string }
   | { type: 'undo' }

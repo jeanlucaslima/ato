@@ -197,6 +197,8 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
         return { type: 'unloadSite', domain };
       case 'move-site':
         return { type: 'moveSite', domain };
+      case 'show-all-results':
+        return { type: 'showAllResults' };
       case 'move-results':
         return { type: 'moveResults' };
       case 'open-review':

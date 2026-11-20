@@ -54,7 +54,8 @@ function body(m: PopupModel): Child[] {
     case 'windows':
       return [viewBar(m), list('windows', { role: 'tree', 'aria-label': 'Windows', 'aria-multiselectable': sel ? 'true' : 'false' }, s.windows.map((w) => windowGroup(w, m.cursor, sel)))];
     case 'search': {
-      const n = s.results.length;
+      const n = s.total;
+      const hidden = s.total - s.results.length;
       return [
         searchTips(s.mode, s.field),
         h(
@@ -82,6 +83,13 @@ function body(m: PopupModel): Child[] {
             ? h('p', { class: 'empty' }, `Type to search ${s.field === 'title' ? 'tab titles' : 'URLs'}.`)
             : n === 0
             ? h('p', { class: 'empty' }, `No tabs match “${s.query}”.`)
+            : hidden > 0
+            ? h(
+                'p',
+                { class: 'note note--more' },
+                `+${plural(hidden, 'more match', 'more matches')} · keep typing to narrow, or `,
+                h('button', { class: 'btn btn--ghost', type: 'button', 'data-action': 'show-all-results' }, 'Show all'),
+              )
             : h('p', { class: 'note' }, 'Search covers every window. ', h('kbd', { class: 'k' }, 'Esc'), ' clears it and returns to where you were.'),
         ),
       ];

@@ -157,6 +157,24 @@ describe('update', () => {
     expect([a.ui.view, b.ui.view, c.ui.view]).toEqual(['sites', 'windows', 'tabs']);
   });
 
+  it('draws the first 150 search results, acts on all of them, and shows all on request', async () => {
+    const { makeSnapshot } = await import('../dev/perf');
+    const big = makeSnapshot(600);
+    const s0: AppState = { snapshot: big, ui: initialUi({}) };
+    const [typed] = run(s0, [{ type: 'query', text: 'page' }]);
+    const screen = deriveModel(typed).screen;
+    if (screen.kind !== 'search') throw new Error('expected search');
+    expect(screen.total).toBe(600);
+    expect(screen.results).toHaveLength(150);
+    const [, fx] = run(typed, [{ type: 'unloadResults' }]);
+    expect(fx.flatMap((e) => (e.kind === 'discard' ? e.tabIds : [])).length).toBeGreaterThan(150);
+    const [all] = run(typed, [{ type: 'showAllResults' }]);
+    const allScreen = deriveModel(all).screen;
+    expect(allScreen.kind === 'search' && allScreen.results.length).toBe(600);
+    const [retyped] = run(all, [{ type: 'query', text: 'page 1' }]);
+    expect(retyped.ui.showAllResults).toBe(false);
+  });
+
   it('follows a policy change while open: newly protected tabs are no longer closed', () => {
     const unprotected = { keep: 'oldest', protectPinned: false, protectGroups: false } as const;
     const [s] = run(start({ policy: unprotected }), [{ type: 'policy', policy: { ...unprotected, protectPinned: true } }]);

@@ -16,6 +16,8 @@ export interface UiState {
   siteSort: SiteSort;
   scope: Scope;
   query: string;
+  /** Search: draw every result instead of the first `SEARCH_SHOWN` (reset by a new query). */
+  showAllResults?: boolean;
   searchFocused: boolean;
   reviewOpen: boolean;
   /** Keyboard shortcuts panel. */

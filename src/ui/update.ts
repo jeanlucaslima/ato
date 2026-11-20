@@ -222,7 +222,7 @@ function step(state: AppState, action: Action): Result {
     case 'query': {
       // Entering search remembers where browsing was; the first result is ready for Enter.
       const searchReturn = ui.query ? ui.searchReturn : ui.cursor;
-      const next = setUi(state, { query: action.text, reviewOpen: false, searchReturn, cursor: undefined });
+      const next = setUi(state, { query: action.text, reviewOpen: false, searchReturn, cursor: undefined, showAllResults: false });
       return [setUi(next, { cursor: action.text.trim() ? navOrder(deriveModel(next))[0] : searchReturn }), []];
     }
     case 'clearQuery':
@@ -294,6 +294,8 @@ function step(state: AppState, action: Action): Result {
       return startClose(state, siteTabs(state, action.domain), 'tab', true);
     case 'unloadSite':
       return startUnload(state, siteTabs(state, action.domain));
+    case 'showAllResults':
+      return [setUi(state, { showAllResults: true }), []];
     case 'closeResults':
       // dupe: results close only the extra copies: every page keeps one tab.
       if (parseQuery(ui.query).field === 'dupe') return state.snapshot ? startClose(state, extraCopies(state.snapshot, ui, resultTabs(state)), 'duplicate', true) : [state, []];

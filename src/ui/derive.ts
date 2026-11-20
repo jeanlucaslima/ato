@@ -6,6 +6,9 @@ import type { Snapshot, Tab } from '../core/types';
 import { loadingModel, type DuplicateCopy, type DuplicateSet, type GroupLabel, type WindowGroup, type WindowRun, type PopupModel, type Range, type SiteGroup, type TabRow } from './model';
 import type { AppState, UiState } from './state';
 
+/** Results drawn before "Show all": more is slow to draw and nobody reads it; keep typing. */
+export const SEARCH_SHOWN = 150;
+
 /** Tabs in the popup's scope. Search ignores scope and always sees every window. */
 export function scopedTabs(snapshot: Snapshot, ui: UiState): Tab[] {
   return ui.scope === 'current' ? snapshot.tabs.filter((t) => t.windowId === snapshot.focusedWindowId) : [...snapshot.tabs];
@@ -268,9 +271,10 @@ export function deriveModel({ snapshot, ui }: AppState): PopupModel {
         query: ui.query,
         ...(({ field, rest }) => ({ field, text: rest }))(splitField(ui.query)),
         mode: parsed.mode,
+        total: hits.length,
         windowCount: new Set(hits.map((h) => h.tab.windowId)).size,
         extra: parsed.field === 'dupe' ? extraCopies(snapshot, ui, hits.map((h) => h.tab)).length : undefined,
-        results: hits.map(({ tab, titleRanges, urlRanges }) => {
+        results: (ui.showAllResults ? hits : hits.slice(0, SEARCH_SHOWN)).map(({ tab, titleRanges, urlRanges }) => {
           const { text, ranges } = displayUrl(tab.url, urlRanges);
           return { ...toRow(tab, snapshot, allCopies, ui), detail: text, titleMatches: titleRanges, detailMatches: ranges };
         }),

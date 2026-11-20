@@ -161,7 +161,10 @@ export type Screen =
       /** What the search field holds: the query without the chip's prefix. */
       text: string;
       mode: SearchMode;
+      /** The results drawn: the first `SEARCH_SHOWN` unless the user asked for all. */
       results: TabRow[];
+      /** Every match, drawn or not; bulk actions act on all of them. */
+      total: number;
       windowCount: number;
       /** `dupe:` only: extra copies among the results, what "Close" there closes (one of each stays). */
       extra?: number;
