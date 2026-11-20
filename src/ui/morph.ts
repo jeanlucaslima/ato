@@ -6,6 +6,11 @@
  * A node whose tag or key differs is replaced, so a new key is how a render asks
  * for a fresh element (and its enter animation). An element marked
  * `data-morph-keep` in both trees is left as it is: a controller owns it.
+ *
+ * Speed: a keyed element whose new version is identical (native `isEqualNode`)
+ * is skipped whole, so a re-render costs about the rows that changed, not the
+ * size of the list. Keyed elements hold no form fields, whose live state the
+ * attribute comparison wouldn't see.
  */
 export function morph(current: Element, next: Element): void {
   if (current.hasAttribute('data-morph-keep') && next.hasAttribute('data-morph-keep')) return;
@@ -67,7 +72,9 @@ function syncChildren(current: Element, next: Element): void {
     let node: Node;
     if (match) {
       used.add(match);
-      if (match.nodeType === Node.ELEMENT_NODE) morph(match as Element, target as Element);
+      if (match.nodeType === Node.ELEMENT_NODE) {
+        if (key === null || !match.isEqualNode(target)) morph(match as Element, target as Element);
+      }
       else if (match.nodeValue !== target.nodeValue) match.nodeValue = target.nodeValue;
       node = match;
     } else {
@@ -78,8 +85,9 @@ function syncChildren(current: Element, next: Element): void {
     if (atIndex !== node) current.insertBefore(node, atIndex ?? null);
   });
 
+  const adopted = new Set<Node>(nextChildren);
   for (const child of oldChildren) {
-    if (!used.has(child) && child.parentNode === current && !nextChildren.includes(child as ChildNode)) {
+    if (!used.has(child) && child.parentNode === current && !adopted.has(child)) {
       current.removeChild(child);
     }
   }
