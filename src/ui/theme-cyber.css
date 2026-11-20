@@ -33,14 +33,43 @@
   /* Glow recipes */
   --glow: 0 0 6px color-mix(in srgb, var(--focus) 75%, transparent), 0 0 18px color-mix(in srgb, var(--focus) 35%, transparent);
   --glow-text: 0 0 6px color-mix(in srgb, currentColor 70%, transparent), 0 0 14px color-mix(in srgb, currentColor 35%, transparent);
-  --grid: linear-gradient(rgb(0 240 255 / 0.045) 1px, transparent 1px) 0 0 / 22px 22px,
-    linear-gradient(90deg, rgb(0 240 255 / 0.045) 1px, transparent 1px) 0 0 / 22px 22px;
+  /* Backdrop: minor + major grid lines, a cyan sky glow above, magenta and green
+     light pooling in the lower corners, and a vignette to pull focus inward. */
+  --grid:
+    linear-gradient(rgb(0 240 255 / 0.07) 1px, transparent 1px) 0 0 / 22px 22px,
+    linear-gradient(90deg, rgb(0 240 255 / 0.07) 1px, transparent 1px) 0 0 / 22px 22px,
+    linear-gradient(rgb(0 240 255 / 0.13) 1px, transparent 1px) 0 0 / 110px 110px,
+    linear-gradient(90deg, rgb(0 240 255 / 0.13) 1px, transparent 1px) 0 0 / 110px 110px;
+  --glows:
+    radial-gradient(ellipse 90% 45% at 50% -8%, rgb(0 240 255 / 0.22), transparent 70%),
+    radial-gradient(ellipse 65% 45% at 105% 108%, rgb(255 42 109 / 0.22), transparent 70%),
+    radial-gradient(ellipse 55% 40% at -5% 100%, rgb(57 255 136 / 0.1), transparent 70%),
+    radial-gradient(ellipse 120% 90% at 50% 45%, transparent 55%, rgb(0 0 0 / 0.55));
 }
 
 /* Surfaces: a faint grid behind everything, scanlines over the popup */
-:root[data-theme='cyber'] body,
+:root[data-theme='cyber'] body { background: var(--glows), var(--grid), var(--canvas); background-attachment: fixed; }
 [data-theme='cyber'] .popup,
-.mini[data-theme='cyber'] { background: var(--grid), var(--canvas); }
+.mini[data-theme='cyber'] { background: var(--glows), var(--grid), var(--canvas); }
+/* Panels sit on the grid like glass, so the backdrop shows through a little */
+[data-theme='cyber'] .group,
+[data-theme='cyber'] .theme-card,
+[data-theme='cyber'] .playing,
+[data-theme='cyber'] .search { background: color-mix(in srgb, var(--surface) 82%, transparent); backdrop-filter: blur(2px); }
+/* A slow scan beam sweeps down the popup */
+[data-theme='cyber'] .popup::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -120px;
+  height: 120px;
+  z-index: 10;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, rgb(0 240 255 / 0.06) 70%, rgb(0 240 255 / 0.16) 94%, transparent);
+  animation: cyber-scan 7s linear infinite;
+}
+@keyframes cyber-scan { to { translate: 0 740px; } }
 [data-theme='cyber'] .popup::after {
   content: '';
   position: absolute;
