@@ -43,7 +43,8 @@
 .strip--clean strong { color: var(--ok); }
 .strip--idle { border-color: var(--line); background: var(--surface); }
 .strip--idle .dot { background: var(--ink-3); }
-.strip.is-cursor { box-shadow: 0 0 0 2px var(--focus); }
+/* Cursor on the bar: the list's cursor marks (focus border, left bar) plus a ring, so it reads in every theme. */
+.strip.is-cursor { border-color: var(--focus); box-shadow: 0 0 0 1.5px var(--focus), inset 4px 0 var(--focus); }
 
 /* Now playing: audible tabs from any window */
 .playing { flex: none; margin: 0 12px 10px; padding: 3px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
@@ -57,7 +58,7 @@
 .play-mute { color: var(--ok); }
 .is-muted .play-mute { color: var(--ink-3); }
 .is-muted .play-title { color: var(--ink-2); }
-.play-row.is-cursor { border-radius: 7px; background: var(--focus-fill); box-shadow: inset 3px 0 var(--focus); }
+.play-row.is-cursor { border-radius: 7px; background: var(--focus-fill); box-shadow: inset 3px 0 var(--focus), 0 0 0 1px var(--focus); }
 .play-more { margin: 0; padding: 2px 8px 5px 34px; font-size: 11px; color: var(--ink-3); }
 .eq { flex: none; display: flex; align-items: flex-end; gap: 2px; width: 16px; height: 14px; color: var(--ok); }
 .eq i { flex: 1; height: 40%; border-radius: 1px; background: currentColor; animation: eq 820ms ease-in-out infinite alternate; }
