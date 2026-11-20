@@ -185,7 +185,7 @@ export function deriveModel({ snapshot, ui }: AppState): PopupModel {
     tabCount: tabs.length,
     siteCount: new Set(tabs.map((t) => domainOf(t.url) || 'Other')).size,
     windowCount: new Set(tabs.map((t) => t.windowId)).size,
-    duplicates: { extra: tabsToClose(planDuplicates(tabs, ui.policy)).length, sets: plan.length },
+    duplicates: { extra: tabsToClose(planDuplicates(tabs, ui.policy)).filter((t) => !ui.closing.has(t.id)).length, sets: plan.length },
     scope: ui.scope,
     searchFocused: ui.searchFocused,
     helpOpen: ui.helpOpen,

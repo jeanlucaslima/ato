@@ -84,6 +84,16 @@ describe('update', () => {
     expect(closeEffects(fx)).toHaveLength(4);
   });
 
+  it('closes every duplicate from the front screen, as review would, without opening it', () => {
+    const [s, fx] = run(start(), [{ type: 'closeDuplicates' }]);
+    expect(s.ui.reviewOpen).toBe(false);
+    const ids = closeEffects(fx);
+    expect(ids).toHaveLength(4);
+    expect(ids.some((id) => activeIds.includes(id) || pinnedIds.includes(id))).toBe(false);
+    const [, again] = run(s, [{ type: 'closeDuplicates' }]);
+    expect(closeEffects(again)).toEqual([]);
+  });
+
   it('follows a policy change while open: newly protected tabs are no longer closed', () => {
     const unprotected = { keep: 'oldest', protectPinned: false, protectGroups: false } as const;
     const [s] = run(start({ policy: unprotected }), [{ type: 'policy', policy: { ...unprotected, protectPinned: true } }]);

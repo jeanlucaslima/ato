@@ -155,6 +155,8 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
         return { type: 'unloadSite', domain };
       case 'open-review':
         return { type: 'openReview' };
+      case 'close-duplicates':
+        return { type: 'closeDuplicates' };
       case 'close-review':
         return { type: 'closeReview' };
       case 'confirm-review':

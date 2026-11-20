@@ -20,6 +20,8 @@ export type Action =
   /** Review: open or close a big set's fold of Close copies. */
   | { type: 'toggleFold'; key: string; open?: boolean }
   | { type: 'confirmReview' }
+  /** Close every duplicate the planner would, without opening review. */
+  | { type: 'closeDuplicates' }
   | { type: 'activate'; tabId: number }
   | { type: 'closeTab'; tabId: number }
   | { type: 'closeSite'; domain: string }

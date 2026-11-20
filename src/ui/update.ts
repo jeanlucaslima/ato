@@ -238,6 +238,11 @@ function step(state: AppState, action: Action): Result {
       return startClose(state, tabs, 'duplicate', true);
     }
 
+    case 'closeDuplicates': {
+      if (!state.snapshot) return [state, []];
+      const tabs = tabsToClose(duplicatePlan(state.snapshot, setUi(state, { overrides: new Map() }).ui)).filter((t) => !ui.closing.has(t.id));
+      return startClose(state, tabs, 'duplicate', true);
+    }
     case 'activate': {
       const tab = tabsById(state, [action.tabId])[0];
       if (!tab) return [state, []];

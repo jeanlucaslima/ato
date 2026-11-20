@@ -152,6 +152,12 @@ export function duplicateStrip(m: PopupModel): HTMLElement {
         'Review',
         h('kbd', { class: 'k k--box' }, m.searchFocused ? '⌘D' : 'D'),
       ),
+    state === 'dupes' &&
+      h(
+        'button',
+        { class: 'btn btn--danger', type: 'button', 'data-action': 'close-duplicates', title: 'Close every extra copy now; one of each stays (undo after)' },
+        `Close ${extra}`,
+      ),
   );
 }
 
