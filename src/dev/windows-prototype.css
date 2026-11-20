@@ -17,7 +17,8 @@
 .win-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .win-name { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .win-name .cur { font-size: 11px; font-weight: 600; color: var(--focus); }
-.win-sub { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--ink-3); white-space: nowrap; }
+.win-sub { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ab-head .win-sub { display: block; }
 .fav-strip { display: inline-flex; align-items: center; }
 .fav-strip .fav { width: 14px; height: 14px; font-size: 8px; border-radius: 4px; box-shadow: 0 0 0 1.5px var(--canvas); }
 .fav-strip .fav + .fav { margin-left: -3px; }
@@ -43,6 +44,27 @@
 .dot.is-playing { box-shadow: 0 0 0 1.5px var(--canvas), 0 0 0 3px var(--ok); }
 .dot.is-active { box-shadow: 0 0 0 1.5px var(--canvas), 0 0 0 3px var(--focus); }
 .dot.is-pinned { border-radius: 50%; }
+.win-card-head { cursor: pointer; }
+.win-card-foot .fold-caret svg { transform: none; }
+.win-card.is-open .win-toggle .fold-caret svg { transform: rotate(180deg); }
+.win-tabs { display: none; margin: 10px -12px -10px; border-top: 1px solid var(--line); }
+.win-card.is-open .win-tabs { display: block; }
+.win-tabs .row { height: 46px; }
+.win-tabs .row:last-child { border-bottom: 0; }
+/* Groups: a bracket in the group colour around its dots; collapsed = one pill */
+.dot-group { display: inline-flex; gap: 4px; padding: 2px 3px; border: 1.5px solid var(--g); border-radius: 5px; background: color-mix(in srgb, var(--g) 14%, transparent); }
+.dot-pill { display: inline-flex; align-items: center; gap: 5px; height: 15px; padding: 0 6px; border-radius: 8px; background: var(--g); color: #15171a; font-size: 10px; font-weight: 600; }
+.dot-pill b { font-family: var(--mono); font-weight: 500; opacity: 0.75; }
+.tab-dots { align-items: center; }
+.tab-group { border-left: 3px solid var(--g); background: color-mix(in srgb, var(--g) 6%, transparent); }
+.tab-group-head { display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 8px 0 11px; font-size: 12px; border-bottom: 1px solid var(--line-soft); }
+.tab-group-name { padding: 1px 8px; border-radius: 9px; background: var(--g); color: #15171a; font-weight: 600; font-size: 11.5px; }
+.tab-group-n { color: var(--ink-3); }
+.tab-group-note { color: var(--ink-3); font-style: italic; font-size: 11px; }
+.tab-group-head .btn { height: 24px; font-size: 11px; display: none; }
+.tab-group-head:hover .btn { display: inline-flex; }
+.tab-group .row-main { padding-left: 11px; }
+.tab-group.is-collapsed .row { opacity: 0.75; }
 .win-card-foot { display: flex; align-items: center; gap: 10px; font-size: 11.5px; color: var(--ink-3); }
 .win-card-foot .dup { color: var(--amber); }
 .win-card-foot .btn { height: 26px; font-size: 11.5px; }
@@ -50,6 +72,23 @@
 .win-legend { display: flex; align-items: center; gap: 6px; margin: 2px 2px 6px; font-size: 11px; color: var(--ink-3); }
 .win-legend .dot { margin-left: 8px; background: var(--ink-3); }
 .win-legend .dot:first-child { margin-left: 0; }
+
+/* A + B */
+.ab-win { border-bottom: 1px solid var(--line-soft); }
+.ab-win.is-open { background: color-mix(in srgb, var(--surface) 45%, var(--canvas)); }
+.ab-head { display: flex; align-items: center; gap: 10px; padding: 10px 10px 4px 10px; cursor: pointer; user-select: none; }
+.ab-head:hover { background: var(--surface); }
+.ab-head .caret { display: grid; flex: none; color: var(--ink-3); transition: transform var(--t) var(--ease); }
+.ab-win.is-open .ab-head .caret { transform: rotate(90deg); }
+.ab-actions { display: none; gap: 4px; }
+.ab-actions .btn { height: 26px; font-size: 11.5px; }
+.ab-win.is-open .ab-actions { display: flex; }
+.ab-win.is-open .win-flags { display: none; }
+.ab-map { padding: 4px 12px 10px 64px; }
+.ab-map .tab-dots { margin: 0; }
+.ab-body { display: none; border-top: 1px solid var(--line-soft); }
+.ab-win.is-open .ab-body { display: block; }
+.ab-body .win-tabs { display: block; margin: 0; border-top: 0; }
 
 /* C */
 .bar--chips { flex-direction: column; align-items: stretch; gap: 8px; }

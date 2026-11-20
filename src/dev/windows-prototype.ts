@@ -17,7 +17,31 @@ import { tabRow } from '../ui/rows';
 import { initialUi } from '../ui/state';
 import { MANY_COPIES } from './fixtures';
 
-const snapshot: Snapshot = MANY_COPIES;
+/** Chrome tab groups, made up for the mock (the sample tabs have none). */
+interface GroupInfo {
+  id: number;
+  title: string;
+  color: string;
+  collapsed: boolean;
+}
+/** Chrome's nine group colours, roughly. */
+const GROUP_COLOR = { blue: '#8ab4f8', purple: '#c58af9', orange: '#fcad70', green: '#81c995' };
+const GROUPS = new Map<number, GroupInfo>([
+  [11, { id: 11, title: 'ATO v3', color: GROUP_COLOR.blue, collapsed: false }],
+  [12, { id: 12, title: 'Read later', color: GROUP_COLOR.purple, collapsed: true }],
+  [21, { id: 21, title: 'Reading', color: GROUP_COLOR.orange, collapsed: false }],
+  [22, { id: 22, title: 'Planning', color: GROUP_COLOR.green, collapsed: false }],
+]);
+/** window → [first index, last index, group id]: groups are contiguous runs, as in Chrome. */
+const GROUP_RUNS: Record<number, [number, number, number][]> = { 1: [[5, 6, 11], [9, 11, 12]], 2: [[2, 3, 21], [4, 4, 22]] };
+
+const snapshot: Snapshot = {
+  ...MANY_COPIES,
+  tabs: MANY_COPIES.tabs.map((t) => {
+    const run = GROUP_RUNS[t.windowId]?.find(([a, b]) => t.index >= a && t.index <= b);
+    return run ? { ...t, groupId: run[2] } : t;
+  }),
+};
 const ui = initialUi({ searchFocused: false });
 const rows = new Map<number, TabRow>();
 {
@@ -145,10 +169,74 @@ function variantA(): HTMLElement {
 
 // --- B · Window map -----------------------------------------------------------
 
-function windowCard(w: WindowInfo): HTMLElement {
+/** A window's tabs in strip order, cut into runs: each group, and the ungrouped tabs between. */
+function runs(tabs: readonly Tab[]): { group: GroupInfo | null; tabs: Tab[] }[] {
+  const out: { group: GroupInfo | null; tabs: Tab[] }[] = [];
+  for (const t of tabs) {
+    const group = GROUPS.get(t.groupId) ?? null;
+    const last = out[out.length - 1];
+    if (last && last.group?.id === group?.id) last.tabs.push(t);
+    else out.push({ group, tabs: [t] });
+  }
+  return out;
+}
+
+function dot(t: Tab): HTMLElement {
+  return h('i', {
+    class: cls('dot', t.active && 'is-active', extras.has(t.id) && 'is-dup', t.audible && 'is-playing', t.discarded && 'is-asleep', t.pinned && 'is-pinned'),
+    style: `--c:${tintFor(domainOf(t.url))}`,
+    title: t.title,
+  });
+}
+
+/** Dots in strip order; a group brackets its dots in its colour, a collapsed group is one pill. */
+function dotStrip(w: WindowInfo): HTMLElement {
   return h(
     'div',
-    { class: cls('win-card', w.focused && 'is-focused') },
+    { class: 'tab-dots', 'aria-hidden': 'true' },
+    runs(w.tabs).map(({ group, tabs }) =>
+      !group
+        ? tabs.map(dot)
+        : group.collapsed
+        ? h('span', { class: 'dot-pill', style: `--g:${group.color}`, title: `${group.title} (collapsed)` }, group.title, h('b', null, tabs.length))
+        : h('span', { class: 'dot-group', style: `--g:${group.color}`, title: group.title }, tabs.map(dot)),
+    ),
+  );
+}
+
+/** The window's tabs as rows, grouped under their tab groups, in strip order. */
+function windowTabs(w: WindowInfo): HTMLElement {
+  const row = (t: Tab) => tabRow({ ...rows.get(t.id)!, detail: domainOf(t.url) || t.url });
+  return h(
+    'div',
+    { class: 'win-tabs' },
+    runs(w.tabs).map(({ group, tabs }) =>
+      !group
+        ? tabs.map(row)
+        : h(
+            'div',
+            { class: cls('tab-group', group.collapsed && 'is-collapsed'), style: `--g:${group.color}` },
+            h(
+              'div',
+              { class: 'tab-group-head' },
+              h('span', { class: 'tab-group-name' }, group.title),
+              h('span', { class: 'tab-group-n' }, plural(tabs.length, 'tab')),
+              group.collapsed && h('span', { class: 'tab-group-note' }, 'collapsed in Chrome'),
+              h('span', { class: 'spacer' }),
+              h('button', { class: 'btn', type: 'button', title: 'Move this group to a new window' }, icon('newWindow', 14)),
+              h('button', { class: 'btn btn--danger', type: 'button' }, `Close ${tabs.length}`),
+            ),
+            tabs.map(row),
+          ),
+    ),
+  );
+}
+
+function windowCard(w: WindowInfo, open: boolean): HTMLElement {
+  const groups = new Set(w.tabs.map((t) => t.groupId).filter((g) => GROUPS.has(g))).size;
+  const card = h(
+    'div',
+    { class: cls('win-card', w.focused && 'is-focused', open && 'is-open') },
     h(
       'div',
       { class: 'win-card-head' },
@@ -161,40 +249,103 @@ function windowCard(w: WindowInfo): HTMLElement {
       ),
       h('span', { class: 'win-card-count' }, w.tabs.length),
     ),
-    h(
-      'div',
-      { class: 'tab-dots', 'aria-hidden': 'true' },
-      w.tabs.map((t) =>
-        h('i', {
-          class: cls('dot', t.active && 'is-active', extras.has(t.id) && 'is-dup', t.audible && 'is-playing', t.discarded && 'is-asleep', t.pinned && 'is-pinned'),
-          style: `--c:${tintFor(domainOf(t.url))}`,
-          title: t.title,
-        }),
-      ),
-    ),
+    dotStrip(w),
     h(
       'div',
       { class: 'win-card-foot' },
       h('span', null, plural(w.sites.length, 'site')),
+      groups > 0 && h('span', null, plural(groups, 'group')),
       w.dupes > 0 && h('span', { class: 'dup' }, plural(w.dupes, 'duplicate')),
       w.unloaded > 0 && h('span', null, `${w.unloaded} unloaded`),
       h('span', { class: 'spacer' }),
       !w.focused && h('button', { class: 'btn', type: 'button' }, 'Merge here'),
-      h('button', { class: 'btn', type: 'button' }, w.focused ? 'Open' : 'Focus'),
+      !w.focused && h('button', { class: 'btn', type: 'button' }, 'Focus'),
+      h('button', { class: 'btn win-toggle', type: 'button', 'aria-expanded': String(open) }, 'Tabs', h('span', { class: 'fold-caret' }, icon('chevron', 10))),
     ),
+    windowTabs(w),
   );
+  const toggle = () => {
+    card.classList.toggle('is-open');
+    card.querySelector('.win-toggle')?.setAttribute('aria-expanded', String(card.classList.contains('is-open')));
+  };
+  card.querySelector('.win-toggle')!.addEventListener('click', toggle);
+  card.querySelector('.win-card-head')!.addEventListener('click', toggle);
+  return card;
 }
 
 function variantB(): HTMLElement {
   return frame(
-  h('div', { class: 'bar' }, seg('windows'), h('span', { class: 'spacer' }), h('button', { class: 'btn', type: 'button', title: 'Move every tab into this window' }, 'Merge all')),
-  h(
+    h('div', { class: 'bar' }, seg('windows'), h('span', { class: 'spacer' }), h('button', { class: 'btn', type: 'button', title: 'Move every tab into this window' }, 'Merge all')),
+    h(
+      'div',
+      { class: 'list win-map' },
+      windows.map((w) => windowCard(w, w.n === 1)),
+      h(
+        'p',
+        { class: 'win-legend' },
+        h('i', { class: 'dot is-active' }), 'current',
+        h('i', { class: 'dot is-dup' }), 'duplicate',
+        h('i', { class: 'dot is-playing' }), 'playing',
+        h('i', { class: 'dot is-asleep' }), 'unloaded',
+        h('span', { class: 'dot-group', style: `--g:${GROUP_COLOR.blue}` }, h('i', { class: 'dot' })), 'group',
+      ),
+    ),
+    'Click a window to see its tabs · each dot is a tab',
+  );
+}
+
+// --- A + B · Windows view with the tab map ---------------------------------------
+
+/** A's foldable window row, with B's dot strip (groups included) as its second line. */
+function hybridWindow(w: WindowInfo, open: boolean): HTMLElement {
+  const groups = new Set(w.tabs.map((t) => t.groupId).filter((g) => GROUPS.has(g))).size;
+  const el = h(
     'div',
-    { class: 'list win-map' },
-    windows.map(windowCard),
-    h('p', { class: 'win-legend' }, h('i', { class: 'dot is-active' }), 'current', h('i', { class: 'dot is-dup' }), 'duplicate', h('i', { class: 'dot is-playing' }), 'playing', h('i', { class: 'dot is-asleep' }), 'unloaded'),
-  ),
-  'Each dot is a tab, coloured by site',
+    { class: cls('ab-win', w.focused && 'is-focused', open && 'is-open') },
+    h(
+      'div',
+      { class: 'ab-head' },
+      h('span', { class: 'caret' }, icon('caretRight', 12)),
+      h('span', { class: cls('win-tile', w.focused && 'is-focused') }, w.n),
+      h(
+        'span',
+        { class: 'win-text' },
+        h('span', { class: 'win-name' }, `Window ${w.n}`, w.focused && h('span', { class: 'cur' }, 'This window')),
+        h(
+          'span',
+          { class: 'win-sub' },
+          [plural(w.tabs.length, 'tab'), plural(w.sites.length, 'site'), groups > 0 && plural(groups, 'group'), `used ${w.lastUsed}`].filter(Boolean).join(' · '),
+        ),
+      ),
+      h(
+        'span',
+        { class: 'win-flags' },
+        w.dupes > 0 && h('span', { class: 'dup', title: plural(w.dupes, 'duplicate') }, `×${w.dupes}`),
+        w.playing > 0 && h('span', { class: 'audio' }, icon('audio', 14)),
+      ),
+      h(
+        'span',
+        { class: 'ab-actions' },
+        !w.focused && h('button', { class: 'btn', type: 'button', title: 'Bring this window to the front (↵)' }, 'Focus'),
+        !w.focused && h('button', { class: 'btn', type: 'button', title: 'Move its tabs into this window (M)' }, 'Merge'),
+        h('button', { class: 'btn btn--danger', type: 'button', title: 'Close this window (⌫)' }, `Close ${w.tabs.length}`),
+      ),
+    ),
+    h('div', { class: 'ab-map' }, dotStrip(w)),
+    h('div', { class: 'ab-body' }, windowTabs(w)),
+  );
+  el.querySelector('.ab-head')!.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement).closest('button')) return;
+    el.classList.toggle('is-open');
+  });
+  return el;
+}
+
+function variantAB(): HTMLElement {
+  return frame(
+    h('div', { class: 'bar' }, seg('windows'), h('span', { class: 'spacer' }), h('button', { class: 'menu-btn', type: 'button' }, 'Recent', icon('chevron', 10))),
+    h('div', { class: 'list' }, windows.map((w) => hybridWindow(w, w.n === 1))),
+    '←→ fold   ↵ focus   M merge   ⌫ close',
   );
 }
 
@@ -257,6 +408,11 @@ export function windowPrototypes(): HTMLElement {
     h(
       'div',
       { class: 'gallery' },
+      fig(
+        'A + B · Windows view with a tab map (proposed)',
+        "A's rows, each with B's dot strip: every dot a tab in strip order, groups bracketed in their colour, a collapsed group as one pill. Click a window to see its tabs under their groups. Window 1 starts open.",
+        variantAB(),
+      ),
       fig('A · Windows view', 'A third view beside Tabs and Sites. Each window folds like a site: its tabs underneath, Focus / Merge / Close when open. Familiar, keyboard-friendly, scales to many windows.', variantA()),
       fig('B · Window map', 'All windows at a glance: one card each, every tab a dot coloured by site, rings for current, duplicate and playing. Best for spotting the messy window; less for acting on single tabs.', variantB()),
       fig('C · Window chips', "No new view: chips under the bar narrow Tabs or Sites to one window (replaces the All windows / This window switch). Cheapest; doesn't show windows side by side.", variantC()),
