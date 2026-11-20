@@ -2,7 +2,7 @@
  * The popup's state machine: `update(state, action)` → next state + effects.
  * Pure — browser work is described as effects and run by the runtime (`app.ts`).
  */
-import { protection, tabsToClose } from '../core/duplicates';
+import { isSplit, protection, tabsToClose } from '../core/duplicates';
 import { parseQuery, searchTabs, splitField } from '../core/search';
 import { domainOf } from '../core/tabs';
 import type { Tab } from '../core/types';
@@ -99,8 +99,11 @@ function startClose(state: AppState, tabs: readonly Tab[], noun: string, bulk: b
  * Gather `tabs` into a new window, in the order they sit now (window by window,
  * left to right). Tabs that already have a window to themselves stay put.
  */
-function startMove(state: AppState, tabs: readonly Tab[]): Result {
-  if (tabs.length === 0) return withToast(state, 'Nothing to move');
+function startMove(state: AppState, picked: readonly Tab[]): Result {
+  if (picked.length === 0) return withToast(state, 'Nothing to move');
+  // Half of a side-by-side pair takes the other half along, so the split survives.
+  const splits = new Set(picked.filter(isSplit).map((t) => t.splitViewId));
+  const tabs = splits.size === 0 ? picked : (state.snapshot?.tabs ?? []).filter((t) => picked.includes(t) || (isSplit(t) && splits.has(t.splitViewId)));
   const windows = new Set(tabs.map((t) => t.windowId));
   const alone = windows.size === 1 && (state.snapshot?.tabs ?? []).every((t) => t.windowId !== tabs[0]!.windowId || tabs.includes(t));
   if (alone) return withToast(state, 'Already in a window of their own');

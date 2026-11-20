@@ -25,6 +25,8 @@ export function fromChromeTab(t: chrome.tabs.Tab, now: number): Tab | null {
     audible: t.audible ?? false,
     muted: t.mutedInfo?.muted ?? false,
     discarded: t.discarded,
+    // Not in @types/chrome yet (Chrome 140+).
+    splitViewId: (t as chrome.tabs.Tab & { splitViewId?: number }).splitViewId ?? -1,
     groupId: t.groupId ?? -1,
     lastAccessed: t.lastAccessed ?? now,
   };

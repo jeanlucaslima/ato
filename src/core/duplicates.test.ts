@@ -16,6 +16,7 @@ const tabsArb = fc
       pinned: fc.boolean(),
       audible: fc.boolean(),
       groupId: fc.constantFrom(-1, -1, 7),
+      splitViewId: fc.constantFrom(-1, -1, -1, 3),
     }),
     { maxLength: 24 },
   )
@@ -71,6 +72,10 @@ describe('duplicate cleanup safety rules', () => {
         }),
       ),
     );
+  });
+
+  it('never closes a tab in a split view', () => {
+    fc.assert(fc.property(plannedArb, ({ sets }) => tabsToClose(sets).every((t) => t.splitViewId === -1)));
   });
 
   it('never closes protected tabs', () => {

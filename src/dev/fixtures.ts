@@ -70,6 +70,12 @@ export const PLAYING_DUPLICATE: Snapshot = {
   tabs: [...TABS, { ...lofi, id: 900, windowId: 2, index: 8, audible: false, lastAccessed: NOW - 3 * 24 * 60 * MIN }],
 };
 
+/** A side-by-side pair holding an older copy of Hacker News: review keeps it (split view). */
+export const SPLIT_DUPLICATE: Snapshot = {
+  ...SNAPSHOT,
+  tabs: TABS.map((t) => (t.windowId === 2 && (t.index === 0 || t.index === 1) ? { ...t, splitViewId: 5 } : t)),
+};
+
 /** Nineteen copies of one page (16 in a window of their own): review starts that set folded. */
 export const MANY_COPIES: Snapshot = {
   ...SNAPSHOT,
@@ -122,6 +128,7 @@ export const FIXTURES: Fixture[] = [
     name: 'Duplicate review · 19 copies, opened',
     state: at({ reviewOpen: true, searchFocused: false, setOpen: new Map([[HN, true]]), cursor: 'copy:803' }, MANY_COPIES),
   },
+  { name: 'Duplicate review · a copy is in a split view', state: at({ reviewOpen: true, searchFocused: false }, SPLIT_DUPLICATE) },
   { name: 'Duplicate review · a copy is playing', state: at({ reviewOpen: true, searchFocused: false }, PLAYING_DUPLICATE) },
   {
     name: 'Select mode',

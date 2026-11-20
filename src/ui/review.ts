@@ -31,7 +31,9 @@ export function reviewPolicy(screen: ReviewScreen): HTMLElement {
     h('b', null, 'current tab'),
     ' and any ',
     h('b', null, 'playing'),
-    ' one, then ',
+    ' one, tabs in a ',
+    h('b', null, 'split view'),
+    ', then ',
     h('b', null, 'pinned'),
     ', then the ',
     h('b', null, screen.keep),
@@ -44,6 +46,7 @@ export function reviewPolicy(screen: ReviewScreen): HTMLElement {
 const REASON_LABEL: Record<string, string> = {
   current: 'current tab',
   playing: 'playing',
+  split: 'split view',
   pinned: 'pinned',
   grouped: 'in a group',
   oldest: 'oldest',

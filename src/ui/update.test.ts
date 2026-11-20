@@ -155,6 +155,16 @@ describe('update', () => {
     expect(s.ui.toast?.message).toBe('Moved 2 tabs to a new window');
   });
 
+  it('moving half of a split view takes the other half along', async () => {
+    const { SPLIT_DUPLICATE } = await import('../dev/fixtures');
+    const pair = SPLIT_DUPLICATE.tabs.filter((t) => t.splitViewId === 5).map((t) => t.id);
+    const [, fx] = run({ snapshot: SPLIT_DUPLICATE, ui: initialUi() }, [{ type: 'toggleSelectMode' }, { type: 'toggleSelected', tabId: pair[0]! }, { type: 'moveSelected' }]);
+    expect(fx.flatMap((e) => (e.kind === 'move' ? e.tabIds : [])).sort()).toEqual([...pair].sort());
+    const screen = deriveModel({ snapshot: SPLIT_DUPLICATE, ui: initialUi({ reviewOpen: true }) }).screen;
+    const hn = screen.kind === 'review' ? screen.sets.find((s) => s.address === 'news.ycombinator.com/') : undefined;
+    expect(hn?.copies.find((c) => c.tabId === pair[0])?.verdict).toEqual({ action: 'keep', reason: 'split' });
+  });
+
   it("doesn't move tabs that already have a window to themselves", () => {
     const lone = { ...SNAPSHOT, tabs: [...TABS, { ...TABS[0]!, id: 700, windowId: 9, index: 0, url: 'https://solo.test/', title: 'Solo' }] };
     const [s, fx] = run({ snapshot: lone, ui: initialUi({ view: 'sites' }) }, [{ type: 'moveSite', domain: 'solo.test' }]);

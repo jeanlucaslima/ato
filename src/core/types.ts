@@ -15,6 +15,8 @@ export interface Tab {
   /** Muted by the user; a muted tab can still be `audible` (playing, unheard). */
   muted?: boolean;
   discarded: boolean;
+  /** Side-by-side pair (split view) id, or -1 / absent when not split (Chrome 140+). */
+  splitViewId?: number;
   /** Native tab group id, or -1 when ungrouped. */
   groupId: number;
   /** Epoch ms of last access. */
