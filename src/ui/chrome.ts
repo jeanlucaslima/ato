@@ -89,7 +89,7 @@ export function searchTips(mode: SearchMode, field: SearchField | null): HTMLEle
     { class: 'search-tips' },
     h('span', { class: 'chip' }, MODE_LABEL[mode]),
     field
-      ? [h('span', null, `${FIELD_TIP[field]} ·`), h('kbd', { class: 'k' }, '⌫'), h('span', null, 'at the start removes it')]
+      ? [h('span', null, `${FIELD_TIP[field]} ·`), h('kbd', { class: 'k k--box' }, '⌫'), h('span', null, 'at the start removes it')]
       : [h('span', null, 'Try'), ['"exact"', 'url:', 'title:', 'dupe:'].map((s) => h('code', { class: 'k' }, s))],
   );
 }
@@ -194,8 +194,8 @@ export function hintFooter(hints: readonly Hint[]): HTMLElement {
   return h(
     'div',
     { class: 'foot' },
-    hints.map(([key, label]) => h('span', null, h('kbd', { class: 'k' }, key), ` ${label}`)),
-    h('button', { class: 'foot-help', type: 'button', 'data-action': 'toggle-help', title: 'Keyboard shortcuts' }, h('kbd', { class: 'k' }, '?'), ' keys'),
+    hints.map(([key, label]) => h('span', null, h('kbd', { class: 'k k--box' }, key), ` ${label}`)),
+    h('button', { class: 'foot-help', type: 'button', 'data-action': 'toggle-help', title: 'Keyboard shortcuts' }, h('kbd', { class: 'k k--box' }, '?'), ' keys'),
   );
 }
 
@@ -218,6 +218,6 @@ export function toast(t: NonNullable<PopupModel['toast']>): HTMLElement {
     // A new key per toast replays the enter animation.
     { class: 'toast', role: 'status', 'aria-live': 'polite', 'data-key': `toast:${t.id}` },
     h('span', { class: 'txt' }, t.message),
-    t.undo && h('button', { class: 'btn', type: 'button', 'data-action': 'undo' }, 'Undo', h('kbd', { class: 'k' }, '⌘Z')),
+    t.undo && h('button', { class: 'btn', type: 'button', 'data-action': 'undo' }, 'Undo', h('kbd', { class: 'k k--box' }, '⌘Z')),
   );
 }

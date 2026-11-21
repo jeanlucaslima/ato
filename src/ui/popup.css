@@ -5,7 +5,10 @@
 .popup { width: 440px; height: 600px; display: flex; flex-direction: column; overflow: hidden; position: relative; background: var(--canvas); }
 
 .k { font-family: var(--mono); font-size: 11px; color: var(--key); }
-.k--box { border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; }
+/* A key, drawn as a soft keycap: tinted, no border, the same in every theme. */
+.k--box { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 4px; background: color-mix(in srgb, var(--ink) 9%, transparent); color: var(--ink-2); font-family: var(--sans); font-size: 11px; font-weight: 600; line-height: 1; vertical-align: middle; }
+.btn .k--box { background: color-mix(in srgb, currentColor 14%, transparent); color: inherit; }
+.foot > span, .foot-help { display: inline-flex; align-items: center; gap: 5px; }
 
 /* Brand */
 .brand { flex: none; display: flex; align-items: center; gap: 10px; padding: 10px 8px 2px 12px; }
@@ -73,7 +76,7 @@
 /* Buttons */
 .btn { height: 30px; padding: 0 10px; border: 1px solid var(--line); border-radius: 7px; background: transparent; font-size: 12px; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
 .btn:hover:not(:disabled) { background: var(--surface); }
-.btn .k { color: inherit; }
+.btn .k:not(.k--box) { color: inherit; }
 .btn--danger { color: var(--danger); border-color: var(--danger-line); }
 .btn--icon { padding-inline: 7px; }
 .btn--icon svg { display: block; }

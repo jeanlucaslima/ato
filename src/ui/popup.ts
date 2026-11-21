@@ -90,7 +90,7 @@ function body(m: PopupModel): Child[] {
                 `+${plural(hidden, 'more match', 'more matches')} · keep typing to narrow, or `,
                 h('button', { class: 'btn btn--ghost', type: 'button', 'data-action': 'show-all-results' }, 'Show all'),
               )
-            : h('p', { class: 'note' }, 'Search covers every window. ', h('kbd', { class: 'k' }, 'Esc'), ' clears it and returns to where you were.'),
+            : h('p', { class: 'note' }, 'Search covers every window. ', h('kbd', { class: 'k k--box' }, 'Esc'), ' clears it and returns to where you were.'),
         ),
       ];
     }

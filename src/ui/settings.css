@@ -129,7 +129,7 @@
 .is-disabled .swatch, .is-disabled .swatch input { cursor: not-allowed; }
 
 .keys { flex: none; display: flex; gap: 6px; }
-.settings kbd { font-family: var(--mono); font-size: 12px; color: var(--key); border: 1px solid var(--line); border-radius: 5px; padding: 2px 7px; }
+.settings kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 5px; background: color-mix(in srgb, var(--ink) 9%, transparent); color: var(--ink-2); font-family: var(--sans); font-size: 12px; font-weight: 600; line-height: 1; }
 
 .settings-foot { display: flex; gap: 16px; font-size: 12px; color: var(--ink-3); }
 .settings-foot a { color: var(--focus); text-decoration: none; }
