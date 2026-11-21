@@ -115,7 +115,7 @@ function themeCard(s: Settings, value: Settings['theme']): HTMLElement {
     'label',
     { class: 'theme-card' },
     h('input', { type: 'radio', name: 'theme', value, checked: s.theme === value }),
-    h('span', { class: cls('theme-preview', value === 'system' && 'theme-preview--split'), 'aria-hidden': 'true' }, value === 'system' ? [miniPopup('graphite'), miniPopup('paper')] : miniPopup(value)),
+    h('span', { class: cls('theme-preview', value === 'system' && 'theme-preview--split'), 'aria-hidden': 'true' }, value === 'system' ? [miniPopup('graphite'), miniPopup('daylight')] : miniPopup(value)),
     h('span', { class: 'theme-name' }, info.name),
     h('span', { class: 'theme-tag' }, info.tagline),
   );

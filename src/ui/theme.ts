@@ -7,7 +7,7 @@ export interface ThemeInfo {
 }
 
 export const THEME_INFO: Record<Settings['theme'], ThemeInfo> = {
-  system: { name: 'System', tagline: 'Paper by day, Graphite by night' },
+  system: { name: 'System', tagline: 'Daylight by day, Graphite by night' },
   graphite: { name: 'Graphite', tagline: 'Calm, cool dark' },
   daylight: { name: 'Daylight', tagline: 'Neutral light, every signal clear' },
   paper: { name: 'Paper', tagline: 'Quiet, warm light' },
@@ -23,7 +23,7 @@ export const THEME_INFO: Record<Settings['theme'], ThemeInfo> = {
 
 /** The theme a setting stands for right now (`system` follows the OS). */
 export function resolveTheme(theme: Settings['theme'], prefersLight = matchMedia('(prefers-color-scheme: light)').matches): ThemeId {
-  return theme === 'system' ? (prefersLight ? 'paper' : 'graphite') : theme;
+  return theme === 'system' ? (prefersLight ? 'daylight' : 'graphite') : theme;
 }
 
 export function applyTheme(theme: Settings['theme'], root: HTMLElement = document.documentElement): void {
