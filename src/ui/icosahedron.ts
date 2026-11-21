@@ -67,7 +67,7 @@ export function icosahedronFaces(r: number): Face[] {
 // --- Model and frame ------------------------------------------------------------
 
 /** How far along each edge a corner is cut: a small facet at each joint. */
-export const CHAMFER = 0.07;
+export const CHAMFER = 0.09;
 /** Viewer distance (px), as CSS `perspective`. */
 const EYE = 900;
 /** Tilt of the spin axis: leaning top-left to bottom-right, about as much as the Earth's. */
