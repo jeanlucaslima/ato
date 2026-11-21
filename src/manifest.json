@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "ATO - Advanced Tab Organizer",
   "short_name": "ATO",
-  "description": "Kill duplicate tabs instantly. Stay focused.",
+  "description": "Close duplicate tabs safely, see every window at a glance, and find any tab fast. Keyboard-first. No tracking, nothing collected.",
   "version": "3.1.0",
   "minimum_chrome_version": "157",
   "author": "Jean Lucas Lima <github.com/jeanlucaslima>",
@@ -24,7 +24,7 @@
       "32": "assets/icons/icon32.png",
       "48": "assets/icons/icon48.png"
     },
-    "default_title": "ATO - Kill Duplicates"
+    "default_title": "ATO - Advanced Tab Organizer"
   },
   "commands": {
     "_execute_action": {
