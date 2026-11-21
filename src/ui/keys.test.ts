@@ -50,6 +50,14 @@ describe('resolveKey', () => {
     expect(resolveKey({ key: 'Backspace' }, ctx({ typing: true }))).toBeNull();
   });
 
+  it('goes up into search with ↑ from the top of the list; from search, or in review, ↑ wraps', () => {
+    expect(resolveKey({ key: 'ArrowUp' }, ctx({ atTop: true }))).toEqual({ kind: 'focusSearch', fromList: true });
+    expect(action({ key: 'ArrowUp' }, ctx({ atTop: false }))).toEqual({ type: 'moveCursor', delta: -1 });
+    expect(action({ key: 'ArrowUp' }, ctx({ atTop: true, typing: true }))).toEqual({ type: 'moveCursor', delta: -1 });
+    expect(action({ key: 'ArrowUp' }, ctx({ atTop: true, reviewOpen: true }))).toEqual({ type: 'moveCursor', delta: -1 });
+    expect(action({ key: 'ArrowDown' }, ctx({ atTop: true }))).toEqual({ type: 'moveCursor', delta: 1 });
+  });
+
   it('only takes Enter when there is something to act on', () => {
     expect(resolveKey({ key: 'Enter' }, ctx({ hasCursor: false }))).toBeNull();
     // Review too: ↵ acts on the row under the cursor; ⌘D closes everything.

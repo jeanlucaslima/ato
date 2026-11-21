@@ -100,6 +100,32 @@ describe('mountApp keyboard + a11y', () => {
     expect(await open()).not.toContain(second);
   });
 
+  it.each([
+    ['with duplicates (the bar is the first stop)', SNAPSHOT],
+    ['with none (no bar to stop on)', { ...SNAPSHOT, tabs: SNAPSHOT.tabs.filter((t, i, all) => all.findIndex((o) => o.url === t.url) === i) }],
+  ])('↑ from the top of the list goes back up into search, %s', (_name, snapshot) => {
+    const container = document.createElement('div');
+    document.body.append(container);
+    app = mountApp(container, new FakeBrowser(snapshot), { snapshot, ui: initialUi() }, { autofocus: true });
+    const input = container.querySelector<HTMLInputElement>('input[name="q"]')!;
+    const key = (target: Element, k: string) => target.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
+    const cursor = () => container.querySelector<HTMLElement>('.is-cursor')?.dataset.key;
+    expect(Boolean(container.querySelector('.strip:not(.strip--clean, .strip--idle)'))).toBe(snapshot === SNAPSHOT);
+
+    key(input, 'Escape'); // out of search, as after clicking Back from review
+    const popup = container.querySelector('.popup')!;
+    key(popup, 'ArrowDown');
+    key(popup, 'ArrowDown');
+    key(popup, 'ArrowUp');
+    const first = cursor();
+    expect(first).toBeTruthy();
+    key(popup, 'ArrowUp');
+    expect(document.activeElement).toBe(input);
+    expect(cursor()).toBeUndefined();
+    key(input, 'ArrowDown');
+    expect(cursor()).toBe(first);
+  });
+
   it('leaves search with Escape so letter shortcuts work, and typing returns to it', () => {
     const { container, input, press } = mount();
     press('Escape', input);

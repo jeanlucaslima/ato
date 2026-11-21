@@ -68,7 +68,8 @@ export type Action =
   | { type: 'closeSelected' }
   | { type: 'unloadSelected' }
   | { type: 'moveSelected' }
-  | { type: 'setCursor'; key: ItemKey }
+  /** No key: no cursor (as when ↑ leaves the list for search). */
+  | { type: 'setCursor'; key?: ItemKey }
   | { type: 'moveCursor'; delta: number }
   | { type: 'cursorTo'; where: 'first' | 'last' }
   /** Select mode: move the cursor and add the row it lands on (Shift+↑↓). */

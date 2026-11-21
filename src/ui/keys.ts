@@ -24,12 +24,14 @@ export interface KeyContext {
   fieldChip?: boolean;
   /** The text caret sits at the very start of the search field. */
   caretAtStart?: boolean;
+  /** The cursor is on the first item, or there is none: ↑ from here goes up into search. */
+  atTop?: boolean;
 }
 
 export type KeyCommand =
   | { kind: 'action'; action: Action }
   /** Move focus to search, optionally typing `text` into it. */
-  | { kind: 'focusSearch'; text?: string }
+  | { kind: 'focusSearch'; text?: string; fromList?: boolean }
   /** Leave the search field so single-letter shortcuts work. */
   | { kind: 'blurSearch' };
 
@@ -54,6 +56,9 @@ export function resolveKey(e: KeyLike, ctx: KeyContext): KeyCommand | null {
       const delta = key === 'ArrowDown' ? 1 : -1;
       if (e.shiftKey && ctx.selecting) return act({ type: 'extendSelection', delta });
       if (mod) return act({ type: 'cursorTo', where: delta > 0 ? 'last' : 'first' });
+      // Search sits above the list: ↑ from the top goes up into it rather than wrapping to the bottom.
+      // (Review has no search field, so it wraps as before.)
+      if (delta < 0 && ctx.atTop && !ctx.typing && !ctx.reviewOpen) return { kind: 'focusSearch', fromList: true };
       return act({ type: 'moveCursor', delta });
     }
     case 'PageDown':
