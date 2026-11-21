@@ -19,7 +19,7 @@ Requires **Chrome 157 or newer**.
 - **Now playing.** Tabs making sound, with mute.
 - **Undo.** Bring back what you closed, however many tabs: recent ones with their history, the rest reopened where they were, in their tab group.
 - **Toolbar badge** with the duplicate count (or all tabs), in your colour.
-- **Tab right-click menu:** close duplicates of this tab, or other tabs from this site.
+- **Tab right-click menu:** close duplicates of this tab, or other tabs from this site. Open the popup within a minute to undo it.
 - **Nine themes**, light and dark, or follow your system.
 
 ## Screenshots
@@ -81,7 +81,7 @@ Vanilla TypeScript, no UI framework. The decisions about what to close live in a
 ```
 src/
 ├── manifest.json
-├── background/worker.ts   # badge, tab right-click menu, undo
+├── background/worker.ts   # badge, tab right-click menu, closing and undo
 ├── core/                  # pure rules: duplicates, matching, search, settings, badge, menu
 ├── ui/                    # popup state machine, render, Chrome ports, settings page
 ├── popup/ options/        # extension entry points

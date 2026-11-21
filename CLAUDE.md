@@ -8,7 +8,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 src/
 ├── manifest.json        # popup → popup/index.html, options → options/index.html, worker → background/worker.js
 ├── background/worker.ts # MV3 service worker: toolbar badge (core/badge.ts) on tab events + settings changes;
-│                        # tab right-click menu (core/tab-menu.ts); undo (ui/chrome-restore.ts, asked by the popup)
+│                        # tab right-click menu (core/tab-menu.ts); every close and undo: ui/chrome-close.ts
+│                        # (recheck → remove → last-close record) and ui/chrome-restore.ts, asked by the popup
 ├── core/                # Pure logic, no DOM/Chrome: types, tabs (domain/age, duplicateKey + match modes), duplicates
 │                        # (keep/close planner + safety rules), search, settings (defaults, safe read, 2.x import).
 │                        # fast-check property tests live beside them.
@@ -37,7 +38,7 @@ src/
 - UI rules: rendering is a pure function of `PopupModel`; text goes in as text nodes (never `innerHTML` with data); motion is decorative only (state never waits on an animation; reduced-motion disables it).
 - Commits: keep them small and focused (one concern each) so they can be rolled back individually.
 - Performance: `npm run perf` times the pure paths at 500–5,000 tabs (`src/dev/perf.ts`; also importable in Chrome via the dev server to time render). Keep interactions under a frame at 2,000 tabs: morph skips unchanged keyed elements, hover/↑↓ patch two rows (`app.ts` fast path), search draws 150 results, list items use `content-visibility`.
-- Verification: the safety rules are fast-check properties: `core/duplicates.test.ts` (never close an active, playing or split-view tab; every set keeps ≥1; only real duplicates under the chosen matching; protected tabs untouched), `core/tab-menu.test.ts`, `ui/update.test.ts` (review and per-set close, whatever the user flips), `ui/chrome-restore.test.ts` (undo brings each tab back exactly once). Anything new that closes tabs gets a property and a mutation check (remove the guard, see it fail).
+- Verification: the safety rules are fast-check properties: `core/duplicates.test.ts` (never close an active, playing or split-view tab; every set keeps ≥1; only real duplicates under the chosen matching; protected tabs untouched), `core/tab-menu.test.ts`, `ui/update.test.ts` (review and per-set close, whatever the user flips), `ui/close-recheck.test.ts` (bulk closes recheck protection on the fresh state; failed closes leave nothing closing; Windows "Close N" is what closes), `ui/chrome-close.test.ts` + `core/close-record.test.ts` (one close path; right-click undo offered for a minute, undone once), `ui/chrome-restore.test.ts` (undo brings each tab back exactly once, from its own session entry). Anything new that closes tabs gets a property and a mutation check (remove the guard, see it fail).
 
 ## Settings (`chrome.storage.sync`, key `settings`)
 

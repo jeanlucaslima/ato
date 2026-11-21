@@ -1,6 +1,6 @@
 # ATO v3: status and decisions
 
-_Last updated 2026-11-21._ This is the hand-off note for the `v3` branch: what was decided, how we work, what's built, and what's open. Read it with the v3 section of [CLAUDE.md](../CLAUDE.md) and [the Chrome features plan](v3-chrome-features-plan.md) before continuing.
+_Last updated 2026-11-21 (3.0.1)._ This is the hand-off note for the `v3` branch: what was decided, how we work, what's built, and what's open. Read it with the v3 section of [CLAUDE.md](../CLAUDE.md) and [the Chrome features plan](v3-chrome-features-plan.md) before continuing.
 
 ## Decisions
 
@@ -32,12 +32,31 @@ _Last updated 2026-11-21._ This is the hand-off note for the `v3` branch: what w
 - **Windows view:** each window with a map of its tab strip (a dot per tab, tab groups bracketed in their colour, collapsed groups as a pill); opened, its tabs under their groups; Focus, Merge into this window (whole groups move as groups), Close, Unload.
 - **Moving tabs:** a site's tabs, search results or a selection to a new window (M).
 - **Settings page:** 10 themes (incl. Cyber), the 3D logo, pinned status, badge preview; changes reach an open popup immediately; `system` theme follows the OS.
-- **Service worker** (`src/background/worker.ts`): toolbar badge (duplicates the popup would close, or all tabs, in the chosen colour, live) and the tab right-click menu (close duplicates of this tab, close other tabs from this site).
+- **Service worker** (`src/background/worker.ts`): toolbar badge (duplicates the popup would close, or all tabs, in the chosen colour, live), the tab right-click menu (close duplicates of this tab, close other tabs from this site), and every close and undo (one path for popup and menu, see [architecture](architecture.md)).
 - **Permissions:** `tabs`, `storage`, `sessions`, `tabGroups`, `contextMenus`.
 
 ## Confirmed in a real Chrome
 
 The `dist/` dev build is in daily use (confirmed 2026-11-20): popup, settings, badge, right-click menu, moving and merging windows. One known limit stays until plan step 2: undo after closing many tabs can stop part-way if Chrome closes the popup while restoring.
+
+## 3.0.1: correctness and reliability
+
+Branch `fix/3.0.1`, from an external review of 3.0.0 (findings, decisions and checks in [3.0.1-plan.md](3.0.1-plan.md)). Every close path changed here has a fast-check property and a mutation check, recorded in its commit.
+
+Fixed:
+- **Recheck before closing.** Bulk closes check protection again on Chrome's current state right before removing, so a tab that became current, started playing or joined a split view during the 180 ms animation stays. Toast and undo list only what really closed.
+- **Close failures.** If Chrome refuses a close, no row stays mid-animation; the toast says so, tabs that did close keep their undo. Every other browser action toasts on failure too.
+- **Undo restores each tab's own history.** Each closed tab is matched to its own `sessions` entry (URL, index at close, removal order, only entries from the close on), checked against what Chrome 158 records; restored last-closed first so positions come back exact.
+- **Windows "Close N"** counts only what it will close, says protected tabs stay, and is hidden when nothing would close.
+- **Quoted search** matches whole words, as the README always said (`"cat"` no longer finds "catalog"); highlights follow.
+- **Privacy wording:** no analytics, tracking or backend; tabs never leave the browser; favicons are loaded by the browser from the addresses Chrome provides.
+- **Navigation:** `deriveModel` is memoized per state (↓ derived up to three times). Measurements below.
+- **Right-click closes get ATO's undo.** Popup and menu share one close path in the worker (recheck → remove → last-close record); the popup offers a menu close's undo for a minute after it.
+
+Rejected:
+- **"`ignoreHash` and `ignoreQuery` are swapped."** They aren't: `duplicateKey` reads "every mode but ignoreQuery clears the hash; every mode but ignoreHash clears the query", which is right, and `tabs.test.ts` pinned it. The suggested fix would have introduced the bug. 3.0.1 adds a comment and fast-check properties (with a mutation check: swapping the conditions fails them) instead of a change.
+
+Left for 3.1: the render-path proposals below (frames over 16 ms when typing at 2,000 tabs).
 
 ## 3.0.1 measurements
 
@@ -73,6 +92,5 @@ Done for 3.0 (each with tests; the closing rules also with fast-check properties
 Left, for the owner:
 - try the new pieces in the dev build (split view protection, undo of 30+ tabs, the matching setting, a 2.x profile's settings showing up);
 - merge `v3` into `main`, tag, `npm run zip`, upload `ato-v3.0.0.zip` and the store images;
-- tabs closed from the right-click menu still come back only with Chrome's ⇧⌘T.
 
 Later: `publicSuffix` grouping (plan step 5), the `browser.*` namespace, hold-⌥ ages, "by window" chips, drawing only visible rows past 5,000 tabs.
