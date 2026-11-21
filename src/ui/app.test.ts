@@ -67,6 +67,39 @@ describe('mountApp keyboard + a11y', () => {
     expect(input.getAttribute('aria-controls')).toBe(container.querySelector('.list')?.id);
   });
 
+  it('closes the tab under the cursor with ⌘⌫ from the search field it opens in, and with ⌫ once out of it', async () => {
+    const browser = new FakeBrowser(SNAPSHOT);
+    const container = document.createElement('div');
+    document.body.append(container);
+    app = mountApp(container, browser, { snapshot: SNAPSHOT, ui: initialUi() }, { autofocus: true });
+    const input = container.querySelector<HTMLInputElement>('input[name="q"]')!;
+    const key = (target: Element, k: string, metaKey = false) =>
+      target.dispatchEvent(new KeyboardEvent('keydown', { key: k, metaKey, bubbles: true, cancelable: true }));
+    const cursorTab = () => Number(container.querySelector<HTMLElement>('.row.is-cursor')?.dataset.key?.replace('tab:', ''));
+    const open = async () => (await browser.snapshot()).tabs.map((t) => t.id);
+    const settle = () => new Promise((r) => setTimeout(r, CLOSE_ANIMATION_MS + 50));
+
+    while (!container.querySelector('.row.is-cursor')) key(input, 'ArrowDown');
+    expect(container.querySelector('.foot')!.textContent).toContain('⌘⌫ close');
+    const first = cursorTab();
+    key(input, 'Backspace');
+    await settle();
+    expect(await open()).toContain(first);
+    key(input, 'Backspace', true);
+    await settle();
+    expect(await open()).not.toContain(first);
+
+    key(input, 'Escape');
+    const popup = container.querySelector('.popup')!;
+    expect(container.querySelector('.foot')!.textContent).toContain('⌫ close');
+    expect(container.querySelector('.foot')!.textContent).not.toContain('⌘⌫');
+    const second = cursorTab();
+    expect(second).toBeTruthy();
+    key(popup, 'Delete');
+    await settle();
+    expect(await open()).not.toContain(second);
+  });
+
   it('leaves search with Escape so letter shortcuts work, and typing returns to it', () => {
     const { container, input, press } = mount();
     press('Escape', input);

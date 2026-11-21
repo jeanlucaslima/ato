@@ -42,6 +42,14 @@ describe('resolveKey', () => {
     expect(resolveKey({ key: 'z', metaKey: true }, ctx({ typing: true }))).toBeNull();
   });
 
+  it('closes from the search field with ⌘⌫: the results with a query, else the row under the cursor', () => {
+    expect(action({ key: 'Backspace', metaKey: true }, ctx({ typing: true, hasQuery: true }))).toEqual({ type: 'closeResults' });
+    expect(action({ key: 'Backspace', metaKey: true }, ctx({ typing: true }))).toEqual({ type: 'cursorKey', key: 'delete' });
+    expect(resolveKey({ key: 'Backspace', metaKey: true }, ctx({ typing: true, hasCursor: false }))).toBeNull();
+    // Plain ⌫ in an empty field still does nothing: holding it to clear the text never closes tabs.
+    expect(resolveKey({ key: 'Backspace' }, ctx({ typing: true }))).toBeNull();
+  });
+
   it('only takes Enter when there is something to act on', () => {
     expect(resolveKey({ key: 'Enter' }, ctx({ hasCursor: false }))).toBeNull();
     // Review too: ↵ acts on the row under the cursor; ⌘D closes everything.

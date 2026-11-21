@@ -72,7 +72,12 @@ export function resolveKey(e: KeyLike, ctx: KeyContext): KeyCommand | null {
   // Plain D types into search; ⌘D reaches review from anywhere (the popup opens in search),
   // and ⌘D again in review closes what it shows: ⌘D ⌘D closes every duplicate.
   if (mod && !e.shiftKey && key.toLowerCase() === 'd') return act({ type: ctx.reviewOpen ? 'confirmReview' : 'openReview' });
-  if (mod && key === 'Backspace' && ctx.typing && ctx.hasQuery) return act({ type: 'closeResults' });
+  // From the search field plain ⌫ edits the text (holding it must never start closing tabs),
+  // so ⌘⌫ closes: every result when there is a query, otherwise the row under the cursor.
+  if (mod && key === 'Backspace' && ctx.typing) {
+    if (ctx.hasQuery) return act({ type: 'closeResults' });
+    if (ctx.hasCursor) return act({ type: 'cursorKey', key: 'delete' });
+  }
   if (key === 'Backspace' && !mod && ctx.typing && ctx.fieldChip && ctx.caretAtStart) return act({ type: 'clearField' });
 
   // Everything below is for when focus is not in the search field.
@@ -147,7 +152,7 @@ export const KEY_HELP: HelpSection[] = [
     title: 'Act',
     entries: [
       { keys: ['↵'], label: 'Go to tab or window · toggle site · open review from the duplicates bar' },
-      { keys: ['⌫'], label: 'Close tab, site or selection · a set\'s extra copies in review' },
+      { keys: ['⌫'], label: 'Close tab, site or selection · a set\'s extra copies in review (⌘⌫ from the search field)' },
       { keys: ['U'], label: 'Unload (free memory, keep the tab) · a whole set in review' },
       { keys: ['M'], label: 'Move a site, the results or the selection to a new window · merge a window into this one' },
       { keys: ['Space'], label: 'Select · flip keep/close in review' },

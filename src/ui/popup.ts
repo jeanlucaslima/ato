@@ -8,19 +8,21 @@ import { siteGroup, tabRow } from './rows';
 import { windowGroup } from './windows';
 
 function hintsFor(m: PopupModel): Hint[] {
+  // The popup opens in search, where plain ⌫ edits the text: show the key that closes from there.
+  const del = m.searchFocused ? '⌘⌫' : '⌫';
   switch (m.screen.kind) {
     case 'loading':
       return [];
     case 'tabs':
-      return [['↑↓', 'move'], ['↵', 'go'], ['⌫', 'close'], ['U', 'unload'], ['X', 'select']];
+      return [['↑↓', 'move'], ['↵', 'go'], [del, 'close'], ['U', 'unload'], ['X', 'select']];
     case 'sites':
-      return [['←→', 'fold'], ['⌫', 'close site'], ['U', 'unload site'], ['S', 'windows']];
+      return [['←→', 'fold'], [del, 'close site'], ['U', 'unload site'], ['S', 'windows']];
     case 'windows':
-      return [['←→', 'fold'], ['↵', 'focus'], ['M', 'merge'], ['⌫', 'close'], ['S', 'tabs']];
+      return [['←→', 'fold'], ['↵', 'focus'], ['M', 'merge'], [del, 'close'], ['S', 'tabs']];
     case 'search':
       return [['↑↓', 'move'], ['↵', 'go'], ['⌘⌫', 'close all'], ['Esc', 'clear']];
     case 'review':
-      return m.screen.sets.length === 0 ? [['Esc', 'back']] : [['←→', 'fold'], ['Space', 'keep/close'], ['⌫', 'close'], ['U', 'unload'], ['⌘D', `close ${closeCount(m.screen.sets)}`]];
+      return m.screen.sets.length === 0 ? [['Esc', 'back']] : [['←→', 'fold'], ['Space', 'keep/close'], [del, 'close'], ['U', 'unload'], ['⌘D', `close ${closeCount(m.screen.sets)}`]];
   }
 }
 
