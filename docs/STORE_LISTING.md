@@ -123,7 +123,7 @@ Alt text for the repo's own shots in `docs/screenshots/`:
 
 ## Supporting dashboard fields
 
-- **Category:** Workflow & Planning
+- **Category:** Functionality & UI
 - **Language:** English
 
 ### Single purpose (required)
@@ -164,21 +164,17 @@ All true: ATO has no analytics, tracking or backend, and it sends tab data nowhe
 
 ### Privacy policy URL
 
-Preferred (own domain):
-
 ```
-https://www.aleattorium.com/ato/privacy
+https://www.jeanlucas.me/en/projects/ato/privacy
 ```
 
-Fallback (open-source mirror, live now):
+Portuguese: `https://www.jeanlucas.me/pt/projetos/ato/privacidade`. Canonical source: [`PRIVACY.md`](../PRIVACY.md) in this repo; the site's page (in the jeanlucas.me repo) must say the same, so update both together. The bare `jeanlucas.me` redirects to `www`, but `www` is the site's canonical host.
 
-```
-https://github.com/jeanlucaslima/ato/blob/main/PRIVACY.md
-```
+### Homepage and support URLs
 
-Canonical source: [`PRIVACY.md`](../PRIVACY.md) in this repo. Publish the same
-markdown content at `/ato/privacy` in the aleattorium.com repo and use that URL
-in the store form.
+- **Homepage:** `https://www.jeanlucas.me/en/projects/ato`
+- **Support:** `https://github.com/jeanlucaslima/ato/issues`
+- **Official URL:** empty (needs a Search Console–verified site).
 
 ## Assets checklist
 
