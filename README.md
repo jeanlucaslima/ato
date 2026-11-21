@@ -6,7 +6,7 @@ Kill duplicate tabs instantly. Stay focused.
   <img src="docs/screenshots/popup-dark.png" alt="ATO popup: search, the duplicates bar, Now playing, and the tab list" width="440">
 </p>
 
-ATO is a Chrome extension for people with too many tabs. Open it with **⌘U** (Mac) or **Ctrl+U** (Windows/Linux), see how many duplicates you have, and close them, safely, in one go. Everything runs in your browser: no network requests, no analytics.
+ATO is a Chrome extension for people with too many tabs. Open it with **⌘U** (Mac) or **Ctrl+U** (Windows/Linux), see how many duplicates you have, and close them, safely, in one go. Everything runs in your browser: no analytics, tracking or backend, and your tabs never leave it.
 
 Requires **Chrome 157 or newer**.
 
@@ -90,7 +90,7 @@ src/
 
 ## Privacy
 
-ATO makes no network requests and collects nothing. See [PRIVACY.md](PRIVACY.md).
+ATO has no analytics, tracking or backend. Your tabs never leave your browser. Favicons are shown from the addresses Chrome provides, so your browser may load them as it would on the tab strip. ATO collects nothing. See [PRIVACY.md](PRIVACY.md).
 
 ## License
 
