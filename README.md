@@ -34,15 +34,17 @@ It's a Chrome extension, it needs **Chrome 157 or newer**, and it runs entirely 
 
 Also: a toolbar badge with the duplicate count (or all tabs) in your colour, and a tab right-click menu to close the duplicates of a tab or the other tabs from its site.
 
-## Eleven themes, and one that glows
+## Thirteen themes, and two that go further
 
 <p align="center">
-  <img src="docs/screenshots/themes.png" alt="The settings page's theme picker: System, Graphite, Daylight, Paper, Onyx, Cyber (selected, glowing), Neon, Nebula, Ember, Lagoon, Sakura and Dune, each as a miniature popup in its own colours" width="480">
+  <img src="docs/screenshots/themes.png" alt="The settings page's theme picker: System, Graphite, Daylight, Paper, Onyx, Cyber (selected, glowing), Neon, Poster, Riso, Nebula, Ember, Lagoon, Sakura and Dune, each as a miniature popup in its own colours" width="480">
 </p>
 
-Graphite, Daylight and Paper are the quiet ones, and **System**, the default, switches between Daylight and Graphite with your OS. **Daylight** is neutral light that makes every signal (current, copies, audio, asleep, keep or close) a clear mark, with a little motion. **Onyx** is true black, for OLED screens. Nebula, Ember, Neon, Lagoon, Sakura and Dune each have their own palette, and the picker previews every theme as a tiny popup in its own colours.
+Graphite, Daylight and Paper are the quiet ones, and **System**, the default, switches between Daylight and Graphite with your OS. **Daylight** is neutral light that makes every signal (current, copies, audio, asleep, keep or close) a clear mark, with a little motion. **Onyx** is true black, for OLED screens. Neon, Nebula, Ember, Lagoon, Sakura and Dune each have their own palette, and the picker previews every theme as a tiny popup in its own colours.
 
 **Cyber** goes further than a palette: neon on near-black over a faint grid, glowing edges, text and focus rings, scanlines across the popup, and a pulsing dot on the duplicates bar. All of that is plain CSS scoped to the theme, and it respects reduced motion.
+
+**Poster** and **Riso** go further in light: Poster is black type, signal red and hard shadows that press in, with the cursor row inverted; Riso is two fluorescent inks printed a touch off register, with halftone, paper grain and closed rows that stamp out in pink.
 
 <img src="docs/screenshots/logo-spin.gif" alt="The ATO logo, a wireframe icosahedron with solid front edges and dashed hidden edges, spinning after a drag and slowing down" width="192" align="right">
 
