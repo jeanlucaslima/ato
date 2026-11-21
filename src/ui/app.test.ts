@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from 'vitest';
 import { FakeBrowser } from '../dev/fake-browser';
-import { GROUPED, SNAPSHOT, TABS } from '../dev/fixtures';
+import { GROUPED, PROTECTED_WINDOW, SNAPSHOT, TABS } from '../dev/fixtures';
 import type { DuplicatePolicy } from '../core/duplicates';
 import type { Snapshot } from '../core/types';
 import type { CloseResult } from './browser';
@@ -147,5 +147,19 @@ describe('a close that fails', () => {
     expect(container.querySelector('[data-action="undo"]')).not.toBeNull();
     for (const id of windowTwo.slice(0, 2)) expect(container.querySelector(`[data-key="tab:${id}"]`)).toBeNull();
     for (const id of windowTwo.slice(2)) expect(container.querySelector(`[data-key="tab:${id}"]`)).not.toBeNull();
+  });
+});
+
+describe('Windows view Close button', () => {
+  it('counts the tabs it will close, says protected ones stay, and is gone when nothing would close', () => {
+    const container = document.createElement('div');
+    document.body.append(container);
+    app = mountApp(container, new FakeBrowser(PROTECTED_WINDOW), { snapshot: PROTECTED_WINDOW, ui: initialUi({ view: 'windows' }) });
+    const button = (w: number) => container.querySelector<HTMLButtonElement>(`[data-action="close-window"][data-window="${w}"]`);
+    // Window 2: 8 tabs; the current one and three in groups stay.
+    expect(button(2)?.textContent).toBe('Close 4');
+    expect(button(2)?.getAttribute('aria-label')).toBe('Close 4 tabs; 4 protected stay (⌫)');
+    // Window 3: current, pinned and playing only.
+    expect(button(3)).toBeNull();
   });
 });

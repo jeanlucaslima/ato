@@ -83,6 +83,10 @@ export interface WindowGroup {
   groupCount: number;
   /** Extra copies in this window: what cleanup would close here. */
   duplicates: number;
+  /** Tabs its Close would close: unprotected and not already closing. */
+  closable: number;
+  /** Tabs its Close leaves open (current, playing, split, pinned/grouped per policy). */
+  protectedCount: number;
   playing: boolean;
   /** Since its most recently used tab. */
   lastUsed: string;

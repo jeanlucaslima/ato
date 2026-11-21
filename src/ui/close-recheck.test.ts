@@ -6,6 +6,8 @@ import { FakeBrowser } from '../dev/fake-browser';
 import { SNAPSHOT, TABS } from '../dev/fixtures';
 import type { Action, Effect } from './actions';
 import { ChromeBrowser } from './chrome-browser';
+import { deriveModel } from './derive';
+import { GROUPED, PROTECTED_WINDOW } from '../dev/fixtures';
 import { initialUi, type AppState } from './state';
 import { update } from './update';
 
@@ -104,6 +106,22 @@ describe('ChromeBrowser.close', () => {
           removed.every((id) => protection(byId.get(id)!, policy) === null) &&
           JSON.stringify(removed.sort()) === JSON.stringify(closed.map((t) => t.id).sort())
         );
+      }),
+    );
+  });
+});
+
+describe('Windows view Close N', () => {
+  it('N is exactly what the window\'s bulk close asks to close, under any policy', () => {
+    fc.assert(
+      fc.property(fc.constantFrom(SNAPSHOT, GROUPED, PROTECTED_WINDOW), ui, (snapshot, prot) => {
+        const state: AppState = { snapshot, ui: initialUi({ view: 'windows', policy: { ...initialUi().policy, ...prot } }) };
+        const screen = deriveModel(state).screen;
+        if (screen.kind !== 'windows') return false;
+        return screen.windows.every((w) => {
+          const effect = closeEffect(update(state, { type: 'closeWindow', windowId: w.id })[1]);
+          return (effect?.tabIds.length ?? 0) === w.closable;
+        });
       }),
     );
   });

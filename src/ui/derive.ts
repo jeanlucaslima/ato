@@ -149,6 +149,8 @@ function windowGroups(snapshot: Snapshot, ui: UiState): WindowGroup[] {
         siteCount: new Set(tabs.map((t) => domainOf(t.url) || 'Other')).size,
         groupCount: runs.filter((r) => r.group).length,
         duplicates: tabs.filter((t) => extras.has(t.id)).length,
+        closable: tabs.filter((t) => protection(t, ui.policy) === null && !ui.closing.has(t.id)).length,
+        protectedCount: tabs.filter((t) => protection(t, ui.policy) !== null).length,
         playing: tabs.some((t) => t.audible),
         lastUsed: formatAge(snapshot.now - Math.max(...tabs.map((t) => t.lastAccessed))),
         expanded: ui.openWindows.has(id),
