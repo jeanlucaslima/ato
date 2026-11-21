@@ -111,6 +111,24 @@ export function applyOverrides(
   });
 }
 
+/**
+ * The last check before a close: of the tabs asked for (`ids`), those still open
+ * in `fresh` and still unprotected under `policy`. A tab that became current,
+ * started playing or joined a split view since the decision is `kept`. With no
+ * policy (a single close the user picked) only tabs that are gone drop out.
+ */
+export function stillClosable(fresh: readonly Tab[], ids: Iterable<number>, policy: DuplicatePolicy | null): { closable: Tab[]; kept: Tab[] } {
+  const wanted = new Set(ids);
+  const closable: Tab[] = [];
+  const kept: Tab[] = [];
+  for (const tab of fresh) {
+    if (!wanted.has(tab.id)) continue;
+    if (policy && protection(tab, policy) !== null) kept.push(tab);
+    else closable.push(tab);
+  }
+  return { closable, kept };
+}
+
 /** Tabs a plan would close. */
 export function tabsToClose(sets: readonly DuplicateSet[]): Tab[] {
   return sets.flatMap((s) => s.copies.filter((c) => c.decision.action === 'close').map((c) => c.tab));

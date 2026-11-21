@@ -3,8 +3,9 @@
  * Everything Chrome-specific stays in this file; the rest of the popup only
  * sees plain `Snapshot`s and `Tab`s.
  */
+import { stillClosable, type DuplicatePolicy } from '../core/duplicates';
 import type { Snapshot, Tab, TabGroup } from '../core/types';
-import type { BrowserPort } from './browser';
+import type { BrowserPort, CloseResult } from './browser';
 import { RESTORE_MESSAGE, restoreTabs, type Restored } from './chrome-restore';
 
 /** Batch bursts of tab events (a page load fires several) into one refresh. */
@@ -85,12 +86,10 @@ export class ChromeBrowser implements BrowserPort {
     };
   }
 
-  async close(tabIds: number[]): Promise<Tab[]> {
-    const ids = new Set(tabIds);
-    const closing = (await this.snapshot()).tabs.filter((t) => ids.has(t.id));
-    if (closing.length === 0) return [];
-    await chrome.tabs.remove(closing.map((t) => t.id));
-    return closing;
+  async close(tabIds: number[], policy: DuplicatePolicy | null): Promise<CloseResult> {
+    const { closable, kept } = stillClosable((await this.snapshot()).tabs, tabIds, policy);
+    if (closable.length > 0) await chrome.tabs.remove(closable.map((t) => t.id));
+    return { closed: closable, kept };
   }
 
   /** Undo runs in the service worker so it finishes even if the popup closes; here only if the worker can't be reached. */

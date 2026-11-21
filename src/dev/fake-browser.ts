@@ -1,5 +1,6 @@
+import { stillClosable, type DuplicatePolicy } from '../core/duplicates';
 import type { Snapshot, Tab } from '../core/types';
-import type { BrowserPort } from '../ui/browser';
+import type { BrowserPort, CloseResult } from '../ui/browser';
 import type { Restored } from '../ui/chrome-restore';
 
 /** In-memory browser for the gallery and tests. Mutations notify subscribers. */
@@ -21,11 +22,16 @@ export class FakeBrowser implements BrowserPort {
     return () => this.listeners.delete(listener);
   }
 
-  async close(tabIds: number[]): Promise<Tab[]> {
-    const ids = new Set(tabIds);
-    const closed = this.state.tabs.filter((t) => ids.has(t.id));
+  async close(tabIds: number[], policy: DuplicatePolicy | null): Promise<CloseResult> {
+    const { closable, kept } = stillClosable(this.state.tabs, tabIds, policy);
+    const ids = new Set(closable.map((t) => t.id));
     this.commit(this.state.tabs.filter((t) => !ids.has(t.id)));
-    return closed;
+    return { closed: closable, kept };
+  }
+
+  /** Change tabs in place, as the user would between a decision and its close (tests). */
+  change(update: (tab: Tab) => Tab): void {
+    this.commit(this.state.tabs.map(update));
   }
 
   /** Like Chrome: the last 25 come back whole, older ones are reopened fresh. */

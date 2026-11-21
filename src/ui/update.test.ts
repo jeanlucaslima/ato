@@ -40,7 +40,7 @@ describe('update', () => {
     expect(during.sets.every((set) => set.resolving)).toBe(true);
     const closedTabs = TABS.filter((t) => ids.includes(t.id));
     const [done] = run(again, [
-      { type: 'closed', tabs: closedTabs, message: 'Closed' },
+      { type: 'closed', tabs: closedTabs, requested: ids, noun: 'duplicate', kept: 0 },
       { type: 'snapshot', snapshot: { ...SNAPSHOT, tabs: TABS.filter((t) => !ids.includes(t.id)) } },
     ]);
     const after = deriveModel(done).screen;
@@ -248,8 +248,8 @@ describe('update', () => {
     const id = TABS[3]!.id;
     const [closing, effects] = run(start(), [{ type: 'closeTab', tabId: id }]);
     expect(closing.ui.closing.has(id)).toBe(true);
-    expect(effects).toContainEqual({ kind: 'close', tabIds: [id], message: 'Closed 1 tab' });
-    const [done] = run(closing, [{ type: 'closed', tabs: [TABS[3]!], message: 'Closed 1 tab' }]);
+    expect(effects).toContainEqual({ kind: 'close', tabIds: [id], noun: 'tab', skipped: 0, policy: null });
+    const [done] = run(closing, [{ type: 'closed', tabs: [TABS[3]!], requested: [id], noun: 'tab', kept: 0 }]);
     expect(done.ui.closing.size).toBe(0);
     expect(done.ui.toast?.undo).toEqual([TABS[3]]);
     const [, undoFx] = run(done, [{ type: 'undo' }]);

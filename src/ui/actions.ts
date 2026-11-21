@@ -43,7 +43,11 @@ export type Action =
   | { type: 'closeResults' }
   | { type: 'showAllResults' }
   | { type: 'unloadResults' }
-  | { type: 'closed'; tabs: readonly Tab[]; message: string }
+  /**
+   * A close ran: `tabs` were really closed (undo covers exactly these), out of
+   * `requested`; `kept` were left open as protected (at the decision or the recheck).
+   */
+  | { type: 'closed'; tabs: readonly Tab[]; requested: readonly number[]; noun: string; kept: number }
   | { type: 'undo' }
   | { type: 'restored'; count: number; fresh?: number }
   | { type: 'dismissToast'; id: number }
@@ -70,7 +74,12 @@ export type Action =
 
 /** Side effects the runtime performs; results come back as actions. */
 export type Effect =
-  | { kind: 'close'; tabIds: number[]; message: string }
+  /**
+   * Close after the animation. `policy` (bulk closes) has protection checked again
+   * on the fresh state; `null` closes what the user picked. `skipped`: protected
+   * tabs already left out when deciding, for the message.
+   */
+  | { kind: 'close'; tabIds: number[]; noun: string; skipped: number; policy: DuplicatePolicy | null }
   | { kind: 'restore'; tabs: readonly Tab[] }
   | { kind: 'activate'; tabId: number }
   | { kind: 'discard'; tabIds: number[] }

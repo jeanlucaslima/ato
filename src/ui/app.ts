@@ -128,7 +128,9 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
       case 'close':
         // Let the rows animate out, then close for real.
         later(CLOSE_ANIMATION_MS, () => {
-          void browser.close(effect.tabIds).then((tabs) => dispatch({ type: 'closed', tabs, message: effect.message }));
+          void browser
+            .close(effect.tabIds, effect.policy)
+            .then(({ closed, kept }) => dispatch({ type: 'closed', tabs: closed, requested: effect.tabIds, noun: effect.noun, kept: effect.skipped + kept.length }));
         });
         return;
       case 'restore':

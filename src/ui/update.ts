@@ -90,9 +90,8 @@ function startClose(state: AppState, tabs: readonly Tab[], noun: string, bulk: b
   const ids = new Set(eligible.map((t) => t.id));
   const order = navOrder(deriveModel(state));
   const closing = new Set([...state.ui.closing, ...ids]);
-  const message = `Closed ${plural(eligible.length, noun)}${skipped ? ` · kept ${skipped} protected` : ''}`;
   const ui: UiState = { ...state.ui, closing, cursor: cursorAfter(order, ids, state.ui.cursor) };
-  return [{ ...state, ui }, [{ kind: 'close', tabIds: [...ids], message }]];
+  return [{ ...state, ui }, [{ kind: 'close', tabIds: [...ids], noun, skipped, policy: bulk ? state.ui.policy : null }]];
 }
 
 /**
@@ -353,9 +352,14 @@ function step(state: AppState, action: Action): Result {
     case 'unloadResults':
       return startUnload(state, resultTabs(state));
     case 'closed': {
+      // Everything asked for leaves `closing`: closed, gone, or kept by the recheck.
       const closing = new Set(ui.closing);
+      for (const id of action.requested) closing.delete(id);
       for (const t of action.tabs) closing.delete(t.id);
-      return withToast(setUi(state, { closing }), action.message, action.tabs);
+      const n = action.tabs.length;
+      const kept = action.kept ? ` · kept ${action.kept} protected` : '';
+      const message = n > 0 ? `Closed ${plural(n, action.noun)}${kept}` : action.kept ? `Nothing closed — ${plural(action.kept, 'tab')} protected` : 'Nothing to close';
+      return withToast(setUi(state, { closing }), message, n > 0 ? action.tabs : undefined);
     }
     case 'undo': {
       const tabs = ui.toast?.undo;

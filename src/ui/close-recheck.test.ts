@@ -1,0 +1,110 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import fc from 'fast-check';
+import { protection } from '../core/duplicates';
+import type { Tab } from '../core/types';
+import { FakeBrowser } from '../dev/fake-browser';
+import { SNAPSHOT, TABS } from '../dev/fixtures';
+import type { Action, Effect } from './actions';
+import { ChromeBrowser } from './chrome-browser';
+import { initialUi, type AppState } from './state';
+import { update } from './update';
+
+/**
+ * Between deciding a bulk close and running it (the 180 ms animation) a tab can
+ * become current, start playing, join a split view, get pinned or grouped. The
+ * close checks protection again on the fresh state and leaves those tabs open.
+ */
+
+type Flip = 'active' | 'audible' | 'split' | 'pinned' | 'group';
+const flipTab = (t: Tab, flip: Flip): Tab =>
+  flip === 'active' ? { ...t, active: true } : flip === 'audible' ? { ...t, audible: true } : flip === 'split' ? { ...t, splitViewId: 9 } : flip === 'pinned' ? { ...t, pinned: true } : { ...t, groupId: 77 };
+
+const bulkActions: Action[] = [
+  { type: 'closeDuplicates' },
+  { type: 'closeSite', domain: 'news.ycombinator.com' },
+  { type: 'closeSite', domain: 'docs.google.com' },
+  { type: 'closeSite', domain: 'github.com' },
+  { type: 'closeWindow', windowId: 1 },
+  { type: 'closeWindow', windowId: 2 },
+];
+const ui = fc.record({ protectPinned: fc.boolean(), protectGroups: fc.boolean() });
+const changes = fc.array(fc.tuple(fc.constantFrom(...TABS.map((t) => t.id)), fc.constantFrom<Flip>('active', 'audible', 'split', 'pinned', 'group')), { maxLength: 8 });
+
+const closeEffect = (fx: Effect[]) => fx.find((e): e is Extract<Effect, { kind: 'close' }> => e.kind === 'close');
+
+describe('bulk close rechecks protection on the fresh state', () => {
+  it('never closes a tab protected by the time the close runs; closing ends empty; undo lists exactly the closed tabs', async () => {
+    await fc.assert(
+      fc.asyncProperty(fc.constantFrom(...bulkActions), ui, changes, async (action, prot, flips) => {
+        const policy = { ...initialUi().policy, ...prot };
+        const state: AppState = { snapshot: SNAPSHOT, ui: initialUi({ policy }) };
+        const [deciding, fx] = update(state, action);
+        const effect = closeEffect(fx);
+        if (!effect) return true;
+        const browser = new FakeBrowser(SNAPSHOT);
+        for (const [id, flip] of flips) browser.change((t) => (t.id === id ? flipTab(t, flip) : t));
+        const fresh = (await browser.snapshot()).tabs;
+        const { closed, kept } = await browser.close(effect.tabIds, effect.policy);
+        const freshById = new Map(fresh.map((t) => [t.id, t]));
+        const [after] = update(deciding, { type: 'closed', tabs: closed, requested: effect.tabIds, noun: effect.noun, kept: effect.skipped + kept.length });
+        const undo = (after.ui.toast?.undo ?? []).map((t) => t.id).sort();
+        return (
+          closed.every((t) => effect.tabIds.includes(t.id) && protection(freshById.get(t.id)!, policy) === null) &&
+          effect.tabIds.every((id) => !after.ui.closing.has(id)) &&
+          JSON.stringify(undo) === JSON.stringify(closed.map((t) => t.id).sort())
+        );
+      }),
+    );
+  });
+
+  it('a single close the user picked still closes it, even if it became current', async () => {
+    const id = TABS[3]!.id;
+    const [, fx] = update({ snapshot: SNAPSHOT, ui: initialUi() }, { type: 'closeTab', tabId: id });
+    const effect = closeEffect(fx)!;
+    expect(effect.policy).toBeNull();
+    const browser = new FakeBrowser(SNAPSHOT);
+    browser.change((t) => (t.id === id ? { ...t, active: true } : t));
+    const { closed } = await browser.close(effect.tabIds, effect.policy);
+    expect(closed.map((t) => t.id)).toEqual([id]);
+  });
+
+  it('says what happened when the recheck keeps tabs', () => {
+    const tabs = TABS.slice(2, 5);
+    const [s] = update({ snapshot: SNAPSHOT, ui: initialUi() }, { type: 'closed', tabs: tabs.slice(0, 2), requested: tabs.map((t) => t.id), noun: 'duplicate', kept: 1 });
+    expect(s.ui.toast?.message).toBe('Closed 2 duplicates · kept 1 protected');
+    const [none] = update({ snapshot: SNAPSHOT, ui: initialUi() }, { type: 'closed', tabs: [], requested: [1], noun: 'tab', kept: 1 });
+    expect(none.ui.toast).toMatchObject({ message: 'Nothing closed — 1 tab protected', undo: undefined });
+  });
+});
+
+describe('ChromeBrowser.close', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('removes only tabs still unprotected in Chrome right now', async () => {
+    await fc.assert(
+      fc.asyncProperty(fc.constantFrom(...bulkActions), changes, async (action, flips) => {
+        const policy = initialUi().policy;
+        const [, fx] = update({ snapshot: SNAPSHOT, ui: initialUi({ policy }) }, action);
+        const effect = closeEffect(fx);
+        if (!effect) return true;
+        let fresh = TABS.map((t) => ({ ...t }));
+        for (const [id, flip] of flips) fresh = fresh.map((t) => (t.id === id ? flipTab(t, flip) : t));
+        const removed: number[] = [];
+        vi.stubGlobal('chrome', {
+          tabs: {
+            query: async () => fresh.map((t) => ({ ...t, mutedInfo: { muted: false } })),
+            remove: async (ids: number[]) => void removed.push(...ids),
+          },
+          tabGroups: { query: async () => [] },
+          windows: { getLastFocused: async () => ({ id: 1 }) },
+        });
+        const { closed } = await new ChromeBrowser().close(effect.tabIds, effect.policy);
+        const byId = new Map(fresh.map((t) => [t.id, t]));
+        return (
+          removed.every((id) => protection(byId.get(id)!, policy) === null) &&
+          JSON.stringify(removed.sort()) === JSON.stringify(closed.map((t) => t.id).sort())
+        );
+      }),
+    );
+  });
+});
