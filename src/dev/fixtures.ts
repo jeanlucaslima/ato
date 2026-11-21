@@ -140,6 +140,7 @@ export const FIXTURES: Fixture[] = [
     }),
   },
   { name: 'After cleanup (undo)', state: at({ toast: { id: 1, message: 'Closed 4 duplicates', undo: [] } }, cleaned) },
+  { name: 'A close failed (Chrome refused)', state: at({ toast: { id: 1, message: 'Couldn’t close tabs — try again' } }) },
   { name: 'Search, no matches', state: at({ query: 'kubernetes' }) },
   { name: 'Search · url: chip', state: at({ query: 'url:github', cursor: `tab:${idOf('Issues · ato')}` }) },
   { name: 'url: just typed (chip, no text yet)', state: at({ query: 'url:' }) },

@@ -361,6 +361,17 @@ function step(state: AppState, action: Action): Result {
       const message = n > 0 ? `Closed ${plural(n, action.noun)}${kept}` : action.kept ? `Nothing closed — ${plural(action.kept, 'tab')} protected` : 'Nothing to close';
       return withToast(setUi(state, { closing }), message, n > 0 ? action.tabs : undefined);
     }
+    case 'closeFailed': {
+      // Nothing stays mid-animation; tabs that did close keep their undo.
+      const closing = new Set(ui.closing);
+      for (const id of action.requested) closing.delete(id);
+      const n = action.tabs.length;
+      const failed = action.requested.length - n;
+      const message = n > 0 ? `Closed ${plural(n, action.noun)} · couldn’t close ${failed} — try again` : 'Couldn’t close tabs — try again';
+      return withToast(setUi(state, { closing }), message, n > 0 ? action.tabs : undefined);
+    }
+    case 'effectFailed':
+      return withToast(state, action.message);
     case 'undo': {
       const tabs = ui.toast?.undo;
       if (!tabs?.length) return [state, []];

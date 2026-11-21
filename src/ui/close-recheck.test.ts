@@ -108,3 +108,19 @@ describe('ChromeBrowser.close', () => {
     );
   });
 });
+
+describe('a failed close', () => {
+  it('never leaves a requested tab closing; undo lists exactly the tabs gone anyway', () => {
+    fc.assert(
+      fc.property(fc.constantFrom(...bulkActions), fc.array(fc.boolean(), { minLength: TABS.length, maxLength: TABS.length }), (action, goneMask) => {
+        const [deciding, fx] = update({ snapshot: SNAPSHOT, ui: initialUi() }, action);
+        const effect = closeEffect(fx);
+        if (!effect) return true;
+        const gone = TABS.filter((t, i) => effect.tabIds.includes(t.id) && goneMask[i]);
+        const [after] = update(deciding, { type: 'closeFailed', tabs: gone, requested: effect.tabIds, noun: effect.noun });
+        const undo = (after.ui.toast?.undo ?? []).map((t) => t.id).sort();
+        return effect.tabIds.every((id) => !after.ui.closing.has(id)) && JSON.stringify(undo) === JSON.stringify(gone.map((t) => t.id).sort()) && /try again/.test(after.ui.toast?.message ?? '');
+      }),
+    );
+  });
+});

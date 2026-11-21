@@ -48,6 +48,13 @@ export type Action =
    * `requested`; `kept` were left open as protected (at the decision or the recheck).
    */
   | { type: 'closed'; tabs: readonly Tab[]; requested: readonly number[]; noun: string; kept: number }
+  /**
+   * A close failed (Chrome refused: a tab being dragged, a window closing). `tabs`
+   * of `requested` were gone afterwards anyway (closed before the failure).
+   */
+  | { type: 'closeFailed'; tabs: readonly Tab[]; requested: readonly number[]; noun: string }
+  /** Some other browser effect failed; say so. */
+  | { type: 'effectFailed'; message: string }
   | { type: 'undo' }
   | { type: 'restored'; count: number; fresh?: number }
   | { type: 'dismissToast'; id: number }
