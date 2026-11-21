@@ -92,6 +92,8 @@ Proposed for 3.1, in order of payoff (not done):
 2. **Search derives only what it shows.** `deriveModel` builds a row for every tab and the whole duplicate plan on each keystroke, then search keeps 150; build rows only for the results drawn, and cache `domainOf` per URL (`URL` parsing is second in the traces).
 3. **Draw only the visible part of long lists.** Search already stops at 150; the tabs, sites and windows lists draw every row (`content-visibility` skips layout and paint off screen, not style or DOM size). This is the "drawing only visible rows past 5,000 tabs" item, now with numbers showing it matters from 2,000 on a slow machine.
 
+3.0.1, checked in Chrome 158 with the built `dist/` loaded into a throwaway profile over CDP (2026-11-21): a window of a.html, b.html, a.html, a.html with the first one current; firing the real "Close duplicates of this tab" listener on the third tab closed only the fourth (the clicked tab and the current one stayed) and stored a menu record; opening the popup showed "Closed 1 duplicate (tab menu) · Undo"; Undo brought the tab back at index 3 and cleared the record. Also checked there: what `sessions.getRecentlyClosed` records for closed tabs (see [3.0.1-plan.md](3.0.1-plan.md), item 3).
+
 ## Release status
 
 Done for 3.0 (each with tests; the closing rules also with fast-check properties and mutation checks):
