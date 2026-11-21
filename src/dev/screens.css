@@ -33,3 +33,15 @@ body { padding: 32px; background: color-mix(in srgb, var(--canvas), black 22%); 
 .logo-art { display: grid; place-items: center; }
 .logo-art svg { display: block; }
 .logo-speed { position: static; display: inline-flex; margin: 0 0 12px; box-shadow: none; }
+.angle-picker { align-items: flex-start; }
+.angle-art { cursor: grab; touch-action: none; user-select: none; }
+.angle-art:active { cursor: grabbing; }
+.angle-art svg { display: block; }
+.angle-side { flex: 1; min-width: 260px; display: flex; flex-direction: column; gap: 10px; }
+.angle-side h3 { margin: 0; font-size: 14px; }
+.angle-side p { margin: 0; font-size: 12.5px; color: var(--ink-2); }
+.angle-readout { align-self: flex-start; padding: 6px 10px; border-radius: 7px; background: color-mix(in srgb, var(--ink) 9%, transparent); font-family: var(--mono); font-size: 13px; color: var(--ink); }
+.angle-lean { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--ink-2); }
+.angle-lean input { flex: 1; }
+.angle-sizes { display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap; }
+.angle-side .logo-speed { align-self: flex-start; margin: 0; }

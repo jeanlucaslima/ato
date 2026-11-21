@@ -128,7 +128,7 @@ speedBar.addEventListener('click', (e) => {
   for (const x of speedBar.querySelectorAll('[data-speed]')) x.setAttribute('aria-pressed', String(x === b));
 });
 /** Corner cut sizes to compare (share of an edge); the middle one is the default. */
-const spinning = [0.05, 0.07, 0.09].map((chamfer) => {
+const spinning = [0.01, 0.03, 0.05, 0.07].map((chamfer) => {
   const stage = icosahedron(72, chamfer);
   attachSpin(stage, false, rate);
   return logoTile(`3D, corners cut ${Math.round(chamfer * 100)}%${chamfer === 0.07 ? ' (default)' : ''}`, stage);
@@ -136,12 +136,61 @@ const spinning = [0.05, 0.07, 0.09].map((chamfer) => {
 const small = icosahedron(44);
 attachSpin(small, false, rate);
 spinning.push(logoTile('3D, radius 44', small));
+/**
+ * App icon angle picker: drag to turn (sideways: spin, up/down: pitch), the
+ * slider leans the axis. Shows the angles to pick from, at every icon size.
+ */
+const angle = { spin: 18, pitch: -6, lean: -20 };
+const pickerArt = h('div', { class: 'angle-art', title: 'Drag to turn' });
+const pickerSizes = h('div', { class: 'angle-sizes' });
+const readout = h('code', { class: 'angle-readout' });
+const leanInput = h('input', { type: 'range', min: '-60', max: '60', step: '1', value: String(angle.lean), 'aria-label': 'Lean' }) as HTMLInputElement;
+function renderAngle(): void {
+  const at = { spin: Math.round(angle.spin), pitch: Math.round(angle.pitch), lean: Math.round(angle.lean) };
+  pickerArt.replaceChildren(staticLogo(logoSvg({ size: 256, ...at })));
+  pickerSizes.replaceChildren(...[128, 48, 32, 16].map((size) => logoTile(`${size}px`, staticLogo(logoSvg({ size, ...at })))));
+  readout.textContent = `spin ${((at.spin % 360) + 360) % 360}° · pitch ${at.pitch}° · lean ${at.lean}°`;
+}
+let picking: { x: number; y: number } | null = null;
+pickerArt.addEventListener('pointerdown', (e) => {
+  picking = { x: e.clientX, y: e.clientY };
+  pickerArt.setPointerCapture(e.pointerId);
+});
+pickerArt.addEventListener('pointermove', (e) => {
+  if (!picking) return;
+  angle.spin += (e.clientX - picking.x) * 0.5;
+  angle.pitch = Math.max(-60, Math.min(60, angle.pitch - (e.clientY - picking.y) * 0.3));
+  picking = { x: e.clientX, y: e.clientY };
+  renderAngle();
+});
+const endPick = () => (picking = null);
+pickerArt.addEventListener('pointerup', endPick);
+pickerArt.addEventListener('pointercancel', endPick);
+leanInput.addEventListener('input', () => {
+  angle.lean = Number(leanInput.value);
+  renderAngle();
+});
+const resetAngle = h('button', { class: 'theme-tab', type: 'button' }, 'Reset to current');
+resetAngle.addEventListener('click', () => {
+  Object.assign(angle, { spin: 18, pitch: -6, lean: -20 });
+  leanInput.value = String(angle.lean);
+  renderAngle();
+});
+renderAngle();
+const anglePicker = h(
+  'div',
+  { class: 'logo-row angle-picker' },
+  pickerArt,
+  h('div', { class: 'angle-side' }, h('h3', null, 'App icon angle'), h('p', null, 'Drag the icon: sideways turns it, up and down tilts it toward you. The slider leans the axis.'), readout, h('label', { class: 'angle-lean' }, 'Lean', leanInput), h('div', { class: 'theme-tabs logo-speed' }, resetAngle), pickerSizes),
+);
+
 const logosSection = h(
   'section',
   { class: 'gallery-logos' },
   h('h2', null, 'Logos'),
   speedBar,
   h('div', { class: 'logo-row' }, spinning),
+  anglePicker,
   h(
     'div',
     { class: 'logo-row' },
