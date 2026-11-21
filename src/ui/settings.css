@@ -8,22 +8,17 @@
 .settings-head p { margin: 4px 0 0; font-size: 13px; color: var(--ink-3); }
 .saved { margin-top: 10px; font-size: 12px; color: var(--ink-3); }
 
-/* Logo: a 3D icosahedron turning slowly on a tilted axis through two face
-   centres, like a globe. icosahedron.ts builds it and drives the turn (drag to
-   spin). Front edges are solid, edges facing away are dashed, as in the logo. */
-.ico { position: relative; width: var(--ico-size); height: var(--ico-size); perspective: 900px; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+/* Logo: a 3D icosahedron turning slowly on a tilted axis, like a globe.
+   icosahedron.ts redraws one SVG each frame (drag to spin): solid edges in
+   front, dashed behind, corners cut by small shaded facets, nearer lines a
+   little heavier (--w). --ico-ink is the drawing colour; themes can set it. */
+.ico { --ico-ink: var(--ink-2); --ico-stroke: 2.7px; position: relative; width: var(--ico-size); height: var(--ico-size); cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
 .ico.is-dragging { cursor: grabbing; }
-.ico-tilt, .ico-spin { position: absolute; inset: 0; transform-style: preserve-3d; }
-/* Axis leans top-left to bottom-right, about as much as the Earth's (~20°). */
-.ico-tilt { transform: rotateZ(-20deg) rotateX(-6deg); }
-.ico-face { position: absolute; left: 50%; top: 50%; width: 100px; height: 86.6px; transform-origin: 0 0; transform-style: preserve-3d; }
-.ico-face svg { position: absolute; inset: 0; overflow: visible; backface-visibility: hidden; }
-/* Depth: edges on the far side are fainter and very slightly out of focus. */
-.ico-back { transform: rotateY(180deg); opacity: 0.45; filter: blur(0.45px); }
-.ico line { stroke: var(--ink-2); stroke-width: 3.6; stroke-linecap: round; }
-/* 6 dashes + 5 gaps fill an edge exactly (6×7.5 + 5×11 = 100), so the pattern is
-   symmetric and the two faces sharing an edge draw the same dashes. */
-.ico-back line { stroke-dasharray: 7.5 11; }
+.ico-svg { display: block; overflow: visible; }
+.ico line { stroke: var(--ico-ink); stroke-width: calc(var(--ico-stroke) * var(--w, 1)); stroke-linecap: round; }
+.ico-back line { stroke-dasharray: 5 7.5; }
+/* A corner's facet: lit ones toward the ink, turned-away ones toward the page. */
+.ico-facet { fill: color-mix(in srgb, var(--ico-ink) calc(25% + var(--lit, 0) * 65%), var(--canvas)); stroke: var(--ico-ink); stroke-width: calc(var(--ico-stroke) * 0.7 * var(--w, 1)); stroke-linejoin: miter; }
 .saved.is-saved { color: var(--ok); }
 .saved.is-saved::before { content: '✓ '; }
 
