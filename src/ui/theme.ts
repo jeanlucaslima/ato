@@ -17,6 +17,7 @@ export const THEME_INFO: Record<Settings['theme'], ThemeInfo> = {
   lagoon: { name: 'Lagoon', tagline: 'Shallow water at noon' },
   sakura: { name: 'Sakura', tagline: 'Blossom and plum' },
   dune: { name: 'Dune', tagline: 'Sand, sun and terracotta' },
+  onyx: { name: 'Onyx', tagline: 'True black, for OLED and late nights' },
 };
 
 /** The theme a setting stands for right now (`system` follows the OS). */
