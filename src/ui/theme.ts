@@ -10,6 +10,7 @@ export const THEME_INFO: Record<Settings['theme'], ThemeInfo> = {
   system: { name: 'System', tagline: 'Paper by day, Graphite by night' },
   graphite: { name: 'Graphite', tagline: 'Calm, cool dark' },
   paper: { name: 'Paper', tagline: 'Quiet, warm light' },
+  onyx: { name: 'Onyx', tagline: 'True black, for OLED and late nights' },
   cyber: { name: 'Cyber', tagline: 'Neon grid, everything glows' },
   nebula: { name: 'Nebula', tagline: 'Violet deep space' },
   ember: { name: 'Ember', tagline: 'Campfire, low and warm' },
@@ -17,7 +18,6 @@ export const THEME_INFO: Record<Settings['theme'], ThemeInfo> = {
   lagoon: { name: 'Lagoon', tagline: 'Shallow water at noon' },
   sakura: { name: 'Sakura', tagline: 'Blossom and plum' },
   dune: { name: 'Dune', tagline: 'Sand, sun and terracotta' },
-  onyx: { name: 'Onyx', tagline: 'True black, for OLED and late nights' },
 };
 
 /** The theme a setting stands for right now (`system` follows the OS). */
