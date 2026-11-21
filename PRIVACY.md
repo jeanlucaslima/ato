@@ -1,9 +1,9 @@
-# Privacy Policy for ATO – Advanced Tab Organizer
+# Privacy Policy for ATO - Advanced Tab Organizer
 
 _Last updated: 2026-11-21_
 
 ATO (Advanced Tab Organizer) is a Chrome extension that helps you find and close
-duplicate tabs and search, group, and manage your open tabs and windows from a popup.
+duplicate tabs and search, sort and manage your open tabs and windows from a popup.
 
 ## The short version
 
@@ -34,6 +34,14 @@ protection, starting view) are saved using Chrome's `storage.sync` API. If you h
 enabled, these settings sync across your own signed-in browsers through your
 Google account. ATO itself never receives this data — it is handled by Chrome.
 
+## The undo record
+
+So that Undo still works after the popup closes, ATO remembers the last close:
+the URLs, titles and positions of the tabs it closed. This record is kept in
+Chrome's `storage.session` area, on your device only. It is never synced or
+sent anywhere. Each close replaces the one before, a completed Undo removes it,
+and Chrome clears it when the browser closes.
+
 ## Data sharing
 
 ATO does not sell or transfer any user data to third parties. It does not use or
@@ -43,8 +51,9 @@ use data to determine creditworthiness or for lending purposes.
 ## Permissions
 
 - `tabs` — read tab titles/URLs (including local `file://` pages) to detect
-  duplicates, search, and group tabs.
-- `storage` — save your settings locally / via Chrome Sync.
+  duplicates, search tabs and list them by site and window.
+- `storage` — save your settings via Chrome Sync, and keep the undo record for
+  the current browser session.
 - `sessions` — restore recently closed tabs (Undo).
 - `tabGroups` — read tab group names/colours and move whole groups between windows.
 - `contextMenus` — add ATO's items to the tab right-click menu.
