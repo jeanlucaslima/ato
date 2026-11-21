@@ -2,6 +2,7 @@ import '../ui/tokens.css';
 import '../ui/popup.css';
 import '../ui/settings.css';
 import './screens.css';
+import './proto-themes.css';
 import { CHOICES, DEFAULT_SETTINGS, readSettings, type Settings } from '../core/settings';
 import { mountApp, type App } from '../ui/app';
 import { h } from '../ui/dom';
@@ -40,13 +41,38 @@ themeButton.addEventListener('click', async () => {
   await settings.save({ ...current, theme: themes[(themes.indexOf(current.theme) + 1) % themes.length]! });
 });
 
+/** Prototype themes (gallery only, see proto-themes.css): `?proto=holo` wears one over every screen. */
+const PROTOS = { holo: 'Holo', riso: 'Riso', blueprint: 'Blueprint', glacier: 'Glacier', poster: 'Poster' } as const;
+type Proto = keyof typeof PROTOS;
+const isProto = (v: string | null): v is Proto => v !== null && v in PROTOS;
+const fromUrl = new URLSearchParams(location.search).get('proto');
+let proto: Proto | null = isProto(fromUrl) ? fromUrl : null;
+let currentTheme: Settings['theme'] = startSettings.theme;
+const protoButton = h('button', { class: 'btn', type: 'button', title: 'Cycle the prototype light themes (gallery only)' });
+function applyProto(): void {
+  applyTheme(currentTheme);
+  if (proto) document.documentElement.dataset.theme = proto;
+  protoButton.textContent = `Prototype: ${proto ? PROTOS[proto] : 'off'} →`;
+  const params = new URLSearchParams(location.search);
+  if (proto) params.set('proto', proto);
+  else params.delete('proto');
+  history.replaceState(null, '', params.size ? `?${params}` : location.pathname);
+}
+protoButton.addEventListener('click', () => {
+  const keys = Object.keys(PROTOS) as Proto[];
+  proto = proto === null ? keys[0]! : (keys[keys.indexOf(proto) + 1] ?? null);
+  applyProto();
+});
+
 function onSettings(s: Settings): void {
+  currentTheme = s.theme;
   applyTheme(s.theme);
   themeButton.textContent = `Theme: ${THEME_INFO[s.theme].name} →`;
   const params = new URLSearchParams(location.search);
   if (s.theme === DEFAULT_SETTINGS.theme) params.delete('theme');
   else params.set('theme', s.theme);
   history.replaceState(null, '', params.size ? `?${params}` : location.pathname);
+  applyProto();
 }
 
 const figures = shown.map((fixture, i) => {
@@ -74,6 +100,7 @@ document.body.replaceChildren(
     { class: 'gallery-head' },
     h('h1', null, 'ATO 3 — popup screens'),
     themeButton,
+    protoButton,
     h('p', null, 'Every popup is live: click, type, or focus one and use the keyboard. The gear in any popup jumps to the settings page below.'),
   ),
   h('main', { class: 'gallery' }, figures),

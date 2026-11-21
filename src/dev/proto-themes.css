@@ -1,0 +1,231 @@
+/* Prototype light themes, gallery only: ?proto=holo|riso|blueprint|glacier|poster
+   on /dev/screens.html. Each is a full palette plus its own effects, scoped to
+   its [data-theme] like Cyber. Nothing here ships until one is picked and moved
+   into src/ui. Motion is decorative and reduced motion stops it. */
+
+/* ===================================================================== HOLO */
+/* Pearl and foil: white with a pearly sheen; edges catch an iridescent foil that
+   slowly turns; a glint sweeps the duplicates bar; counts look embossed. */
+@property --holo-angle { syntax: '<angle>'; inherits: true; initial-value: 0deg; }
+[data-theme='holo'] {
+  color-scheme: light;
+  --canvas: #f7f7fa; --surface: #ffffff; --raised: #ecebf3; --line: #e2e0ea; --line-soft: #efeef4;
+  --ink: #17161d; --ink-2: #4c4a58; --ink-3: #625f70; --key: #2b2935;
+  --focus: #6d4aff; --focus-fill: #f0ecff; --match: #e3dbff; --select-fill: #ece9fb;
+  --amber: #8a4b00; --amber-fill: #fff4e6; --amber-line: #f2d3a8;
+  --danger: #c2185b; --danger-ink: #ffffff; --danger-line: #f3bcd2; --danger-fill: #fdecf3;
+  --ok: #0f7a5a; --ok-fill: #e3f5ee; --ok-line: #b0dfcc;
+  --shadow: 0 10px 30px rgb(80 60 160 / 0.14);
+  --foil: conic-gradient(from var(--holo-angle), #ff9ad5, #ffd59a, #c8ff9a, #9af0ff, #b49aff, #ff9ad5);
+  --foil-line: linear-gradient(180deg, #ff8fcf, #ffc98a, #8fe9ff, #a88cff);
+  --pearl:
+    radial-gradient(ellipse 70% 40% at 0% 0%, rgb(255 190 230 / 0.35), transparent 70%),
+    radial-gradient(ellipse 60% 45% at 100% 10%, rgb(170 230 255 / 0.35), transparent 70%),
+    radial-gradient(ellipse 80% 50% at 60% 110%, rgb(200 180 255 / 0.3), transparent 70%);
+  animation: holo-turn 9s linear infinite;
+}
+@keyframes holo-turn { to { --holo-angle: 360deg; } }
+:root[data-theme='holo'] body { background: var(--pearl), color-mix(in srgb, var(--canvas), #c9c6d8 30%); background-attachment: fixed; }
+[data-theme='holo'] .popup { background: var(--pearl), var(--canvas); }
+/* Foil edges: a white fill over a foil border box */
+[data-theme='holo'] :is(.search, .playing, .group, .theme-card) { border: 1px solid transparent; background: linear-gradient(var(--surface), var(--surface)) padding-box, var(--foil) border-box; box-shadow: 0 2px 10px rgb(120 90 200 / 0.08); }
+[data-theme='holo'] :is(.search.is-focused, .search:focus-within) { border-width: 1.5px; box-shadow: 0 0 0 4px rgb(160 130 255 / 0.12), 0 6px 18px rgb(120 90 200 / 0.18); }
+[data-theme='holo'] .strip:not(.strip--clean, .strip--idle) { position: relative; overflow: hidden; border: 1px solid transparent; background: linear-gradient(#fff8ee, #fff1e0) padding-box, var(--foil) border-box; }
+[data-theme='holo'] .strip:not(.strip--clean, .strip--idle)::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.85) 48%, rgb(255 220 250 / 0.5) 52%, transparent 65%); translate: -120% 0; animation: holo-glint 4.5s ease-in-out infinite; }
+@keyframes holo-glint { 0%, 55% { translate: -120% 0; } 85%, 100% { translate: 120% 0; } }
+[data-theme='holo'] .strip .dot { background: var(--foil); box-shadow: 0 0 6px rgb(255 150 220 / 0.7); }
+/* Brand: foil type and a chrome logo */
+[data-theme='holo'] .brand-name, [data-theme='holo'] .settings h1 { background: linear-gradient(100deg, #6d4aff, #d64ab8 35%, #e09a3a 60%, #2fa9c9 85%); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: holo-type 8s ease-in-out infinite alternate; }
+@keyframes holo-type { to { background-position: 100% 0; } }
+[data-theme='holo'] .brand-logo svg, [data-theme='holo'] .ico-front { filter: drop-shadow(0 1px 0 #fff) drop-shadow(0 0 4px rgb(180 150 255 / 0.6)); }
+/* Cursor: a foil bar on a pearly wash */
+[data-theme='holo'] :is(.row, .site-row, .win-row).is-cursor { background: var(--foil-line) left / 3px 100% no-repeat, linear-gradient(90deg, rgb(236 228 255 / 0.95), rgb(255 236 248 / 0.6) 60%, transparent); box-shadow: none; }
+/* Embossed counts and keys */
+[data-theme='holo'] .meta .dup, [data-theme='holo'] .win-flags .dup { padding: 1px 6px; border-radius: 999px; background: linear-gradient(#fffdf8, #fbecd6); box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgb(120 70 0 / 0.2); font-weight: 600; }
+[data-theme='holo'] .meta .cur { padding: 1px 7px; border-radius: 999px; background: linear-gradient(#ffffff, #efe9ff); box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgb(80 50 200 / 0.2); }
+[data-theme='holo'] .k--box { background: linear-gradient(#ffffff, #ebe8f4); box-shadow: inset 0 1px 0 #fff, 0 1px 1.5px rgb(40 30 80 / 0.25); color: var(--ink-2); }
+[data-theme='holo'] .seg-thumb { background: linear-gradient(#ffffff, #f4f1fb); box-shadow: 0 1px 3px rgb(80 50 200 / 0.18), inset 0 0 0 1px rgb(255 255 255); }
+[data-theme='holo'] .seg { background: var(--raised); }
+[data-theme='holo'] .btn--solid-danger { background: linear-gradient(135deg, #d81b70, #a3247c); border-color: transparent; box-shadow: 0 4px 14px rgb(200 30 110 / 0.3); }
+[data-theme='holo'] .theme-card:has(input:checked) { box-shadow: 0 0 0 2px #fff, 0 0 0 4px rgb(160 130 255 / 0.5), 0 8px 24px rgb(120 90 200 / 0.2); }
+
+/* ===================================================================== RISO */
+/* Risograph: warm paper, two fluorescent inks (pink, blue) printed a touch out of
+   register, halftone dots, paper grain; a closed row stamps out in pink. */
+[data-theme='riso'] {
+  color-scheme: light;
+  --canvas: #f6f1e7; --surface: #fbf8f1; --raised: #ebe4d6; --line: #d9cfbb; --line-soft: #ebe5d8;
+  --ink: #1c2340; --ink-2: #45506e; --ink-3: #5a6380; --key: #1c2340;
+  --focus: #0a68a8; --focus-fill: #dcebf5; --match: #ffd0e4; --select-fill: #e3ecf4;
+  --amber: #8f5200; --amber-fill: #fbedd2; --amber-line: #e3c48c;
+  --danger: #c8155f; --danger-ink: #ffffff; --danger-line: #f0a9c8; --danger-fill: #fde3ee;
+  --ok: #00785a; --ok-fill: #dcf0e6; --ok-line: #a8d8c2;
+  --shadow: 4px 4px 0 rgb(255 72 176 / 0.4);
+  --pink: #ff48b0; --blue: #0078bf;
+  --grain: radial-gradient(rgb(60 40 20 / 0.05) 0.7px, transparent 0.8px) 0 0 / 3px 3px, radial-gradient(rgb(60 40 20 / 0.035) 0.6px, transparent 0.7px) 1.5px 1.5px / 3px 3px;
+  --halftone: radial-gradient(color-mix(in srgb, var(--blue) 30%, transparent) 1.1px, transparent 1.4px) 0 0 / 5px 5px;
+  --misreg: 1.6px 1px 0 color-mix(in srgb, var(--pink) 75%, transparent), -1px -0.6px 0 color-mix(in srgb, var(--blue) 55%, transparent);
+}
+:root[data-theme='riso'] body, [data-theme='riso'] .popup { background: var(--grain), var(--canvas); }
+[data-theme='riso'] :is(.brand-name, .settings h1, .settings h2, .head h2, .strip strong) { text-shadow: var(--misreg); }
+[data-theme='riso'] .brand-name { font-weight: 800; letter-spacing: 0.08em; }
+[data-theme='riso'] .brand-logo { color: var(--blue); }
+[data-theme='riso'] .brand-logo svg, [data-theme='riso'] .ico-front { filter: drop-shadow(1.5px 1px 0 color-mix(in srgb, var(--pink) 70%, transparent)); }
+/* Panels are printed blocks with a pink offset */
+[data-theme='riso'] :is(.search, .playing, .group, .theme-card) { border: 1.5px solid var(--ink); box-shadow: 4px 4px 0 color-mix(in srgb, var(--pink) 55%, transparent); }
+[data-theme='riso'] :is(.search.is-focused, .search:focus-within) { border-color: var(--blue); box-shadow: 4px 4px 0 color-mix(in srgb, var(--blue) 45%, transparent); }
+[data-theme='riso'] .strip:not(.strip--clean, .strip--idle) { border: 1.5px solid var(--ink); background: radial-gradient(color-mix(in srgb, #ffb300 45%, transparent) 1.2px, transparent 1.5px) 0 0 / 5px 5px, var(--amber-fill); box-shadow: 4px 4px 0 color-mix(in srgb, var(--pink) 55%, transparent); }
+[data-theme='riso'] .strip .dot { background: var(--pink); box-shadow: 1px 1px 0 var(--blue); }
+/* Cursor: halftone wash with a solid blue edge */
+[data-theme='riso'] :is(.row, .site-row, .win-row).is-cursor { background: var(--halftone), var(--focus-fill); box-shadow: inset 4px 0 var(--blue); }
+[data-theme='riso'] .row.is-selected { background: radial-gradient(color-mix(in srgb, var(--pink) 28%, transparent) 1.1px, transparent 1.4px) 0 0 / 5px 5px, #fbeaf2; }
+[data-theme='riso'] .meta .dup { color: var(--danger); font-weight: 700; text-shadow: 1px 0.6px 0 color-mix(in srgb, var(--blue) 35%, transparent); }
+[data-theme='riso'] .meta .cur { color: var(--blue); font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; font-size: 10px; }
+[data-theme='riso'] .k--box { background: color-mix(in srgb, var(--pink) 16%, transparent); color: var(--ink); }
+[data-theme='riso'] .seg { background: var(--raised); }
+[data-theme='riso'] .seg-thumb { background: var(--surface); box-shadow: 2px 2px 0 color-mix(in srgb, var(--blue) 55%, transparent), 0 0 0 1.5px var(--ink); }
+[data-theme='riso'] .btn { border-width: 1.5px; transition: translate 90ms, box-shadow 90ms; }
+[data-theme='riso'] .btn:hover:not(:disabled) { translate: -1px -1px; box-shadow: 2px 2px 0 color-mix(in srgb, var(--blue) 55%, transparent); }
+[data-theme='riso'] .btn--solid-danger { background: var(--danger); box-shadow: 3px 3px 0 var(--blue); }
+/* Closing: the row is stamped pink, then lifts off the page */
+[data-theme='riso'] .row.is-closing { animation: riso-stamp var(--t, 180ms) ease-out forwards; }
+@keyframes riso-stamp { 0% { background: color-mix(in srgb, var(--pink) 45%, transparent); } 40% { background: color-mix(in srgb, var(--pink) 30%, transparent); opacity: 1; } 100% { background: transparent; opacity: 0; translate: 12px 0; } }
+[data-theme='riso'] .theme-card:has(input:checked) { box-shadow: 4px 4px 0 var(--blue); }
+
+/* ================================================================ BLUEPRINT */
+/* Drafting table: white graph paper, technical-pen blue; the cursor is crop
+   marks, counts are dimensions, a ruler runs down the list, red pencil for alerts. */
+[data-theme='blueprint'] {
+  color-scheme: light;
+  --canvas: #fbfcfe; --surface: #ffffff; --raised: #e8eef7; --line: #cbd9ea; --line-soft: #e3eaf4;
+  --ink: #0f2340; --ink-2: #3e5573; --ink-3: #566b87; --key: #12305a;
+  --focus: #1d5fd1; --focus-fill: #edf3fd; --match: #cfe0fb; --select-fill: #e4ecf8;
+  --amber: #b3261e; --amber-fill: #fff4f2; --amber-line: #eeb4ae;
+  --danger: #c62828; --danger-ink: #ffffff; --danger-line: #f0bcbc; --danger-fill: #fdeeee;
+  --ok: #18794e; --ok-fill: #e5f3ec; --ok-line: #b3d9c5;
+  --shadow: 0 0 0 1px var(--line), 0 6px 18px rgb(15 35 64 / 0.08);
+  --grid:
+    linear-gradient(rgb(29 95 209 / 0.055) 1px, transparent 1px) 0 0 / 8px 8px,
+    linear-gradient(90deg, rgb(29 95 209 / 0.055) 1px, transparent 1px) 0 0 / 8px 8px,
+    linear-gradient(rgb(29 95 209 / 0.11) 1px, transparent 1px) 0 0 / 40px 40px,
+    linear-gradient(90deg, rgb(29 95 209 / 0.11) 1px, transparent 1px) 0 0 / 40px 40px;
+  --mark: var(--focus);
+  /* Four corner crop marks, two strokes each */
+  --crop:
+    linear-gradient(var(--mark), var(--mark)) left 5px top 5px / 9px 1.5px,
+    linear-gradient(var(--mark), var(--mark)) left 5px top 5px / 1.5px 9px,
+    linear-gradient(var(--mark), var(--mark)) right 5px top 5px / 9px 1.5px,
+    linear-gradient(var(--mark), var(--mark)) right 5px top 5px / 1.5px 9px,
+    linear-gradient(var(--mark), var(--mark)) left 5px bottom 5px / 9px 1.5px,
+    linear-gradient(var(--mark), var(--mark)) left 5px bottom 5px / 1.5px 9px,
+    linear-gradient(var(--mark), var(--mark)) right 5px bottom 5px / 9px 1.5px,
+    linear-gradient(var(--mark), var(--mark)) right 5px bottom 5px / 1.5px 9px;
+}
+:root[data-theme='blueprint'] body, [data-theme='blueprint'] .popup { background: var(--grid), var(--canvas); }
+[data-theme='blueprint'] .brand-name, [data-theme='blueprint'] .settings h1 { font-family: var(--mono); letter-spacing: 0.3em; color: var(--focus); }
+[data-theme='blueprint'] .brand-tag { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; }
+[data-theme='blueprint'] .brand-logo { color: var(--focus); }
+[data-theme='blueprint'] :is(.head h2, .settings h2) { font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.08em; font-size: 11px; }
+/* Panels: drawn outlines on white; focus is a dashed construction line */
+[data-theme='blueprint'] :is(.search, .playing, .group) { background: rgb(255 255 255 / 0.92); border: 1px solid var(--line); border-radius: 4px; }
+[data-theme='blueprint'] :is(.search.is-focused, .search:focus-within) { border-color: var(--focus); box-shadow: none; outline: 1px dashed var(--focus); outline-offset: 3px; }
+/* Duplicates: a red-pencil annotation on a hatched field */
+[data-theme='blueprint'] .strip:not(.strip--clean, .strip--idle) { border: 1px solid var(--amber); border-radius: 4px; background: repeating-linear-gradient(-45deg, rgb(198 40 40 / 0.07) 0 1px, transparent 1px 6px), rgb(255 255 255 / 0.9); }
+[data-theme='blueprint'] .strip .dot { width: 10px; height: 10px; background: transparent; border: 1.5px solid var(--amber); box-shadow: inset 0 0 0 2px var(--canvas), inset 0 0 0 5px var(--amber); animation: bp-spin 6s linear infinite; }
+@keyframes bp-spin { 50% { scale: 0.8; } }
+/* Cursor: crop marks around the row instead of a fill */
+[data-theme='blueprint'] :is(.row, .site-row, .win-row).is-cursor { background: var(--crop), rgb(237 243 253 / 0.75); background-repeat: no-repeat; box-shadow: none; }
+/* Counts as dimensions: |×2| */
+[data-theme='blueprint'] .meta .dup, [data-theme='blueprint'] .win-flags .dup { padding: 0 4px; border-inline: 1px solid currentColor; }
+[data-theme='blueprint'] .meta .cur { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; border: 1px dashed var(--focus); padding: 1px 5px; border-radius: 2px; }
+/* A ruler down the list's left edge: a tick every 10px, a long one every 50px */
+[data-theme='blueprint'] .list { background: repeating-linear-gradient(to bottom, var(--line) 0 1px, transparent 1px 10px) left / 5px 100% no-repeat, repeating-linear-gradient(to bottom, var(--focus) 0 1px, transparent 1px 50px) left / 9px 100% no-repeat; background-attachment: local; }
+[data-theme='blueprint'] .k--box { background: #fff; border: 1px solid var(--line); font-family: var(--mono); color: var(--key); }
+[data-theme='blueprint'] .seg { background: transparent; border: 1px solid var(--line); border-radius: 4px; }
+[data-theme='blueprint'] .seg-thumb { background: var(--focus-fill); border-radius: 2px; box-shadow: inset 0 0 0 1px var(--focus); }
+[data-theme='blueprint'] .btn { border-radius: 3px; }
+[data-theme='blueprint'] .theme-card:has(input:checked) { outline: 1px dashed var(--focus); outline-offset: 4px; }
+
+/* ================================================================== GLACIER */
+/* Frosted glass over slow aurora (ice blue, mint, lilac). Only the few large
+   panels blur what's behind them; rows never do, so long lists stay fast. */
+[data-theme='glacier'] {
+  color-scheme: light;
+  --canvas: #eef3f8; --surface: #ffffff; --raised: #e2eaf2; --line: #d3dfea; --line-soft: #e4ecf4;
+  --ink: #102030; --ink-2: #3c5164; --ink-3: #52677c; --key: #1b3044;
+  --focus: #1475c4; --focus-fill: #e1f0fb; --match: #cbe6fa; --select-fill: #e3f1f0;
+  --amber: #8a5200; --amber-fill: #fff2df; --amber-line: #efd3a2;
+  --danger: #c0303f; --danger-ink: #ffffff; --danger-line: #f1c0c6; --danger-fill: #fdecee;
+  --ok: #11775a; --ok-fill: #dff4ed; --ok-line: #ace0cd;
+  --shadow: 0 10px 30px rgb(20 60 100 / 0.14);
+  --aurora:
+    radial-gradient(ellipse 55% 40% at 15% 20%, rgb(140 205 255 / 0.55), transparent 70%),
+    radial-gradient(ellipse 50% 45% at 85% 35%, rgb(150 240 210 / 0.5), transparent 70%),
+    radial-gradient(ellipse 60% 45% at 50% 95%, rgb(200 175 255 / 0.45), transparent 70%),
+    radial-gradient(ellipse 40% 30% at 90% 90%, rgb(160 220 255 / 0.4), transparent 70%);
+  --glass: rgb(255 255 255 / 0.55);
+  --glass-edge: inset 0 1px 0 rgb(255 255 255 / 0.95), inset 0 0 0 1px rgb(255 255 255 / 0.55), 0 6px 20px rgb(20 60 100 / 0.08);
+}
+:root[data-theme='glacier'] body { background: var(--aurora), var(--canvas); background-attachment: fixed; }
+/* The aurora drifts behind the content: a layer under the popup's children */
+[data-theme='glacier'] .popup { isolation: isolate; background: var(--canvas); }
+[data-theme='glacier'] .popup::before { content: ''; position: absolute; inset: -25%; z-index: -1; pointer-events: none; background: var(--aurora); animation: glacier-drift 26s ease-in-out infinite alternate; }
+@keyframes glacier-drift { 0% { transform: translate(0, 0) rotate(0deg); } 50% { transform: translate(6%, -4%) rotate(8deg); } 100% { transform: translate(-5%, 5%) rotate(-6deg); } }
+[data-theme='glacier'] :is(.search, .playing, .strip, .seg, .group, .theme-card, .toast) { background: var(--glass); -webkit-backdrop-filter: blur(16px) saturate(1.5); backdrop-filter: blur(16px) saturate(1.5); border-color: rgb(255 255 255 / 0.7); box-shadow: var(--glass-edge); }
+[data-theme='glacier'] .strip:not(.strip--clean, .strip--idle) { background: rgb(255 244 226 / 0.6); }
+[data-theme='glacier'] :is(.search.is-focused, .search:focus-within) { border-color: rgb(255 255 255 / 0.9); box-shadow: var(--glass-edge), 0 0 0 4px color-mix(in srgb, var(--focus) 14%, transparent), 0 0 28px color-mix(in srgb, var(--focus) 30%, transparent); }
+[data-theme='glacier'] .bar, [data-theme='glacier'] .head, [data-theme='glacier'] .foot { border-color: rgb(255 255 255 / 0.6); }
+[data-theme='glacier'] .foot { background: rgb(255 255 255 / 0.35); }
+[data-theme='glacier'] .row { border-bottom-color: rgb(255 255 255 / 0.55); }
+[data-theme='glacier'] .row:hover { background: rgb(255 255 255 / 0.35); }
+/* Cursor: a lit pane */
+[data-theme='glacier'] :is(.row, .site-row, .win-row).is-cursor { background: rgb(255 255 255 / 0.78); box-shadow: inset 0 0 0 1px #fff, inset 3px 0 var(--focus), 0 0 18px color-mix(in srgb, var(--focus) 18%, transparent); }
+[data-theme='glacier'] .seg-thumb { background: rgb(255 255 255 / 0.9); box-shadow: 0 2px 8px rgb(20 60 100 / 0.12), inset 0 1px 0 #fff; }
+[data-theme='glacier'] .k--box { background: rgb(255 255 255 / 0.7); box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgb(20 60 100 / 0.15); }
+[data-theme='glacier'] .meta .cur { padding: 1px 7px; border-radius: 999px; background: rgb(255 255 255 / 0.8); box-shadow: 0 0 10px color-mix(in srgb, var(--focus) 25%, transparent); }
+[data-theme='glacier'] .strip .dot { box-shadow: 0 0 8px var(--amber); }
+[data-theme='glacier'] .brand-name, [data-theme='glacier'] .settings h1 { color: #0e3a5e; text-shadow: 0 0 18px rgb(140 205 255 / 0.9); }
+[data-theme='glacier'] .site-body-inner { background: rgb(255 255 255 / 0.3); }
+
+/* =================================================================== POSTER */
+/* Swiss brutalist: stark white, heavy black type, one signal red, 2px rules,
+   hard offset shadows that press in; the cursor row inverts to white on black. */
+[data-theme='poster'] {
+  color-scheme: light;
+  --canvas: #ffffff; --surface: #ffffff; --raised: #f0f0f0; --line: #0a0a0a; --line-soft: #e4e4e4;
+  --ink: #0a0a0a; --ink-2: #333333; --ink-3: #555555; --key: #0a0a0a;
+  --focus: #d40000; --focus-fill: #ffe9e9; --match: #ffe14d; --select-fill: #fff3b0;
+  --amber: #0a0a0a; --amber-fill: #ffe14d; --amber-line: #0a0a0a;
+  --danger: #d40000; --danger-ink: #ffffff; --danger-line: #0a0a0a; --danger-fill: #ffe9e9;
+  --ok: #0a7a2f; --ok-fill: #e3f5e8; --ok-line: #0a0a0a;
+  --shadow: 4px 4px 0 #0a0a0a;
+  --r: 0px;
+}
+[data-theme='poster'] .brand-name { font-size: 20px; font-weight: 900; letter-spacing: -0.02em; text-transform: uppercase; }
+[data-theme='poster'] .brand-tag { font-weight: 700; text-transform: uppercase; font-size: 10px; letter-spacing: 0.1em; color: var(--ink); }
+[data-theme='poster'] .settings h1 { font-weight: 900; letter-spacing: -0.02em; font-size: 40px; }
+[data-theme='poster'] :is(.head h2, .settings h2) { text-transform: uppercase; font-weight: 900; letter-spacing: 0.04em; color: var(--ink); }
+[data-theme='poster'] :is(.search, .playing, .strip, .group, .theme-card) { border: 2px solid var(--ink); border-radius: 0; box-shadow: 4px 4px 0 var(--ink); }
+[data-theme='poster'] :is(.search.is-focused, .search:focus-within) { border-color: var(--ink); box-shadow: 4px 4px 0 var(--focus); }
+[data-theme='poster'] .strip:not(.strip--clean, .strip--idle) strong { font-weight: 900; text-transform: uppercase; }
+[data-theme='poster'] .strip .dot { background: var(--focus); border-radius: 0; }
+[data-theme='poster'] .btn { border: 2px solid var(--ink); border-radius: 0; font-weight: 800; color: var(--ink); box-shadow: 2px 2px 0 var(--ink); transition: translate 80ms, box-shadow 80ms; }
+[data-theme='poster'] .btn:active:not(:disabled) { translate: 2px 2px; box-shadow: none; }
+[data-theme='poster'] .btn--solid-danger { background: var(--focus); color: #fff; }
+[data-theme='poster'] .bar, [data-theme='poster'] .head, [data-theme='poster'] .foot { border-width: 2px; }
+[data-theme='poster'] .seg { background: #fff; border: 2px solid var(--ink); border-radius: 0; }
+[data-theme='poster'] .seg-thumb { background: var(--ink); border-radius: 0; }
+[data-theme='poster'] .seg button[aria-pressed='true'], [data-theme='poster'] .seg button[aria-pressed='true'] .n { color: #fff; }
+[data-theme='poster'] .seg button { font-weight: 700; }
+/* Cursor: inverted */
+[data-theme='poster'] :is(.row, .site-row, .win-row).is-cursor { background: var(--ink); box-shadow: inset 6px 0 var(--focus); }
+[data-theme='poster'] :is(.row, .site-row, .win-row).is-cursor :is(.row-title, .name, .win-name, .row-x, .caret) { color: #fff; }
+[data-theme='poster'] :is(.row, .site-row, .win-row).is-cursor :is(.row-sub, .meta, .count) { color: #cfcfcf; }
+[data-theme='poster'] .row-title { font-weight: 700; }
+/* Big, blunt counts */
+[data-theme='poster'] .meta .dup, [data-theme='poster'] .win-flags .dup { padding: 1px 5px; background: var(--match); color: var(--ink); font-weight: 900; font-family: var(--sans); }
+[data-theme='poster'] .meta .cur { padding: 1px 5px; background: var(--focus); color: #fff; font-weight: 900; text-transform: uppercase; font-size: 10px; letter-spacing: 0.06em; }
+[data-theme='poster'] .k--box { background: #fff; border: 1.5px solid var(--ink); border-radius: 0; color: var(--ink); font-weight: 800; }
+[data-theme='poster'] .fav { border-radius: 0; }
+[data-theme='poster'] .theme-card:has(input:checked) { box-shadow: 6px 6px 0 var(--focus); }
+[data-theme='poster'] .switch { border: 2px solid var(--ink); }
