@@ -168,7 +168,7 @@ All true: ATO has no analytics, tracking or backend, and it sends tab data nowhe
 https://www.jeanlucas.me/en/projects/ato/privacy
 ```
 
-Portuguese: `https://www.jeanlucas.me/pt/projetos/ato/privacidade`. Canonical source: [`PRIVACY.md`](../PRIVACY.md) in this repo; the site's page (in the jeanlucas.me repo) must say the same, so update both together. Use the `www` host: the bare domain didn't answer when checked on 2026-11-21.
+Portuguese: `https://www.jeanlucas.me/pt/projetos/ato/privacidade`. Canonical source: [`PRIVACY.md`](../PRIVACY.md) in this repo; the site's page (in the jeanlucas.me repo) must say the same, so update both together. The bare `jeanlucas.me` redirects to `www`, but `www` is the site's canonical host.
 
 ### Homepage and support URLs
 
