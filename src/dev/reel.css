@@ -1,0 +1,17 @@
+/* The reel stage: one popup, centred, on a backdrop a shade darker than its canvas. */
+html, body { height: 100%; margin: 0; }
+body { display: grid; place-items: center; background: color-mix(in srgb, var(--canvas), black 22%); overflow: hidden; }
+/* Logo scene: centred in the lower half. */
+.reel-logo { position: fixed; left: 50%; top: 75%; transform: translate(-50%, -50%); }
+/* Themes scene: a tilted sheet of popups, panned by --pan (0 to 1). */
+.reel-view { position: fixed; inset: 0; perspective: 2400px; overflow: hidden; }
+.reel-sheet {
+  --pan: 0;
+  position: absolute; left: 50%; top: 50%;
+  display: grid; grid-template-columns: repeat(var(--cols), 440px); gap: 36px;
+  transform: translate(-50%, -50%) scale(var(--zoom, 0.62)) rotateX(38deg) rotateZ(-28deg) translateY(calc(var(--travel, 900px) * (0.5 - var(--pan))));
+  transform-style: preserve-3d;
+}
+.reel-tile { color: var(--ink); }
+.reel-tile .popup { border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 30px 60px rgb(0 0 0 / 0.45); }
+.reel-stage .popup { border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 24px 60px rgb(0 0 0 / 0.35); }
