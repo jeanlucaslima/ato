@@ -1,7 +1,7 @@
-/* Prototype light themes, gallery only: ?proto=holo|riso|blueprint|glacier|poster
+/* Prototype light themes, gallery only: ?proto=holo|blueprint|glacier
    on /dev/screens.html. Each is a full palette plus its own effects, scoped to
    its [data-theme] like Cyber. Nothing here ships until one is picked and moved
-   into src/ui. Motion is decorative and reduced motion stops it. */
+   into src/ui (Riso and Poster were: theme-riso.css, theme-poster.css). Motion is decorative and reduced motion stops it. */
 
 /* ===================================================================== HOLO */
 /* Pearl and foil: white with a pearly sheen; edges catch an iridescent foil that
@@ -48,49 +48,6 @@
 [data-theme='holo'] .seg { background: var(--raised); }
 [data-theme='holo'] .btn--solid-danger { background: linear-gradient(135deg, #d81b70, #a3247c); border-color: transparent; box-shadow: 0 4px 14px rgb(200 30 110 / 0.3); }
 [data-theme='holo'] .theme-card:has(input:checked) { box-shadow: 0 0 0 2px #fff, 0 0 0 4px rgb(160 130 255 / 0.5), 0 8px 24px rgb(120 90 200 / 0.2); }
-
-/* ===================================================================== RISO */
-/* Risograph: warm paper, two fluorescent inks (pink, blue) printed a touch out of
-   register, halftone dots, paper grain; a closed row stamps out in pink. */
-[data-theme='riso'] {
-  color-scheme: light;
-  --canvas: #f6f1e7; --surface: #fbf8f1; --raised: #ebe4d6; --line: #d9cfbb; --line-soft: #ebe5d8;
-  --ink: #1c2340; --ink-2: #45506e; --ink-3: #5a6380; --key: #1c2340;
-  --focus: #0a68a8; --focus-fill: #dcebf5; --match: #ffd0e4; --select-fill: #e3ecf4;
-  --amber: #8f5200; --amber-fill: #fbedd2; --amber-line: #e3c48c;
-  --danger: #c8155f; --danger-ink: #ffffff; --danger-line: #f0a9c8; --danger-fill: #fde3ee;
-  --ok: #00785a; --ok-fill: #dcf0e6; --ok-line: #a8d8c2;
-  --shadow: 4px 4px 0 rgb(255 72 176 / 0.4);
-  --pink: #ff48b0; --blue: #0078bf;
-  --grain: radial-gradient(rgb(60 40 20 / 0.05) 0.7px, transparent 0.8px) 0 0 / 3px 3px, radial-gradient(rgb(60 40 20 / 0.035) 0.6px, transparent 0.7px) 1.5px 1.5px / 3px 3px;
-  --halftone: radial-gradient(color-mix(in srgb, var(--blue) 30%, transparent) 1.1px, transparent 1.4px) 0 0 / 5px 5px;
-  --misreg: 1.6px 1px 0 color-mix(in srgb, var(--pink) 75%, transparent), -1px -0.6px 0 color-mix(in srgb, var(--blue) 55%, transparent);
-}
-:root[data-theme='riso'] body, [data-theme='riso'] .popup { background: var(--grain), var(--canvas); }
-[data-theme='riso'] :is(.brand-name, .settings h1, .settings h2, .head h2, .strip strong) { text-shadow: var(--misreg); }
-[data-theme='riso'] .brand-name { font-weight: 800; letter-spacing: 0.08em; }
-[data-theme='riso'] .brand-logo { color: var(--blue); }
-[data-theme='riso'] .brand-logo svg, [data-theme='riso'] .ico-front { filter: drop-shadow(1.5px 1px 0 color-mix(in srgb, var(--pink) 70%, transparent)); }
-/* Panels are printed blocks with a pink offset */
-[data-theme='riso'] :is(.search, .playing, .group, .theme-card) { border: 1.5px solid var(--ink); box-shadow: 4px 4px 0 color-mix(in srgb, var(--pink) 55%, transparent); }
-[data-theme='riso'] :is(.search.is-focused, .search:focus-within) { border-color: var(--blue); box-shadow: 4px 4px 0 color-mix(in srgb, var(--blue) 45%, transparent); }
-[data-theme='riso'] .strip:not(.strip--clean, .strip--idle) { border: 1.5px solid var(--ink); background: radial-gradient(color-mix(in srgb, #ffb300 45%, transparent) 1.2px, transparent 1.5px) 0 0 / 5px 5px, var(--amber-fill); box-shadow: 4px 4px 0 color-mix(in srgb, var(--pink) 55%, transparent); }
-[data-theme='riso'] .strip .dot { background: var(--pink); box-shadow: 1px 1px 0 var(--blue); }
-/* Cursor: halftone wash with a solid blue edge */
-[data-theme='riso'] :is(.row, .site-row, .win-row).is-cursor { background: var(--halftone), var(--focus-fill); box-shadow: inset 4px 0 var(--blue); }
-[data-theme='riso'] .row.is-selected { background: radial-gradient(color-mix(in srgb, var(--pink) 28%, transparent) 1.1px, transparent 1.4px) 0 0 / 5px 5px, #fbeaf2; }
-[data-theme='riso'] .meta .dup { color: var(--danger); font-weight: 700; text-shadow: 1px 0.6px 0 color-mix(in srgb, var(--blue) 35%, transparent); }
-[data-theme='riso'] .meta .cur { color: var(--blue); font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; font-size: 10px; }
-[data-theme='riso'] .k--box { background: color-mix(in srgb, var(--pink) 16%, transparent); color: var(--ink); }
-[data-theme='riso'] .seg { background: var(--raised); }
-[data-theme='riso'] .seg-thumb { background: var(--surface); box-shadow: 2px 2px 0 color-mix(in srgb, var(--blue) 55%, transparent), 0 0 0 1.5px var(--ink); }
-[data-theme='riso'] .btn { border-width: 1.5px; transition: translate 90ms, box-shadow 90ms; }
-[data-theme='riso'] .btn:hover:not(:disabled) { translate: -1px -1px; box-shadow: 2px 2px 0 color-mix(in srgb, var(--blue) 55%, transparent); }
-[data-theme='riso'] .btn--solid-danger { background: var(--danger); box-shadow: 3px 3px 0 var(--blue); }
-/* Closing: the row is stamped pink, then lifts off the page */
-[data-theme='riso'] .row.is-closing { animation: riso-stamp var(--t, 180ms) ease-out forwards; }
-@keyframes riso-stamp { 0% { background: color-mix(in srgb, var(--pink) 45%, transparent); } 40% { background: color-mix(in srgb, var(--pink) 30%, transparent); opacity: 1; } 100% { background: transparent; opacity: 0; translate: 12px 0; } }
-[data-theme='riso'] .theme-card:has(input:checked) { box-shadow: 4px 4px 0 var(--blue); }
 
 /* ================================================================ BLUEPRINT */
 /* Drafting table: white graph paper, technical-pen blue; the cursor is crop
@@ -187,45 +144,3 @@
 [data-theme='glacier'] .brand-name, [data-theme='glacier'] .settings h1 { color: #0e3a5e; text-shadow: 0 0 18px rgb(140 205 255 / 0.9); }
 [data-theme='glacier'] .site-body-inner { background: rgb(255 255 255 / 0.3); }
 
-/* =================================================================== POSTER */
-/* Swiss brutalist: stark white, heavy black type, one signal red, 2px rules,
-   hard offset shadows that press in; the cursor row inverts to white on black. */
-[data-theme='poster'] {
-  color-scheme: light;
-  --canvas: #ffffff; --surface: #ffffff; --raised: #f0f0f0; --line: #0a0a0a; --line-soft: #e4e4e4;
-  --ink: #0a0a0a; --ink-2: #333333; --ink-3: #555555; --key: #0a0a0a;
-  --focus: #d40000; --focus-fill: #ffe9e9; --match: #ffe14d; --select-fill: #fff3b0;
-  --amber: #0a0a0a; --amber-fill: #ffe14d; --amber-line: #0a0a0a;
-  --danger: #d40000; --danger-ink: #ffffff; --danger-line: #0a0a0a; --danger-fill: #ffe9e9;
-  --ok: #0a7a2f; --ok-fill: #e3f5e8; --ok-line: #0a0a0a;
-  --shadow: 4px 4px 0 #0a0a0a;
-  --r: 0px;
-}
-[data-theme='poster'] .brand-name { font-size: 20px; font-weight: 900; letter-spacing: -0.02em; text-transform: uppercase; }
-[data-theme='poster'] .brand-tag { font-weight: 700; text-transform: uppercase; font-size: 10px; letter-spacing: 0.1em; color: var(--ink); }
-[data-theme='poster'] .settings h1 { font-weight: 900; letter-spacing: -0.02em; font-size: 40px; }
-[data-theme='poster'] :is(.head h2, .settings h2) { text-transform: uppercase; font-weight: 900; letter-spacing: 0.04em; color: var(--ink); }
-[data-theme='poster'] :is(.search, .playing, .strip, .group, .theme-card) { border: 2px solid var(--ink); border-radius: 0; box-shadow: 4px 4px 0 var(--ink); }
-[data-theme='poster'] :is(.search.is-focused, .search:focus-within) { border-color: var(--ink); box-shadow: 4px 4px 0 var(--focus); }
-[data-theme='poster'] .strip:not(.strip--clean, .strip--idle) strong { font-weight: 900; text-transform: uppercase; }
-[data-theme='poster'] .strip .dot { background: var(--focus); border-radius: 0; }
-[data-theme='poster'] .btn { border: 2px solid var(--ink); border-radius: 0; font-weight: 800; color: var(--ink); box-shadow: 2px 2px 0 var(--ink); transition: translate 80ms, box-shadow 80ms; }
-[data-theme='poster'] .btn:active:not(:disabled) { translate: 2px 2px; box-shadow: none; }
-[data-theme='poster'] .btn--solid-danger { background: var(--focus); color: #fff; }
-[data-theme='poster'] .bar, [data-theme='poster'] .head, [data-theme='poster'] .foot { border-width: 2px; }
-[data-theme='poster'] .seg { background: #fff; border: 2px solid var(--ink); border-radius: 0; }
-[data-theme='poster'] .seg-thumb { background: var(--ink); border-radius: 0; }
-[data-theme='poster'] .seg button[aria-pressed='true'], [data-theme='poster'] .seg button[aria-pressed='true'] .n { color: #fff; }
-[data-theme='poster'] .seg button { font-weight: 700; }
-/* Cursor: inverted */
-[data-theme='poster'] :is(.row, .site-row, .win-row).is-cursor { background: var(--ink); box-shadow: inset 6px 0 var(--focus); }
-[data-theme='poster'] :is(.row, .site-row, .win-row).is-cursor :is(.row-title, .name, .win-name, .row-x, .caret) { color: #fff; }
-[data-theme='poster'] :is(.row, .site-row, .win-row).is-cursor :is(.row-sub, .meta, .count) { color: #cfcfcf; }
-[data-theme='poster'] .row-title { font-weight: 700; }
-/* Big, blunt counts */
-[data-theme='poster'] .meta .dup, [data-theme='poster'] .win-flags .dup { padding: 1px 5px; background: var(--match); color: var(--ink); font-weight: 900; font-family: var(--sans); }
-[data-theme='poster'] .meta .cur { padding: 1px 5px; background: var(--focus); color: #fff; font-weight: 900; text-transform: uppercase; font-size: 10px; letter-spacing: 0.06em; }
-[data-theme='poster'] .k--box { background: #fff; border: 1.5px solid var(--ink); border-radius: 0; color: var(--ink); font-weight: 800; }
-[data-theme='poster'] .fav { border-radius: 0; }
-[data-theme='poster'] .theme-card:has(input:checked) { box-shadow: 6px 6px 0 var(--focus); }
-[data-theme='poster'] .switch { border: 2px solid var(--ink); }

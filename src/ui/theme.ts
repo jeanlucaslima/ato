@@ -14,6 +14,8 @@ export const THEME_INFO: Record<Settings['theme'], ThemeInfo> = {
   onyx: { name: 'Onyx', tagline: 'True black, for OLED and late nights' },
   cyber: { name: 'Cyber', tagline: 'Neon grid, everything glows' },
   neon: { name: 'Neon', tagline: 'Arcade after midnight' },
+  poster: { name: 'Poster', tagline: 'Black, white and signal red' },
+  riso: { name: 'Riso', tagline: 'Two inks, a little off register' },
   nebula: { name: 'Nebula', tagline: 'Violet deep space' },
   ember: { name: 'Ember', tagline: 'Campfire, low and warm' },
   lagoon: { name: 'Lagoon', tagline: 'Shallow water at noon' },

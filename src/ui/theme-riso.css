@@ -1,0 +1,53 @@
+/* Riso: warm paper, two fluorescent inks (pink, blue) printed a touch out of
+   register, halftone dots and paper grain; a closed row stamps out in pink.
+   Like Cyber, it adds effects beyond the palette, all scoped to the theme;
+   reduced motion stops the motion. */
+/* Risograph: warm paper, two fluorescent inks (pink, blue) printed a touch out of
+   register, halftone dots, paper grain; a closed row stamps out in pink. */
+[data-theme='riso'] {
+  color-scheme: light;
+  --canvas: #f6f1e7; --surface: #fbf8f1; --raised: #ebe4d6; --line: #d9cfbb; --line-soft: #ebe5d8;
+  --ink: #1c2340; --ink-2: #45506e; --ink-3: #5a6380; --key: #1c2340;
+  --focus: #0a68a8; --focus-fill: #dcebf5; --match: #ffd0e4; --select-fill: #e3ecf4;
+  --amber: #8f5200; --amber-fill: #fbedd2; --amber-line: #e3c48c;
+  --danger: #c8155f; --danger-ink: #ffffff; --danger-line: #f0a9c8; --danger-fill: #fde3ee;
+  --ok: #00785a; --ok-fill: #dcf0e6; --ok-line: #a8d8c2;
+  --shadow: 4px 4px 0 rgb(255 72 176 / 0.4);
+  --pink: #ff48b0; --blue: #0078bf;
+  --grain: radial-gradient(rgb(60 40 20 / 0.05) 0.7px, transparent 0.8px) 0 0 / 3px 3px, radial-gradient(rgb(60 40 20 / 0.035) 0.6px, transparent 0.7px) 1.5px 1.5px / 3px 3px;
+  --halftone: radial-gradient(color-mix(in srgb, var(--blue) 30%, transparent) 1.1px, transparent 1.4px) 0 0 / 5px 5px;
+  --misreg: 1.6px 1px 0 color-mix(in srgb, var(--pink) 75%, transparent), -1px -0.6px 0 color-mix(in srgb, var(--blue) 55%, transparent);
+}
+:root[data-theme='riso'] body, [data-theme='riso'] .popup { background: var(--grain), var(--canvas); }
+[data-theme='riso'] :is(.brand-name, .settings h1, .settings h2, .head h2) { text-shadow: var(--misreg); }
+/* Small coloured text gets only a faint pink offset, so it stays crisp */
+[data-theme='riso'] .strip strong { text-shadow: 1px 0.6px 0 color-mix(in srgb, var(--pink) 40%, transparent); }
+[data-theme='riso'] .brand-name { font-weight: 800; letter-spacing: 0.08em; }
+[data-theme='riso'] .brand-logo { color: var(--blue); }
+[data-theme='riso'] .brand-logo svg, [data-theme='riso'] .ico-front { filter: drop-shadow(1.5px 1px 0 color-mix(in srgb, var(--pink) 70%, transparent)); }
+/* Panels are printed blocks with a pink offset */
+[data-theme='riso'] :is(.search, .playing, .group, .theme-card) { border: 1.5px solid var(--ink); box-shadow: 4px 4px 0 color-mix(in srgb, var(--pink) 55%, transparent); }
+[data-theme='riso'] :is(.search.is-focused, .search:focus-within) { border-color: var(--blue); box-shadow: 4px 4px 0 color-mix(in srgb, var(--blue) 45%, transparent); }
+[data-theme='riso'] .strip:not(.strip--clean, .strip--idle) { border: 1.5px solid var(--ink); background: radial-gradient(color-mix(in srgb, #ffb300 28%, transparent) 1.1px, transparent 1.4px) 0 0 / 5px 5px, var(--amber-fill); box-shadow: 4px 4px 0 color-mix(in srgb, var(--pink) 55%, transparent); }
+[data-theme='riso'] .strip .dot { background: var(--pink); box-shadow: 1px 1px 0 var(--blue); }
+/* Cursor: halftone wash with a solid blue edge */
+[data-theme='riso'] :is(.row, .site-row, .win-row).is-cursor { background: var(--halftone), var(--focus-fill); box-shadow: inset 4px 0 var(--blue); }
+[data-theme='riso'] .row.is-selected { background: radial-gradient(color-mix(in srgb, var(--pink) 28%, transparent) 1.1px, transparent 1.4px) 0 0 / 5px 5px, #fbeaf2; }
+[data-theme='riso'] .meta .dup { color: var(--danger); font-weight: 700; text-shadow: 1px 0.6px 0 color-mix(in srgb, var(--blue) 35%, transparent); }
+[data-theme='riso'] .meta .cur { color: var(--blue); font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; font-size: 10px; }
+[data-theme='riso'] .k--box { background: color-mix(in srgb, var(--pink) 16%, transparent); color: var(--ink); }
+[data-theme='riso'] .seg { background: var(--raised); }
+[data-theme='riso'] .seg-thumb { background: var(--surface); box-shadow: 2px 2px 0 color-mix(in srgb, var(--blue) 55%, transparent), 0 0 0 1.5px var(--ink); }
+[data-theme='riso'] .btn { border-width: 1.5px; transition: translate 90ms, box-shadow 90ms; }
+[data-theme='riso'] .btn:hover:not(:disabled) { translate: -1px -1px; box-shadow: 2px 2px 0 color-mix(in srgb, var(--blue) 55%, transparent); }
+[data-theme='riso'] .btn--solid-danger { background: var(--danger); box-shadow: 3px 3px 0 var(--blue); }
+/* Closing: the row is stamped pink, then lifts off the page */
+[data-theme='riso'] .row.is-closing { animation: riso-stamp var(--t, 180ms) ease-out forwards; }
+@keyframes riso-stamp { 0% { background: color-mix(in srgb, var(--pink) 45%, transparent); } 40% { background: color-mix(in srgb, var(--pink) 30%, transparent); opacity: 1; } 100% { background: transparent; opacity: 0; translate: 12px 0; } }
+[data-theme='riso'] .theme-card:has(input:checked) { box-shadow: 4px 4px 0 var(--blue); }
+
+[data-theme='riso'] .toast { border: 1.5px solid var(--ink); box-shadow: 4px 4px 0 color-mix(in srgb, var(--blue) 45%, transparent); }
+/* Picker preview card */
+.mini[data-theme='riso'] { background: var(--grain), var(--canvas); }
+.mini[data-theme='riso'] .mini-search { border: 1px solid var(--ink); box-shadow: 2px 2px 0 color-mix(in srgb, var(--pink) 55%, transparent); }
+.mini[data-theme='riso'] .mini-row.is-cursor { background: var(--halftone), var(--focus-fill); box-shadow: inset 2px 0 var(--blue); }
