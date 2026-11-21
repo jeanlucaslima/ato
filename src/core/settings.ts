@@ -7,7 +7,7 @@ import type { DuplicatePolicy } from './duplicates';
 import type { MatchMode } from './tabs';
 
 /** Named colour themes. `system` (a setting, not a theme) follows the OS: Paper or Graphite. */
-export const THEMES = ['graphite', 'paper', 'onyx', 'cyber', 'nebula', 'ember', 'neon', 'lagoon', 'sakura', 'dune'] as const;
+export const THEMES = ['graphite', 'paper', 'onyx', 'cyber', 'neon', 'nebula', 'ember', 'lagoon', 'sakura', 'dune'] as const;
 export type ThemeId = (typeof THEMES)[number];
 
 export const BADGE_COLORS = ['#dc2626', '#ea580c', '#ca8a04', '#16a34a', '#0891b2', '#2563eb', '#7c3aed', '#db2777', '#475569'] as const;
