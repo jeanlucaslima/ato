@@ -5,13 +5,11 @@
  * file again, so listeners are registered at the top level, synchronously.
  */
 import { badgeFor } from '../core/badge';
-import { DEFAULT_SETTINGS, policyOf } from '../core/settings';
-import { duplicatesOf, othersFromSite } from '../core/tab-menu';
-import { domainOf } from '../core/tabs';
+import { DEFAULT_SETTINGS } from '../core/settings';
 import type { Tab } from '../core/types';
 import { closeTabs, readCloseRequest, undoClose } from '../ui/chrome-close';
+import { closeFromMenu, MENU } from '../ui/chrome-menu';
 import { RESTORE_MESSAGE } from '../ui/chrome-restore';
-import { plural } from '../ui/format';
 import { fromChromeTab } from '../ui/chrome-tab';
 import { ChromeSettings } from '../ui/chrome-settings';
 
@@ -83,11 +81,6 @@ chrome.runtime.onMessage.addListener((message: { type?: string; tabs?: Tab[]; cl
 
 // --- Tab right-click menu -------------------------------------------------------
 
-const MENU = {
-  duplicates: { id: 'ato-close-duplicates', title: 'Close duplicates of this tab', pick: duplicatesOf, said: (n: number, _site: string) => `Closed ${plural(n, 'duplicate')} (tab menu)` },
-  site: { id: 'ato-close-site', title: 'Close other tabs from this site', pick: othersFromSite, said: (n: number, site: string) => `Closed ${plural(n, 'tab')} from ${site} (tab menu)` },
-} as const;
-
 /**
  * Menu items persist once created, so they're (re)made on install, update and
  * load; removeAll first, so a reload doesn't add them twice. `"tab"` (the tab
@@ -100,22 +93,7 @@ function createMenus(): void {
   });
 }
 
-/** The tab that was right-clicked stays; the pick decides the rest, with every protection. */
-async function onMenuClick(menuItemId: string | number, clickedId: number | undefined): Promise<void> {
-  const item = Object.values(MENU).find((m) => m.id === menuItemId);
-  if (!item || clickedId === undefined) return;
-  const [tabs, current] = await readState();
-  const clicked = tabs.find((t) => t.id === clickedId);
-  if (!clicked) return;
-  const policy = policyOf(current);
-  const closing = item.pick(clicked, tabs, policy).map((t) => t.id);
-  // The popup's close path: protection checked again right before removing, and
-  // the close remembered so the popup can offer to undo it (see architecture.md).
-  const site = domainOf(clicked.url);
-  if (closing.length > 0) await closeTabs(closing, policy, { source: 'menu', message: (n) => item.said(n, site) });
-}
-
-chrome.contextMenus.onClicked.addListener((info, tab) => void onMenuClick(info.menuItemId, tab?.id));
+chrome.contextMenus.onClicked.addListener((info, tab) => void closeFromMenu(info.menuItemId, tab?.id, () => settings.load()));
 chrome.runtime.onInstalled.addListener(createMenus);
 
 // Install, update, browser start, enable, reload (Chrome 157+). A wake for any
