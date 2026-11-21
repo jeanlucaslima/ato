@@ -76,17 +76,27 @@ npm test        # Vitest, including fast-check properties for the safety rules
 npm run perf    # timings at 500–5,000 tabs
 ```
 
-Vanilla TypeScript, no UI framework. The decisions about what to close live in a pure core (`src/core/`) and are checked as properties: never close the current tab, a playing tab or a split view; every duplicate set keeps a tab; only real duplicates close; protected tabs stay. See [docs/architecture.md](docs/architecture.md).
+## How it works
+
+Vanilla TypeScript, built with Vite, no UI framework.
+
+- **Pure core** (`src/core/`): plain functions over plain data, no DOM or Chrome. It decides what may be closed (duplicate planning, URL matching, protection) and also holds search, settings and the badge count.
+- **State machine** (`src/ui/update.ts`): `update(state, action)` returns the next state and a list of effects (close, restore, move…). It never touches the browser itself.
+- **Rendering**: `deriveModel` turns the browser snapshot and UI state into a view model, `renderPopup` draws it as a pure function, and `morph` patches the live DOM in place, keeping focus and scroll.
+- **Chrome integration**: only `src/ui/chrome-*.ts` and the service worker call `chrome.*`. Every close and undo runs in the worker through one path, which rechecks protection on Chrome's current tabs right before removing anything. The popup talks to Chrome through a `BrowserPort` interface, so the gallery and tests run it over an in-memory `FakeBrowser`.
+- **Testing**: Vitest, with fast-check properties for the safety rules (never close the current tab, a playing tab or a split view; every duplicate set keeps a tab; only real duplicates close; protected tabs stay; undo brings each tab back at most once). Each property has a mutation check: remove the guard and the property fails.
 
 ```
 src/
 ├── manifest.json
 ├── background/worker.ts   # badge, tab right-click menu, closing and undo
 ├── core/                  # pure rules: duplicates, matching, search, settings, badge, menu
-├── ui/                    # popup state machine, render, Chrome ports, settings page
+├── ui/                    # popup state machine, render, Chrome adapters, settings page
 ├── popup/ options/        # extension entry points
 └── dev/                   # gallery fixtures, fake browser, perf harness
 ```
+
+Details, including how closing and undo work: [docs/architecture.md](docs/architecture.md). Conventions for contributors and coding agents: [AGENTS.md](AGENTS.md).
 
 ## Privacy
 
