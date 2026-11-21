@@ -9,6 +9,7 @@ export interface ThemeInfo {
 export const THEME_INFO: Record<Settings['theme'], ThemeInfo> = {
   system: { name: 'System', tagline: 'Paper by day, Graphite by night' },
   graphite: { name: 'Graphite', tagline: 'Calm, cool dark' },
+  daylight: { name: 'Daylight', tagline: 'Neutral light, every signal clear' },
   paper: { name: 'Paper', tagline: 'Quiet, warm light' },
   onyx: { name: 'Onyx', tagline: 'True black, for OLED and late nights' },
   cyber: { name: 'Cyber', tagline: 'Neon grid, everything glows' },

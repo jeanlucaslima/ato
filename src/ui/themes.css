@@ -1,4 +1,5 @@
 @import './theme-cyber.css';
+@import './theme-daylight.css';
 
 /* Themes with personality. Each block is a complete palette over the tokens
    in tokens.css (Graphite and Paper live there). Order of keys matches tokens.css. */
