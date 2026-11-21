@@ -8,7 +8,7 @@ import { DEFAULT_POLICY, stillClosable, type DuplicatePolicy } from '../core/dup
 import { CHOICES } from '../core/settings';
 import type { Tab } from '../core/types';
 import type { CloseResult } from './browser';
-import { restoreTabs, type Restored } from './chrome-restore';
+import { restoreTabs, sessionsOf, type Restored } from './chrome-restore';
 import { fromChromeTab } from './chrome-tab';
 
 /** Where the last close is kept: session storage outlives the worker, not the browser. */
@@ -49,10 +49,10 @@ export async function closeTabs(tabIds: readonly number[], policy: DuplicatePoli
   } catch (error) {
     const open = new Set((await readTabs().catch(() => closable)).map((t) => t.id));
     const gone = closable.filter((t) => !open.has(t.id));
-    if (gone.length > 0) await remember({ tabs: gone, closedAt, message: by.message(gone.length), source: by.source });
+    if (gone.length > 0) await remember({ tabs: gone, closedAt, message: by.message(gone.length), source: by.source, sessions: await sessionsOf(gone, closedAt) });
     throw error;
   }
-  await remember({ tabs: closable, closedAt, message: by.message(closable.length), source: by.source });
+  await remember({ tabs: closable, closedAt, message: by.message(closable.length), source: by.source, sessions: await sessionsOf(closable, closedAt) });
   return { closed: closable, kept, closedAt };
 }
 
@@ -76,13 +76,13 @@ export async function pendingUndo(now = Date.now()): Promise<CloseRecord | null>
 
 /**
  * Undo: restore `tabs` closed at `closedAt` (each from its own session entry,
- * see `restoreTabs`), then forget what came back: the record is cleared, or
- * keeps only the tabs that couldn't.
+ * the one the record pinned at close time, see `restoreTabs`), then forget what
+ * came back: the record is cleared, or keeps only the tabs that couldn't.
  */
 export async function undoClose(tabs: readonly Tab[], closedAt?: number): Promise<Restored> {
   const before = readCloseRecord(await lastClose().catch(() => undefined));
   const record = closedAt !== undefined && before?.closedAt === closedAt ? before : null;
-  const restored = await restoreTabs(tabs, closedAt);
+  const restored = await restoreTabs(tabs, closedAt, record?.sessions);
   const after = readCloseRecord(await lastClose().catch(() => undefined));
   if (record && after?.closedAt === record.closedAt) {
     const failed = new Set(restored.failed.map((t) => t.id));

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import fc from 'fast-check';
 import type { Tab } from '../core/types';
-import { matchEntries, restoreTabs, type ClosedEntry } from './chrome-restore';
+import { matchEntries, restoreTabs, sessionsOf, type ClosedEntry } from './chrome-restore';
 
 const NOW = 1_795_000_000_000;
 
@@ -129,6 +129,55 @@ describe('restoreTabs', () => {
     const result = await restoreTabs(closed, NOW);
     expect(result).toEqual({ count: 30, fresh: 5, failed: [] });
     expect(calls.grouped).toBe(5);
+  });
+});
+
+/** Unrelated tabs closed (outside ATO) after `closed`: their entries go on top, newer. */
+function closedSince(strip: readonly Tab[], closed: readonly Tab[], later: readonly Tab[]): ClosedEntry[] {
+  const all = chromeEntries(strip, [...closed, ...later]);
+  return all.map((e) => (later.some((t) => e.sessionId === `s${t.id}`) ? { ...e, lastModified: e.lastModified + 20 } : e));
+}
+
+describe('undo after tabs closed outside ATO since', () => {
+  // The two copies of a.test have different histories (their own entries s1, s2).
+  const strip = [tab(1, 'https://a.test/', 1, 2), tab(2, 'https://a.test/', 2, 2), tab(3, 'https://a.test/', 3, 2), tab(4, 'https://a.test/', 1, 3)];
+
+  it('content alone is ambiguous: matching without pinned sessions picks a newer same-URL entry (reproduced)', () => {
+    // ATO closed 1 then 2; then the user closed 3 (same URL, same index) in another window.
+    const entries = closedSince(strip, [strip[0]!, strip[1]!], [strip[2]!]);
+    expect(Object.fromEntries(matchEntries([strip[0]!, strip[1]!], entries, NOW))).not.toEqual({ 1: 's1', 2: 's2' });
+  });
+
+  it('sessions pinned right after the close bring each copy back from its own entry, never the unrelated one', async () => {
+    const closed = [strip[0]!, strip[1]!];
+    fakeChrome(chromeEntries(strip, closed));
+    const pinned = await sessionsOf(closed, NOW);
+    expect(pinned).toEqual({ 1: 's1', 2: 's2' });
+    const calls = fakeChrome(closedSince(strip, closed, [strip[2]!, strip[3]!]));
+    expect(await restoreTabs(closed, NOW, pinned)).toEqual({ count: 2, fresh: 0, failed: [] });
+    expect(calls.restored).toEqual(['s2', 's1']);
+  });
+
+  it('whatever closes since, in any window and position, each tab comes back from its own entry or by URL, never from another', async () => {
+    await fc.assert(
+      fc.asyncProperty(
+        scenario.chain(([strip, closed]) => fc.tuple(fc.constant(strip), fc.constant(closed), fc.shuffledSubarray(strip.filter((t) => !closed.includes(t))))),
+        async ([strip, closed, later]) => {
+          fakeChrome(chromeEntries(strip, closed));
+          const pinned = await sessionsOf(closed, NOW);
+          const entries = closedSince(strip, closed, later);
+          const calls = fakeChrome(entries);
+          const { count, fresh, failed } = await restoreTabs(closed, NOW, pinned);
+          const still = closed.filter((t) => entries.some((e) => e.sessionId === `s${t.id}`));
+          return (
+            count === closed.length &&
+            failed.length === 0 &&
+            [...calls.restored].sort().join() === still.map((t) => `s${t.id}`).sort().join() &&
+            fresh === closed.length - still.length
+          );
+        },
+      ),
+    );
   });
 });
 

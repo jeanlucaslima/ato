@@ -13,6 +13,8 @@ export interface CloseRecord {
   message: string;
   /** Who closed them: the popup offers its own undo; menu closes get theirs when the popup opens. */
   source: 'popup' | 'menu';
+  /** Each tab's own session entry (tab id → session id), read right after the close. */
+  sessions?: Record<string, string>;
 }
 
 /** How long after a right-click close the popup still offers to undo it. */
@@ -23,13 +25,17 @@ const isTab = (t: unknown): t is Tab => {
   return typeof x === 'object' && x !== null && Number.isInteger(x.id) && Number.isInteger(x.windowId) && Number.isInteger(x.index) && typeof x.url === 'string';
 };
 
-/** A stored record, checked field by field; `null` if anything is off. */
+const isSessions = (s: unknown): s is Record<string, string> =>
+  typeof s === 'object' && s !== null && !Array.isArray(s) && Object.values(s).every((v) => typeof v === 'string');
+
+/** A stored record, checked field by field; `null` if anything is off (a malformed `sessions` is dropped). */
 export function readCloseRecord(raw: unknown): CloseRecord | null {
   const r = raw as Partial<CloseRecord> | null;
   if (typeof r !== 'object' || r === null) return null;
   if (!Array.isArray(r.tabs) || !r.tabs.every(isTab) || typeof r.closedAt !== 'number' || typeof r.message !== 'string') return null;
   if (r.source !== 'popup' && r.source !== 'menu') return null;
-  return { tabs: r.tabs, closedAt: r.closedAt, message: r.message, source: r.source };
+  const sessions = isSessions(r.sessions) ? { sessions: r.sessions } : {};
+  return { tabs: r.tabs, closedAt: r.closedAt, message: r.message, source: r.source, ...sessions };
 }
 
 /**

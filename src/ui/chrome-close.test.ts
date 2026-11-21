@@ -165,6 +165,45 @@ describe('undo for right-click closes', () => {
   });
 });
 
+describe('undo after tabs closed outside ATO since', () => {
+  const a = 'https://a.test/';
+  it('two copies of one URL in two windows, then a third copy closed elsewhere: each copy comes back from its own entry', async () => {
+    // Window 1: x, a, b; window 2: a, y; window 3: z, a. ATO closes both a's (different
+    // histories, entries s2 and s4), then the user closes window 3's a (index 1, like s2).
+    const t = (id: number, url: string, windowId: number, index: number): Tab => ({ id, windowId, index, url, title: url, active: index === 0, pinned: false, audible: false, discarded: false, groupId: -1, lastAccessed: id });
+    const chromeState = fakeChrome([t(1, 'https://x.test/', 1, 0), t(2, a, 1, 1), t(3, 'https://b.test/', 1, 2), t(4, a, 2, 0), t(5, 'https://y.test/', 2, 1), t(6, 'https://z.test/', 3, 0), t(7, a, 3, 1)]);
+    const { closed, closedAt } = await closeTabs([2, 4], null, menu);
+    await chrome.tabs.remove([7]);
+    await undoClose(closed, closedAt);
+    expect(chromeState.restored.sort()).toEqual(['s2', 's4']);
+    expect(chromeState.open().some((o) => o.id === 7)).toBe(false);
+  });
+
+  it('whatever closes outside ATO before undo, undo restores only ATO\'s tabs, each from its own entry or by URL', async () => {
+    await fc.assert(
+      fc.asyncProperty(
+        browserArb.chain((tabs) => fc.tuple(fc.constant(tabs), fc.shuffledSubarray(tabs, { minLength: 1 }), fc.integer({ min: 0, max: 30 }))),
+        async ([tabs, picked, extra]) => {
+          const chromeState = fakeChrome(tabs);
+          const { closed, closedAt } = await closeTabs(picked.map((t) => t.id), null, menu);
+          const others = chromeState.open().filter((o) => !closed.some((c) => c.id === o.id)).slice(0, extra);
+          for (const o of others) await chrome.tabs.remove([o.id]);
+          const offered = await pendingUndo();
+          const own = new Set((await chrome.sessions.getRecentlyClosed({})).map((s) => s.tab!.sessionId!));
+          const restored = await undoClose(offered!.tabs, offered!.closedAt ?? closedAt);
+          const whole = closed.filter((c) => own.has(`s${c.id}`)).map((c) => `s${c.id}`);
+          return (
+            [...chromeState.restored].sort().join() === whole.sort().join() &&
+            chromeState.created.length === closed.length - whole.length &&
+            restored.count === closed.length &&
+            restored.failed.length === 0
+          );
+        },
+      ),
+    );
+  });
+});
+
 describe('undo record after a partial restore', () => {
   const urlOf = (i: number) => TABS[i]!.url;
   it('keeps exactly the tabs that couldn’t come back, offers them again, and clears once they do', async () => {

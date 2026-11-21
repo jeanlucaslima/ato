@@ -79,13 +79,32 @@ async function closedEntries(): Promise<ClosedEntry[]> {
 }
 
 /**
- * Restore `tabs` (in the order they were closed) closed at `closedAt` (epoch ms,
- * just before the close). Without `closedAt` any entry may match.
+ * Right after `tabs` were removed (at `closedAt`), which session entry is each
+ * one's (tab id → session id): their entries are the newest now, so matching is
+ * exact. Kept in the undo record so a later undo doesn't have to guess among tabs
+ * closed since. Empty if Chrome can't say.
  */
-export async function restoreTabs(tabs: readonly Tab[], closedAt?: number): Promise<Restored> {
+export async function sessionsOf(tabs: readonly Tab[], closedAt: number): Promise<Record<string, string>> {
+  try {
+    return Object.fromEntries(matchEntries(tabs, await closedEntries(), closedAt));
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Restore `tabs` (in the order they were closed) closed at `closedAt` (epoch ms,
+ * just before the close). Without `closedAt` any entry may match. `sessions`
+ * (from `sessionsOf` at close time) names each tab's own entry: then only those
+ * are used, and a tab whose entry is gone is reopened by URL.
+ */
+export async function restoreTabs(tabs: readonly Tab[], closedAt?: number, sessions?: Readonly<Record<string, string>>): Promise<Restored> {
   // If Chrome can't list its sessions, every tab is reopened by URL.
   const entries = await closedEntries().catch((): ClosedEntry[] => []);
-  const own = matchEntries(tabs, entries, closedAt);
+  const present = new Set(entries.map((e) => e.sessionId));
+  const own = sessions
+    ? new Map(tabs.flatMap((t): [number, string][] => (sessions[t.id] && present.has(sessions[t.id]!) ? [[t.id, sessions[t.id]!]] : [])))
+    : matchEntries(tabs, entries, closedAt);
   let count = 0;
   let fresh = 0;
   const byUrl = tabs.filter((t) => !own.has(t.id));
