@@ -69,6 +69,11 @@ describe('update', () => {
     const [refolded] = run(opened, [{ type: 'cursorKey', key: 'left' }]);
     expect(review(refolded).expanded).toBe(false);
     expect(refolded.ui.cursor).toBe(`set:${hn}`);
+    // ← again, on the folded set, goes back out of review onto the bar → came in from.
+    const [back] = run(refolded, [{ type: 'cursorKey', key: 'left' }]);
+    expect(back.ui.reviewOpen).toBe(false);
+    expect(back.ui.cursor).toBe('dupes');
+    expect(run(back, [{ type: 'cursorKey', key: 'right' }])[0].ui.reviewOpen).toBe(true);
 
     const [, unloadFx] = run(refolded, [{ type: 'cursorKey', key: 'unload' }]);
     const unloaded = unloadFx.flatMap((e) => (e.kind === 'discard' ? e.tabIds : []));

@@ -145,7 +145,7 @@ export const KEY_HELP: HelpSection[] = [
       { keys: ['↑', '↓'], label: 'Previous / next (also j k)' },
       { keys: ['PgUp', 'PgDn'], label: `Jump ${PAGE} rows` },
       { keys: ['Home', 'End'], label: 'First / last (also ⌘↑ ⌘↓)' },
-      { keys: ['←', '→'], label: 'Fold / unfold a site, window or duplicate set' },
+      { keys: ['←', '→'], label: 'Fold / unfold a site, window or duplicate set · ← on a folded set leaves review' },
     ],
   },
   {
