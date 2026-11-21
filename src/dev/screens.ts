@@ -82,7 +82,7 @@ document.body.replaceChildren(
   ),
 );
 
-void mountSettings(settingsFrame, settings, { version: '3.0.0-dev', onChange: onSettings }).then((page) => {
+void mountSettings(settingsFrame, settings, { version: '3.0.1-dev', onChange: onSettings }).then((page) => {
   page.setPinned(pinned);
   pinButton.addEventListener('click', () => {
     pinned = !pinned;
