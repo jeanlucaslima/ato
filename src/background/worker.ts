@@ -7,9 +7,11 @@
 import { badgeFor } from '../core/badge';
 import { DEFAULT_SETTINGS, policyOf } from '../core/settings';
 import { duplicatesOf, othersFromSite } from '../core/tab-menu';
+import { domainOf } from '../core/tabs';
 import type { Tab } from '../core/types';
-import { closeTabs, readCloseRequest } from '../ui/chrome-close';
-import { RESTORE_MESSAGE, restoreTabs } from '../ui/chrome-restore';
+import { closeTabs, readCloseRequest, undoClose } from '../ui/chrome-close';
+import { RESTORE_MESSAGE } from '../ui/chrome-restore';
+import { plural } from '../ui/format';
 import { fromChromeTab } from '../ui/chrome-tab';
 import { ChromeSettings } from '../ui/chrome-settings';
 
@@ -75,15 +77,15 @@ chrome.runtime.onMessage.addListener((message: unknown, sender, reply) => {
 chrome.runtime.onMessage.addListener((message: { type?: string; tabs?: Tab[]; closedAt?: number }, sender, reply) => {
   if (sender.id !== chrome.runtime.id || message?.type !== RESTORE_MESSAGE || !Array.isArray(message.tabs)) return false;
   const closedAt = typeof message.closedAt === 'number' ? message.closedAt : undefined;
-  void restoreTabs(message.tabs, closedAt).then(reply, () => reply({ count: 0, fresh: 0 }));
+  void undoClose(message.tabs, closedAt).then(reply, () => reply({ count: 0, fresh: 0 }));
   return true; // reply comes later
 });
 
 // --- Tab right-click menu -------------------------------------------------------
 
 const MENU = {
-  duplicates: { id: 'ato-close-duplicates', title: 'Close duplicates of this tab', pick: duplicatesOf },
-  site: { id: 'ato-close-site', title: 'Close other tabs from this site', pick: othersFromSite },
+  duplicates: { id: 'ato-close-duplicates', title: 'Close duplicates of this tab', pick: duplicatesOf, said: (n: number, _site: string) => `Closed ${plural(n, 'duplicate')} (tab menu)` },
+  site: { id: 'ato-close-site', title: 'Close other tabs from this site', pick: othersFromSite, said: (n: number, site: string) => `Closed ${plural(n, 'tab')} from ${site} (tab menu)` },
 } as const;
 
 /**
@@ -107,8 +109,10 @@ async function onMenuClick(menuItemId: string | number, clickedId: number | unde
   if (!clicked) return;
   const policy = policyOf(current);
   const closing = item.pick(clicked, tabs, policy).map((t) => t.id);
-  // The popup's close path: protection is checked again right before removing.
-  if (closing.length > 0) await closeTabs(closing, policy);
+  // The popup's close path: protection checked again right before removing, and
+  // the close remembered so the popup can offer to undo it (see architecture.md).
+  const site = domainOf(clicked.url);
+  if (closing.length > 0) await closeTabs(closing, policy, { source: 'menu', message: (n) => item.said(n, site) });
 }
 
 chrome.contextMenus.onClicked.addListener((info, tab) => void onMenuClick(info.menuItemId, tab?.id));

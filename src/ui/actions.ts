@@ -55,6 +55,8 @@ export type Action =
   | { type: 'closeFailed'; tabs: readonly Tab[]; requested: readonly number[]; noun: string; at?: number }
   /** Some other browser effect failed; say so. */
   | { type: 'effectFailed'; message: string }
+  /** The popup opened soon after a right-click close: offer its undo. */
+  | { type: 'offerUndo'; tabs: readonly Tab[]; closedAt: number; message: string }
   | { type: 'undo' }
   | { type: 'restored'; count: number; fresh?: number }
   | { type: 'dismissToast'; id: number }

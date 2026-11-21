@@ -370,6 +370,8 @@ function step(state: AppState, action: Action): Result {
       const message = n > 0 ? `Closed ${plural(n, action.noun)} · couldn’t close ${failed} — try again` : 'Couldn’t close tabs — try again';
       return withToast(setUi(state, { closing }), message, n > 0 ? action.tabs : undefined, action.at);
     }
+    case 'offerUndo':
+      return withToast(state, action.message, action.tabs, action.closedAt);
     case 'effectFailed':
       return withToast(state, action.message);
     case 'undo': {

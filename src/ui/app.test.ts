@@ -163,3 +163,18 @@ describe('Windows view Close button', () => {
     expect(button(3)).toBeNull();
   });
 });
+
+describe('undo offered when the popup opens', () => {
+  it('shows the right-click close with its Undo, which restores those tabs', async () => {
+    const container = document.createElement('div');
+    document.body.append(container);
+    const browser = new FakeBrowser({ ...SNAPSHOT, tabs: TABS.filter((t) => t.id !== TABS[3]!.id) });
+    browser.undoOffer = { tabs: [TABS[3]!], closedAt: 1, message: 'Closed 1 duplicate (tab menu)' };
+    app = mountApp(container, browser, { snapshot: null, ui: initialUi() });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(container.querySelector('.toast')?.textContent).toContain('Closed 1 duplicate (tab menu)');
+    (container.querySelector('[data-action="undo"]') as HTMLElement).click();
+    await new Promise((r) => setTimeout(r, 0));
+    expect((await browser.snapshot()).tabs.some((t) => t.id === TABS[3]!.id)).toBe(true);
+  });
+});

@@ -133,8 +133,8 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
     const asked = state.snapshot?.tabs.filter((t) => effect.tabIds.includes(t.id)) ?? [];
     const at = Date.now();
     try {
-      const { closed, kept } = await port.close(effect.tabIds, effect.policy);
-      dispatch({ type: 'closed', tabs: closed, requested: effect.tabIds, noun: effect.noun, kept: effect.skipped + kept.length, at });
+      const { closed, kept, closedAt } = await port.close(effect.tabIds, effect.policy);
+      dispatch({ type: 'closed', tabs: closed, requested: effect.tabIds, noun: effect.noun, kept: effect.skipped + kept.length, at: closedAt ?? at });
     } catch {
       // tabs.remove can reject after closing some: those still get their undo.
       const fresh = await port.snapshot().catch(() => null);
@@ -191,6 +191,11 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
 
   render();
   if (!state.snapshot) refresh();
+  // A right-click close in the last minute gets its undo here.
+  browser?.pendingUndo().then(
+    (offer) => offer && dispatch({ type: 'offerUndo', ...offer }),
+    () => undefined,
+  );
   if (options.autofocus) searchInput()?.focus();
   // The focus ring reflects real focus, not whatever the initial state claimed.
   const focused = document.activeElement !== null && document.activeElement === searchInput();

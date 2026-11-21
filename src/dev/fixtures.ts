@@ -155,6 +155,10 @@ export const FIXTURES: Fixture[] = [
     }),
   },
   { name: 'After cleanup (undo)', state: at({ toast: { id: 1, message: 'Closed 4 duplicates', undo: [] } }, cleaned) },
+  {
+    name: 'Opened after a right-click close (Undo offered)',
+    state: at({ toast: { id: 1, message: 'Closed 2 duplicates (tab menu)', undo: TABS.filter((t) => t.title === 'Hacker News').slice(1), closedAt: NOW - 20_000 } }, cleaned),
+  },
   { name: 'A close failed (Chrome refused)', state: at({ toast: { id: 1, message: 'Couldn’t close tabs — try again' } }) },
   { name: 'Search, no matches', state: at({ query: 'kubernetes' }) },
   { name: 'Search · url: chip', state: at({ query: 'url:github', cursor: `tab:${idOf('Issues · ato')}` }) },

@@ -5,9 +5,9 @@
  */
 import type { DuplicatePolicy } from '../core/duplicates';
 import type { Snapshot, Tab } from '../core/types';
-import type { BrowserPort, CloseResult } from './browser';
-import { CLOSE_MESSAGE, closeTabs, type CloseReply } from './chrome-close';
-import { RESTORE_MESSAGE, restoreTabs, type Restored } from './chrome-restore';
+import type { BrowserPort, CloseResult, UndoOffer } from './browser';
+import { CLOSE_MESSAGE, closeTabs, pendingUndo, undoClose, type CloseReply } from './chrome-close';
+import { RESTORE_MESSAGE, type Restored } from './chrome-restore';
 import { fromChromeGroup, fromChromeTab } from './chrome-tab';
 
 export { fromChromeGroup, fromChromeTab };
@@ -70,7 +70,7 @@ export class ChromeBrowser implements BrowserPort {
     } catch {
       // No worker listening: close from here.
     }
-    if (reply?.ok) return { closed: reply.closed, kept: reply.kept };
+    if (reply?.ok) return { closed: reply.closed, kept: reply.kept, closedAt: reply.closedAt };
     if (reply && !reply.ok) throw new Error(reply.error);
     return closeTabs(tabIds, policy);
   }
@@ -83,7 +83,11 @@ export class ChromeBrowser implements BrowserPort {
     } catch {
       // No worker listening: restore from here.
     }
-    return restoreTabs(tabs, closedAt);
+    return undoClose(tabs, closedAt);
+  }
+
+  async pendingUndo(): Promise<UndoOffer | null> {
+    return pendingUndo();
   }
 
   async activate(tabId: number): Promise<void> {

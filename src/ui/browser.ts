@@ -6,6 +6,15 @@ export interface CloseResult {
   closed: Tab[];
   /** Asked for, but protected when the close ran (left open). */
   kept: Tab[];
+  /** Epoch ms just before the tabs were removed, when the browser knows it. */
+  closedAt?: number;
+}
+
+/** A close made elsewhere (the right-click menu) that the popup can undo. */
+export interface UndoOffer {
+  tabs: readonly Tab[];
+  closedAt: number;
+  message: string;
 }
 
 /**
@@ -24,6 +33,8 @@ export interface BrowserPort {
   close(tabIds: number[], policy: DuplicatePolicy | null): Promise<CloseResult>;
   /** Reopens closed tabs, any number; resolves with how many came back (and how many without history). */
   restore(tabs: readonly Tab[], closedAt?: number): Promise<Restored>;
+  /** A recent right-click close to offer undo for when the popup opens, or `null`. */
+  pendingUndo(): Promise<UndoOffer | null>;
   activate(tabId: number): Promise<void>;
   discard(tabIds: number[]): Promise<void>;
   moveToNewWindow(tabIds: number[]): Promise<void>;
