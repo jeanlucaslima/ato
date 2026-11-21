@@ -53,6 +53,11 @@ Fixed:
 - **Navigation:** `deriveModel` is memoized per state (↓ derived up to three times). Measurements below.
 - **Right-click closes get ATO's undo.** Popup and menu share one close path in the worker (recheck → remove → last-close record); the popup offers a menu close's undo for a minute after it.
 
+Final verification (three edge cases from code review, each reproduced first, in tests and in Chrome 158):
+- **Undo after tabs closed outside ATO.** Matching by URL, index and removal order counted from the newest entry took a same-URL tab closed later at the same index for one of ATO's (entries have no window). By content alone it is ambiguous, so the close path now pins each tab's session id in the undo record right after `tabs.remove`, while its entries are the newest; undo uses only those (a tab whose entry is gone is reopened by URL). Without pinned ids (Chrome couldn't list sessions at close) the old matching is the fallback.
+- **A restore Chrome refuses.** It used to skip the tab and still report success. Now it is reopened by URL; tabs that come back neither way are reported (`Restored.failed`), the toast says so and keeps Undo for them, and the stored record keeps just those tabs (so a menu close is offered again) until they are back.
+- **The survivor disappears during the animation.** The recheck covered protection, not rule 2: with the planned survivor closed (or navigated away) mid-animation, every remaining copy was closed. Duplicate cleanup now asks the close path for `cleanup`, which keeps one copy (by `keep`, under the decision's match mode) of any page that would have none left on Chrome's current state. Closing a site, window, selection or results is unchanged: it closes everything asked.
+
 Rejected:
 - **"`ignoreHash` and `ignoreQuery` are swapped."** They aren't: `duplicateKey` reads "every mode but ignoreQuery clears the hash; every mode but ignoreHash clears the query", which is right, and `tabs.test.ts` pinned it. The suggested fix would have introduced the bug. 3.0.1 adds a comment and fast-check properties (with a mutation check: swapping the conditions fails them) instead of a change.
 
@@ -93,6 +98,13 @@ Proposed for 3.1, in order of payoff (not done):
 3. **Draw only the visible part of long lists.** Search already stops at 150; the tabs, sites and windows lists draw every row (`content-visibility` skips layout and paint off screen, not style or DOM size). This is the "drawing only visible rows past 5,000 tabs" item, now with numbers showing it matters from 2,000 on a slow machine.
 
 3.0.1, checked in Chrome 158 with the built `dist/` loaded into a throwaway profile over CDP (2026-11-21): a window of a.html, b.html, a.html, a.html with the first one current; firing the real "Close duplicates of this tab" listener on the third tab closed only the fourth (the clicked tab and the current one stayed) and stored a menu record; opening the popup showed "Closed 1 duplicate (tab menu) · Undo"; Undo brought the tab back at index 3 and cleared the record. Also checked there: what `sessions.getRecentlyClosed` records for closed tabs (see [3.0.1-plan.md](3.0.1-plan.md), item 3).
+
+Final verification, same setup (Chrome 158.0.8127.37, a fresh profile per run, 2026-11-21), each scenario on a build of the previous commit and on the fixed build:
+- Undo after an unrelated close: a.html at index 1 in three windows with history lengths 2, 3, 4; ATO closed the first two, then the third was closed outside ATO. Before: Undo restored the length-3 tab and the unrelated length-4 one, and lost the length-2 tab. After: the length-2 tab is back in window 1 and the length-3 tab in window 2, and the unrelated tab stayed closed.
+- Failed restore: `sessions.restore` of an unknown id rejects; `tabs.create` rejects `javascript:` URLs. A menu record of two tabs (one reopenable, one `javascript:`) undone through the worker replied `{ count 1, fresh 1, failed [the javascript: tab] }`, the record kept that tab, and the popup offered it ("Closed 2 tabs (tab menu) · Undo"), then said "Couldn’t restore 1 tab · Undo".
+- Survivor gone: the popup's "Close 2" clicked and the survivor closed right after (inside the 180 ms). Before: no copy left. After: one copy left, "Closed 1 duplicate · kept 1 protected". Same for the menu's "Close duplicates of this tab" with the clicked tab closed before the recheck, and for a survivor navigated away. A non-cleanup close of three copies still closed all three.
+
+Not tested in a browser: a `sessions.restore` rejecting for an entry that is really there (no way to make Chrome do that on demand; covered by unit tests with a fake). In the tiny window between reading sessions and restoring, a tab the user brought back with ⇧⌘T would be reopened by URL as well.
 
 ## Release status
 
