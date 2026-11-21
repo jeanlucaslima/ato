@@ -34,13 +34,13 @@ It's a Chrome extension, it needs **Chrome 157 or newer**, and it runs entirely 
 
 Also: a toolbar badge with the duplicate count (or all tabs) in your colour, and a tab right-click menu to close the duplicates of a tab or the other tabs from its site.
 
-## Ten themes, and one that glows
+## Eleven themes, and one that glows
 
 <p align="center">
-  <img src="docs/screenshots/themes.png" alt="The settings page's theme picker: System, Graphite, Paper, Onyx, Cyber (selected, glowing), Neon, Nebula, Ember, Lagoon, Sakura and Dune, each as a miniature popup in its own colours" width="480">
+  <img src="docs/screenshots/themes.png" alt="The settings page's theme picker: System, Graphite, Daylight, Paper, Onyx, Cyber (selected, glowing), Neon, Nebula, Ember, Lagoon, Sakura and Dune, each as a miniature popup in its own colours" width="480">
 </p>
 
-Graphite and Paper are the quiet ones, and **System**, the default, switches between them with your OS. **Onyx** is true black, for OLED screens. Nebula, Ember, Neon, Lagoon, Sakura and Dune each have their own palette, and the picker previews every theme as a tiny popup in its own colours.
+Graphite, Daylight and Paper are the quiet ones, and **System**, the default, switches between Daylight and Graphite with your OS. **Daylight** is neutral light that makes every signal (current, copies, audio, asleep, keep or close) a clear mark, with a little motion. **Onyx** is true black, for OLED screens. Nebula, Ember, Neon, Lagoon, Sakura and Dune each have their own palette, and the picker previews every theme as a tiny popup in its own colours.
 
 **Cyber** goes further than a palette: neon on near-black over a faint grid, glowing edges, text and focus rings, scanlines across the popup, and a pulsing dot on the duplicates bar. All of that is plain CSS scoped to the theme, and it respects reduced motion.
 
