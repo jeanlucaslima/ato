@@ -128,7 +128,7 @@ speedBar.addEventListener('click', (e) => {
   for (const x of speedBar.querySelectorAll('[data-speed]')) x.setAttribute('aria-pressed', String(x === b));
 });
 /** Corner cut sizes to compare (share of an edge); the middle one is the default. */
-const spinning = [0.01, 0.03, 0.05, 0.07].map((chamfer) => {
+const spinning = [0.03, 0.07, 0.09].map((chamfer) => {
   const stage = icosahedron(72, chamfer);
   attachSpin(stage, false, rate);
   return logoTile(`3D, corners cut ${Math.round(chamfer * 100)}%${chamfer === 0.07 ? ' (default)' : ''}`, stage);
