@@ -59,9 +59,10 @@ settings.subscribe(scheduleRefresh);
 
 // The popup asks the worker to restore: Chrome may close the popup as tabs come
 // back, and the worker keeps going. Only ATO's own pages may ask.
-chrome.runtime.onMessage.addListener((message: { type?: string; tabs?: Tab[] }, sender, reply) => {
+chrome.runtime.onMessage.addListener((message: { type?: string; tabs?: Tab[]; closedAt?: number }, sender, reply) => {
   if (sender.id !== chrome.runtime.id || message?.type !== RESTORE_MESSAGE || !Array.isArray(message.tabs)) return false;
-  void restoreTabs(message.tabs).then(reply, () => reply({ count: 0, fresh: 0 }));
+  const closedAt = typeof message.closedAt === 'number' ? message.closedAt : undefined;
+  void restoreTabs(message.tabs, closedAt).then(reply, () => reply({ count: 0, fresh: 0 }));
   return true; // reply comes later
 });
 

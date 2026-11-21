@@ -70,8 +70,8 @@ function withValidCursor(state: AppState): AppState {
   return setUi(state, { cursor: state.ui.query.trim() ? order[0] : undefined });
 }
 
-function withToast(state: AppState, message: string, undo?: readonly Tab[]): Result {
-  const toast: Toast = { id: (state.ui.toast?.id ?? 0) + 1, message, undo };
+function withToast(state: AppState, message: string, undo?: readonly Tab[], closedAt?: number): Result {
+  const toast: Toast = { id: (state.ui.toast?.id ?? 0) + 1, message, undo, ...(undo && closedAt !== undefined ? { closedAt } : {}) };
   return [{ ...state, ui: { ...state.ui, toast } }, [{ kind: 'expireToast', id: toast.id }]];
 }
 
@@ -359,7 +359,7 @@ function step(state: AppState, action: Action): Result {
       const n = action.tabs.length;
       const kept = action.kept ? ` · kept ${action.kept} protected` : '';
       const message = n > 0 ? `Closed ${plural(n, action.noun)}${kept}` : action.kept ? `Nothing closed — ${plural(action.kept, 'tab')} protected` : 'Nothing to close';
-      return withToast(setUi(state, { closing }), message, n > 0 ? action.tabs : undefined);
+      return withToast(setUi(state, { closing }), message, n > 0 ? action.tabs : undefined, action.at);
     }
     case 'closeFailed': {
       // Nothing stays mid-animation; tabs that did close keep their undo.
@@ -368,14 +368,14 @@ function step(state: AppState, action: Action): Result {
       const n = action.tabs.length;
       const failed = action.requested.length - n;
       const message = n > 0 ? `Closed ${plural(n, action.noun)} · couldn’t close ${failed} — try again` : 'Couldn’t close tabs — try again';
-      return withToast(setUi(state, { closing }), message, n > 0 ? action.tabs : undefined);
+      return withToast(setUi(state, { closing }), message, n > 0 ? action.tabs : undefined, action.at);
     }
     case 'effectFailed':
       return withToast(state, action.message);
     case 'undo': {
       const tabs = ui.toast?.undo;
       if (!tabs?.length) return [state, []];
-      return [setUi(state, { toast: undefined }), [{ kind: 'restore', tabs }]];
+      return [setUi(state, { toast: undefined }), [{ kind: 'restore', tabs, closedAt: ui.toast?.closedAt }]];
     }
     case 'restored':
       return withToast(state, `Restored ${plural(action.count, 'tab')}${action.fresh ? ` (${action.fresh} without back history)` : ''}`);

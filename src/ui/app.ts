@@ -131,14 +131,15 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
   async function close(effect: Extract<Effect, { kind: 'close' }>): Promise<void> {
     const port = browser!;
     const asked = state.snapshot?.tabs.filter((t) => effect.tabIds.includes(t.id)) ?? [];
+    const at = Date.now();
     try {
       const { closed, kept } = await port.close(effect.tabIds, effect.policy);
-      dispatch({ type: 'closed', tabs: closed, requested: effect.tabIds, noun: effect.noun, kept: effect.skipped + kept.length });
+      dispatch({ type: 'closed', tabs: closed, requested: effect.tabIds, noun: effect.noun, kept: effect.skipped + kept.length, at });
     } catch {
       // tabs.remove can reject after closing some: those still get their undo.
       const fresh = await port.snapshot().catch(() => null);
       const open = new Set(fresh ? fresh.tabs.map((t) => t.id) : effect.tabIds);
-      dispatch({ type: 'closeFailed', tabs: asked.filter((t) => !open.has(t.id)), requested: effect.tabIds, noun: effect.noun });
+      dispatch({ type: 'closeFailed', tabs: asked.filter((t) => !open.has(t.id)), requested: effect.tabIds, noun: effect.noun, at });
       if (fresh) dispatch({ type: 'snapshot', snapshot: fresh });
     }
   }
@@ -151,7 +152,7 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
         later(CLOSE_ANIMATION_MS, () => void close(effect));
         return;
       case 'restore':
-        browser.restore(effect.tabs).then(
+        browser.restore(effect.tabs, effect.closedAt).then(
           ({ count, fresh }) => dispatch({ type: 'restored', count, fresh }),
           () => dispatch({ type: 'effectFailed', message: 'Couldn’t restore tabs' }),
         );

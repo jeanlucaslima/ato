@@ -93,14 +93,14 @@ export class ChromeBrowser implements BrowserPort {
   }
 
   /** Undo runs in the service worker so it finishes even if the popup closes; here only if the worker can't be reached. */
-  async restore(tabs: readonly Tab[]): Promise<Restored> {
+  async restore(tabs: readonly Tab[], closedAt?: number): Promise<Restored> {
     try {
-      const reply = (await chrome.runtime.sendMessage({ type: RESTORE_MESSAGE, tabs })) as Restored | undefined;
+      const reply = (await chrome.runtime.sendMessage({ type: RESTORE_MESSAGE, tabs, closedAt })) as Restored | undefined;
       if (reply && typeof reply.count === 'number') return reply;
     } catch {
       // No worker listening: restore from here.
     }
-    return restoreTabs(tabs);
+    return restoreTabs(tabs, closedAt);
   }
 
   async activate(tabId: number): Promise<void> {

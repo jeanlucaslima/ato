@@ -23,7 +23,7 @@ export interface BrowserPort {
    */
   close(tabIds: number[], policy: DuplicatePolicy | null): Promise<CloseResult>;
   /** Reopens closed tabs, any number; resolves with how many came back (and how many without history). */
-  restore(tabs: readonly Tab[]): Promise<Restored>;
+  restore(tabs: readonly Tab[], closedAt?: number): Promise<Restored>;
   activate(tabId: number): Promise<void>;
   discard(tabIds: number[]): Promise<void>;
   moveToNewWindow(tabIds: number[]): Promise<void>;

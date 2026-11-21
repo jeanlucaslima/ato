@@ -109,6 +109,14 @@ describe('ChromeBrowser.close', () => {
   });
 });
 
+describe('undo record', () => {
+  it('keeps when the close ran, so undo only uses session entries from then on', () => {
+    const tabs = TABS.slice(2, 4);
+    const [s] = update({ snapshot: SNAPSHOT, ui: initialUi() }, { type: 'closed', tabs, requested: tabs.map((t) => t.id), noun: 'tab', kept: 0, at: 1234 });
+    expect(update(s, { type: 'undo' })[1]).toContainEqual({ kind: 'restore', tabs, closedAt: 1234 });
+  });
+});
+
 describe('a failed close', () => {
   it('never leaves a requested tab closing; undo lists exactly the tabs gone anyway', () => {
     fc.assert(

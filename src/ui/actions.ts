@@ -47,12 +47,12 @@ export type Action =
    * A close ran: `tabs` were really closed (undo covers exactly these), out of
    * `requested`; `kept` were left open as protected (at the decision or the recheck).
    */
-  | { type: 'closed'; tabs: readonly Tab[]; requested: readonly number[]; noun: string; kept: number }
+  | { type: 'closed'; tabs: readonly Tab[]; requested: readonly number[]; noun: string; kept: number; at?: number }
   /**
    * A close failed (Chrome refused: a tab being dragged, a window closing). `tabs`
    * of `requested` were gone afterwards anyway (closed before the failure).
    */
-  | { type: 'closeFailed'; tabs: readonly Tab[]; requested: readonly number[]; noun: string }
+  | { type: 'closeFailed'; tabs: readonly Tab[]; requested: readonly number[]; noun: string; at?: number }
   /** Some other browser effect failed; say so. */
   | { type: 'effectFailed'; message: string }
   | { type: 'undo' }
@@ -87,7 +87,7 @@ export type Effect =
    * tabs already left out when deciding, for the message.
    */
   | { kind: 'close'; tabIds: number[]; noun: string; skipped: number; policy: DuplicatePolicy | null }
-  | { kind: 'restore'; tabs: readonly Tab[] }
+  | { kind: 'restore'; tabs: readonly Tab[]; closedAt?: number }
   | { kind: 'activate'; tabId: number }
   | { kind: 'discard'; tabIds: number[] }
   | { kind: 'move'; tabIds: number[] }

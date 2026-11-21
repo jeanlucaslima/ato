@@ -8,6 +8,8 @@ export interface Toast {
   message: string;
   /** Tabs that Undo would bring back. */
   undo?: readonly Tab[];
+  /** Epoch ms just before those tabs closed: undo only uses session entries from then on. */
+  closedAt?: number;
 }
 
 export interface UiState {
