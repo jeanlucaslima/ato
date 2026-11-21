@@ -37,7 +37,7 @@ export const DEFAULT_SETTINGS: Settings = {
   protectGroups: true,
   view: 'tabs',
   scope: 'all',
-  theme: 'graphite',
+  theme: 'system',
   badge: 'duplicates',
   badgeColor: '#dc2626',
 };
