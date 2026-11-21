@@ -1,6 +1,6 @@
 # ATO v3: status and decisions
 
-_Last updated 2026-11-20._ This is the hand-off note for the `v3` branch: what was decided, how we work, what's built, and what's open. Read it with the v3 section of [CLAUDE.md](../CLAUDE.md) and [the Chrome features plan](v3-chrome-features-plan.md) before continuing.
+_Last updated 2026-11-21._ This is the hand-off note for the `v3` branch: what was decided, how we work, what's built, and what's open. Read it with the v3 section of [CLAUDE.md](../CLAUDE.md) and [the Chrome features plan](v3-chrome-features-plan.md) before continuing.
 
 ## Decisions
 
@@ -14,7 +14,8 @@ _Last updated 2026-11-20._ This is the hand-off note for the `v3` branch: what w
   - the tab right-click menu never closes the tab that was clicked, nor a protected one.
 - **Minimum Chrome 157** (`minimum_chrome_version`): every API in the plan exists, no fallbacks or feature detection.
 - **Two builds.** `npm run build` is the unpacked dev copy ("ATO 3 (dev)", version_name `-dev`, ⇧⌘U) so it can sit beside the installed store 2.x. `npm run build:store` / `npm run zip` keep the manifest as written ("ATO", ⌘U), because v3 will replace 2.x under the same store listing.
-- **Release scope of v3.0: not decided.** Ask before treating anything as "the release". Proposed (not agreed): everything built so far plus plan steps 1 and 2; steps 4–5 and the ⌥ age idea later.
+- **Release scope of v3.0 (decided 2026-11-20):** everything built so far, plus split-view protection (plan step 1), undo for any number of tabs (step 2), the duplicate-matching setting from 2.x, and carrying 2.x settings over. Grouping by registrable domain (`publicSuffix`, step 5) waits for a later release.
+- **Chrome 158 (stable 2026-11-17)** adds nothing for extensions; the minimum stays 157.
 
 ## How we work
 
@@ -38,12 +39,18 @@ _Last updated 2026-11-20._ This is the hand-off note for the `v3` branch: what w
 
 The `dist/` dev build is in daily use (confirmed 2026-11-20): popup, settings, badge, right-click menu, moving and merging windows. One known limit stays until plan step 2: undo after closing many tabs can stop part-way if Chrome closes the popup while restoring.
 
-## Deferred and open
+## Release status
 
-- **Plan steps 1, 2 and 5** are deferred "for the future" (see [the plan](v3-chrome-features-plan.md)). Until 1 and 2 land:
-  - moving or merging tabs can split a side-by-side (split view) pair;
-  - tabs closed from the right-click menu only come back with Chrome's ⇧⌘T (no ATO undo there).
-- **`browser.*` namespace** for the Chrome port (plan step 3 detail): not done.
-- **Ideas, undecided:** hold ⌥ to show every row's last-used age and window; a loose performance check in `npm test`; "by window" chips to replace the All/This window switch.
-- **5,000+ tabs:** opening the popup, opening a window and closing all duplicates take ~80–120 ms. The next step would be drawing only the rows in view; only worth it if that size is a real case.
-- **Before publishing:** store listing and screenshots for v3; settings saved by 2.x (flat keys) are ignored by v3, which starts from its own defaults under the `settings` key: decide whether to migrate.
+Done for 3.0 (each with tests; the closing rules also with fast-check properties and mutation checks):
+- split views are never broken: split tabs are kept by every close, and moving one half moves both;
+- undo runs in the service worker, brings back any number of tabs (sessions for the last 25, the rest reopened in their window, position and group) and says how many came back without history;
+- duplicate matching: whole URL, or ignoring `#hash`, `?query` or both;
+- 2.x settings carried over on first run (`fromLegacy`), old keys left in place;
+- README, CONTRIBUTING, CLAUDE.md, architecture, privacy policy and store listing rewritten for v3; new screenshots, and three 1280×800 store images.
+
+Left, for the owner:
+- try the new pieces in the dev build (split view protection, undo of 30+ tabs, the matching setting, a 2.x profile's settings showing up);
+- merge `v3` into `main`, tag, `npm run zip`, upload `ato-v3.0.0.zip` and the store images;
+- tabs closed from the right-click menu still come back only with Chrome's ⇧⌘T.
+
+Later: `publicSuffix` grouping (plan step 5), the `browser.*` namespace, hold-⌥ ages, "by window" chips, drawing only visible rows past 5,000 tabs.
