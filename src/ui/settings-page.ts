@@ -43,6 +43,37 @@ function choice<K extends ChoiceKey>(s: Settings, key: K, title: string, labels:
   );
 }
 
+/** Two URLs and what the chosen rule makes of them; the part it ignores is dimmed. */
+const MATCH_EXAMPLES: Record<Settings['match'], { urls: [string, string][]; same: boolean }> = {
+  exact: { urls: [['example.com/docs#intro', ''], ['example.com/docs#setup', '']], same: false },
+  ignoreHash: { urls: [['example.com/docs', '#intro'], ['example.com/docs', '#setup']], same: true },
+  ignoreQuery: { urls: [['example.com/docs', '?lang=en'], ['example.com/docs', '?lang=pt']], same: true },
+  ignoreBoth: { urls: [['example.com/docs', '?lang=en#intro'], ['example.com/docs', '?lang=pt#setup']], same: true },
+};
+
+function matchExample(match: Settings['match']): HTMLElement {
+  const { urls, same } = MATCH_EXAMPLES[match];
+  return h(
+    'div',
+    { class: 'match-example', 'aria-live': 'polite' },
+    h('div', { class: 'match-urls' }, urls.map(([kept, ignored]) => h('code', null, kept, ignored && h('span', { class: 'match-ignored' }, ignored)))),
+    h('p', { class: cls('match-verdict', same && 'is-same') }, same ? 'Same page: one copy closes' : 'Different pages: both stay open'),
+  );
+}
+
+function matchSetting(s: Settings): HTMLElement {
+  const row = choice(
+    s,
+    'match',
+    'Same page when',
+    { exact: 'Whole URL matches', ignoreHash: 'Ignoring #hash', ignoreQuery: 'Ignoring ?query', ignoreBoth: 'Ignoring both' },
+    'Which tabs count as copies of each other.',
+  );
+  row.classList.add('setting--stack');
+  row.append(matchExample(s.match));
+  return row;
+}
+
 function toggle(s: Settings, key: ToggleKey, title: string, note: string): HTMLElement {
   const id = `setting-${key}`;
   return h(
@@ -233,13 +264,7 @@ export function renderSettings({ settings: s, version, saved, pinned = null, the
     section(
       'Closing duplicates',
       'The tab you’re on in each window is always kept.',
-      choice(
-        s,
-        'match',
-        'Same page when',
-        { exact: 'Whole URL matches', ignoreHash: 'Ignoring #hash', ignoreQuery: 'Ignoring ?query', ignoreBoth: 'Ignoring both' },
-        'With ?query ignored, page?a=1 and page?a=2 count as copies.',
-      ),
+      matchSetting(s),
       choice(s, 'keep', 'Keep', { oldest: 'Oldest copy', newest: 'Newest copy' }, 'When no copy is protected, this one stays and the rest close.'),
       toggle(s, 'protectPinned', 'Protect pinned tabs', 'Pinned copies are never closed.'),
       toggle(s, 'protectGroups', 'Protect tab groups', 'Copies inside a tab group are never closed.'),

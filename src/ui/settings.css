@@ -45,6 +45,16 @@
 .choice-opt span { display: block; padding: 5px 12px; border-radius: 6px; font-size: 12.5px; color: var(--ink-2); white-space: nowrap; transition: background-color 90ms, color 90ms; }
 .choice-opt:hover span { color: var(--ink); }
 .choice-opt input:checked + span { background: var(--raised); color: var(--ink); font-weight: 600; }
+/* A row whose control sits under its text, with a worked example below. */
+.setting--stack { flex-direction: column; align-items: stretch; }
+.setting--stack .setting-text { flex: none; }
+.setting--stack .choice { align-self: flex-start; }
+.match-example { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; padding: 10px 12px; background: var(--canvas); border: 1px dashed var(--line); border-radius: 8px; }
+.match-urls { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.match-urls code { font-family: var(--mono); font-size: 12px; color: var(--ink); overflow-wrap: anywhere; }
+.match-ignored { color: var(--ink-3); text-decoration: line-through; text-decoration-color: var(--line); }
+.match-verdict { margin: 0 0 0 auto; font-size: 12.5px; color: var(--ink-2); }
+.match-verdict.is-same { color: var(--ok); }
 .choice-opt input:focus-visible + span { outline: 2px solid var(--focus); outline-offset: 1px; }
 
 /* On/off: a styled checkbox with role="switch" */
