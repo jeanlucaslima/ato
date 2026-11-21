@@ -11,7 +11,7 @@ import { joinField, splitField } from '../core/search';
 import { morph } from './morph';
 import { renderPopup } from './popup';
 import type { AppState } from './state';
-import { update } from './update';
+import { navOrder, update } from './update';
 
 /** Keep in sync with the `row-out` animation in popup.css. */
 export const CLOSE_ANIMATION_MS = 180;
@@ -340,11 +340,14 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
       hasCursor: ui.cursor !== undefined,
       fieldChip: splitField(ui.query).field !== null,
       caretAtStart: typing && (event.target as HTMLInputElement).selectionStart === 0 && (event.target as HTMLInputElement).selectionEnd === 0,
+      // Only ↑ needs it, and it costs a derive, so it is worked out for ↑ alone.
+      atTop: event.key === 'ArrowUp' && (ui.cursor === undefined || navOrder(deriveModel(state))[0] === ui.cursor),
     });
     if (!command) return;
     event.preventDefault();
     switch (command.kind) {
       case 'action':
+        if (command.leaveSearch) root?.focus();
         return dispatch(command.action);
       case 'blurSearch':
         return root?.focus();
@@ -352,6 +355,8 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
         const input = searchInput();
         if (!input) return;
         input.focus();
+        // Up from the list: drop the cursor, so ↓ comes back to the first item.
+        if (command.fromList) dispatch({ type: 'setCursor' });
         if (command.text) {
           input.value += command.text;
           dispatch({ type: 'query', text: joinField(splitField(state.ui.query).field, input.value) });

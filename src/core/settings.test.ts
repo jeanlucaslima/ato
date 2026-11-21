@@ -42,6 +42,13 @@ describe('readSettings', () => {
     });
   });
 
+  it('ignores stored names that only exist on Object.prototype ("constructor", "toString")', () => {
+    for (const theme of ['constructor', 'toString', '__proto__', 'hasOwnProperty', 'valueOf']) {
+      expect(readSettings({ theme }).theme).toBe(DEFAULT_SETTINGS.theme);
+      expect(fromLegacy({ theme, matchMode: theme, defaultBrowseView: theme })).toEqual(DEFAULT_SETTINGS);
+    }
+  });
+
   it('always returns complete, valid settings, whatever was stored', () => {
     fc.assert(fc.property(fc.anything(), (raw) => isValid(readSettings(raw))));
     fc.assert(fc.property(fc.dictionary(fc.constantFrom(...Object.keys(DEFAULT_SETTINGS), 'other'), fc.anything()), (raw) => isValid(readSettings(raw))));

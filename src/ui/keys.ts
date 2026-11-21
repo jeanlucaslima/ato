@@ -24,12 +24,15 @@ export interface KeyContext {
   fieldChip?: boolean;
   /** The text caret sits at the very start of the search field. */
   caretAtStart?: boolean;
+  /** The cursor is on the first item, or there is none: ↑ from here goes up into search. */
+  atTop?: boolean;
 }
 
 export type KeyCommand =
-  | { kind: 'action'; action: Action }
+  /** `leaveSearch`: move focus from the search field to the list first, so list keys (⌫, U, X…) act. */
+  | { kind: 'action'; action: Action; leaveSearch?: boolean }
   /** Move focus to search, optionally typing `text` into it. */
-  | { kind: 'focusSearch'; text?: string }
+  | { kind: 'focusSearch'; text?: string; fromList?: boolean }
   /** Leave the search field so single-letter shortcuts work. */
   | { kind: 'blurSearch' };
 
@@ -54,6 +57,12 @@ export function resolveKey(e: KeyLike, ctx: KeyContext): KeyCommand | null {
       const delta = key === 'ArrowDown' ? 1 : -1;
       if (e.shiftKey && ctx.selecting) return act({ type: 'extendSelection', delta });
       if (mod) return act({ type: 'cursorTo', where: delta > 0 ? 'last' : 'first' });
+      // Search sits above the list: ↑ from the top goes up into it rather than wrapping to the bottom.
+      // (Review has no search field, so it wraps as before.)
+      if (delta < 0 && ctx.atTop && !ctx.typing && !ctx.reviewOpen) return { kind: 'focusSearch', fromList: true };
+      // From an empty search field the arrows step down into the list, focus and all, so ⌫ and the
+      // letter keys act on the row. With a query, focus stays to keep typing (⌘⌫ closes the results).
+      if (ctx.typing && !ctx.hasQuery) return { kind: 'action', action: { type: 'moveCursor', delta }, leaveSearch: true };
       return act({ type: 'moveCursor', delta });
     }
     case 'PageDown':
@@ -72,7 +81,12 @@ export function resolveKey(e: KeyLike, ctx: KeyContext): KeyCommand | null {
   // Plain D types into search; ⌘D reaches review from anywhere (the popup opens in search),
   // and ⌘D again in review closes what it shows: ⌘D ⌘D closes every duplicate.
   if (mod && !e.shiftKey && key.toLowerCase() === 'd') return act({ type: ctx.reviewOpen ? 'confirmReview' : 'openReview' });
-  if (mod && key === 'Backspace' && ctx.typing && ctx.hasQuery) return act({ type: 'closeResults' });
+  // From the search field plain ⌫ edits the text (holding it must never start closing tabs),
+  // so ⌘⌫ closes: every result when there is a query, otherwise the row under the cursor.
+  if (mod && key === 'Backspace' && ctx.typing) {
+    if (ctx.hasQuery) return act({ type: 'closeResults' });
+    if (ctx.hasCursor) return act({ type: 'cursorKey', key: 'delete' });
+  }
   if (key === 'Backspace' && !mod && ctx.typing && ctx.fieldChip && ctx.caretAtStart) return act({ type: 'clearField' });
 
   // Everything below is for when focus is not in the search field.
@@ -140,14 +154,14 @@ export const KEY_HELP: HelpSection[] = [
       { keys: ['↑', '↓'], label: 'Previous / next (also j k)' },
       { keys: ['PgUp', 'PgDn'], label: `Jump ${PAGE} rows` },
       { keys: ['Home', 'End'], label: 'First / last (also ⌘↑ ⌘↓)' },
-      { keys: ['←', '→'], label: 'Fold / unfold a site, window or duplicate set' },
+      { keys: ['←', '→'], label: 'Fold / unfold a site, window or duplicate set · ← on a folded set leaves review' },
     ],
   },
   {
     title: 'Act',
     entries: [
       { keys: ['↵'], label: 'Go to tab or window · toggle site · open review from the duplicates bar' },
-      { keys: ['⌫'], label: 'Close tab, site or selection · a set\'s extra copies in review' },
+      { keys: ['⌫'], label: 'Close tab, site or selection · a set\'s extra copies in review (⌘⌫ from the search field)' },
       { keys: ['U'], label: 'Unload (free memory, keep the tab) · a whole set in review' },
       { keys: ['M'], label: 'Move a site, the results or the selection to a new window · merge a window into this one' },
       { keys: ['Space'], label: 'Select · flip keep/close in review' },

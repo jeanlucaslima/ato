@@ -1,0 +1,51 @@
+/* Poster: Swiss brutalist. Stark white, heavy black type, one signal red, 2px
+   rules and hard offset shadows that press in; the cursor row inverts to white
+   on black. Scoped to the theme like Cyber. */
+/* Swiss brutalist: stark white, heavy black type, one signal red, 2px rules,
+   hard offset shadows that press in; the cursor row inverts to white on black. */
+[data-theme='poster'] {
+  color-scheme: light;
+  --canvas: #ffffff; --surface: #ffffff; --raised: #f0f0f0; --line: #0a0a0a; --line-soft: #e4e4e4;
+  --ink: #0a0a0a; --ink-2: #333333; --ink-3: #555555; --key: #0a0a0a;
+  --focus: #d40000; --focus-fill: #ffe9e9; --match: #ffe14d; --select-fill: #fff3b0;
+  --amber: #0a0a0a; --amber-fill: #ffe14d; --amber-line: #0a0a0a;
+  --danger: #d40000; --danger-ink: #ffffff; --danger-line: #0a0a0a; --danger-fill: #ffe9e9;
+  --ok: #0a7a2f; --ok-fill: #e3f5e8; --ok-line: #0a0a0a;
+  --shadow: 4px 4px 0 #0a0a0a;
+  --r: 0px;
+}
+[data-theme='poster'] .brand-name { font-size: 20px; font-weight: 900; letter-spacing: -0.02em; text-transform: uppercase; }
+[data-theme='poster'] .brand-tag { font-weight: 700; text-transform: uppercase; font-size: 10px; letter-spacing: 0.1em; color: var(--ink); }
+[data-theme='poster'] .settings h1 { font-weight: 900; letter-spacing: -0.02em; font-size: 40px; }
+[data-theme='poster'] :is(.head h2, .settings h2) { text-transform: uppercase; font-weight: 900; letter-spacing: 0.04em; color: var(--ink); }
+[data-theme='poster'] :is(.search, .playing, .strip, .group, .theme-card) { border: 2px solid var(--ink); border-radius: 0; box-shadow: 4px 4px 0 var(--ink); }
+[data-theme='poster'] :is(.search.is-focused, .search:focus-within) { border-color: var(--ink); box-shadow: 4px 4px 0 var(--focus); }
+[data-theme='poster'] .strip:not(.strip--clean, .strip--idle) strong { font-weight: 900; text-transform: uppercase; }
+[data-theme='poster'] .strip .dot { background: var(--focus); border-radius: 0; }
+[data-theme='poster'] .btn { border: 2px solid var(--ink); border-radius: 0; font-weight: 800; color: var(--ink); box-shadow: 2px 2px 0 var(--ink); transition: translate 80ms, box-shadow 80ms; }
+[data-theme='poster'] .btn:active:not(:disabled) { translate: 2px 2px; box-shadow: none; }
+[data-theme='poster'] .btn--solid-danger { background: var(--focus); color: #fff; }
+[data-theme='poster'] .bar, [data-theme='poster'] .head, [data-theme='poster'] .foot { border-width: 2px; }
+[data-theme='poster'] .seg { background: #fff; border: 2px solid var(--ink); border-radius: 0; }
+[data-theme='poster'] .seg-thumb { background: var(--ink); border-radius: 0; }
+[data-theme='poster'] .seg button[aria-pressed='true'], [data-theme='poster'] .seg button[aria-pressed='true'] .n { color: #fff; }
+[data-theme='poster'] .seg button { font-weight: 700; }
+/* Cursor: inverted */
+[data-theme='poster'] :is(.row, .site-row, .win-row).is-cursor { background: var(--ink); box-shadow: inset 6px 0 var(--focus); }
+[data-theme='poster'] :is(.row, .site-row, .win-row).is-cursor :is(.row-title, .name, .win-name, .row-x, .caret) { color: #fff; }
+[data-theme='poster'] :is(.row, .site-row, .win-row).is-cursor :is(.row-sub, .meta, .count) { color: #cfcfcf; }
+[data-theme='poster'] .row-title { font-weight: 700; }
+/* Big, blunt counts */
+[data-theme='poster'] .meta .dup, [data-theme='poster'] .win-flags .dup { padding: 1px 5px; background: var(--match); color: var(--ink); font-weight: 900; font-family: var(--sans); }
+[data-theme='poster'] .meta .cur { padding: 1px 5px; background: var(--focus); color: #fff; font-weight: 900; text-transform: uppercase; font-size: 10px; letter-spacing: 0.06em; }
+[data-theme='poster'] .k--box { background: #fff; border: 1.5px solid var(--ink); border-radius: 0; color: var(--ink); font-weight: 800; }
+[data-theme='poster'] .fav { border-radius: 0; }
+[data-theme='poster'] .theme-card:has(input:checked) { box-shadow: 6px 6px 0 var(--focus); }
+[data-theme='poster'] .switch { border: 2px solid var(--ink); }
+[data-theme='poster'] .toast { border: 2px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); }
+[data-theme='poster'] .play-row.is-cursor { background: var(--ink); color: #fff; box-shadow: inset 6px 0 var(--focus); }
+[data-theme='poster'] .play-row.is-cursor .play-sub { color: #cfcfcf; }
+/* Picker preview card */
+.mini[data-theme='poster'] .mini-search { border: 1.5px solid var(--ink); border-radius: 0; box-shadow: 2px 2px 0 var(--ink); }
+.mini[data-theme='poster'] .mini-row.is-cursor { background: var(--ink); box-shadow: inset 2px 0 var(--focus); }
+.mini[data-theme='poster'] .mini-strip { background: var(--amber-fill); border: 1.5px solid var(--ink); border-radius: 0; }

@@ -1,26 +1,28 @@
 import { brandBar, duplicateStrip, nowPlaying, hintFooter, searchBar, searchTips, selectionBar, toast, viewBar, type Hint } from './chrome';
 import { h, type Child } from './dom';
 import { helpPanel } from './help';
-import { plural } from './format';
+import { num, plural } from './format';
 import type { PopupModel } from './model';
 import { closeCount, reviewDone, reviewHeader, reviewPolicy, reviewSets } from './review';
 import { siteGroup, tabRow } from './rows';
 import { windowGroup } from './windows';
 
 function hintsFor(m: PopupModel): Hint[] {
+  // The popup opens in search, where plain ⌫ edits the text: show the key that closes from there.
+  const del = m.searchFocused ? '⌘⌫' : '⌫';
   switch (m.screen.kind) {
     case 'loading':
       return [];
     case 'tabs':
-      return [['↑↓', 'move'], ['↵', 'go'], ['⌫', 'close'], ['U', 'unload'], ['X', 'select']];
+      return [['↑↓', 'move'], ['↵', 'go'], [del, 'close'], ['U', 'unload'], ['X', 'select']];
     case 'sites':
-      return [['←→', 'fold'], ['⌫', 'close site'], ['U', 'unload site'], ['S', 'windows']];
+      return [['←→', 'fold'], [del, 'close site'], ['U', 'unload site'], ['S', 'windows']];
     case 'windows':
-      return [['←→', 'fold'], ['↵', 'focus'], ['M', 'merge'], ['⌫', 'close'], ['S', 'tabs']];
+      return [['←→', 'fold'], ['↵', 'focus'], ['M', 'merge'], [del, 'close'], ['S', 'tabs']];
     case 'search':
       return [['↑↓', 'move'], ['↵', 'go'], ['⌘⌫', 'close all'], ['Esc', 'clear']];
     case 'review':
-      return m.screen.sets.length === 0 ? [['Esc', 'back']] : [['←→', 'fold'], ['Space', 'keep/close'], ['⌫', 'close'], ['U', 'unload'], ['⌘D', `close ${closeCount(m.screen.sets)}`]];
+      return m.screen.sets.length === 0 ? [['←', 'back']] : [['Space', 'keep/close'], [del, 'close'], ['⌘D', `close ${num(closeCount(m.screen.sets))}`], ['←', 'back']];
   }
 }
 
@@ -62,11 +64,11 @@ function body(m: PopupModel): Child[] {
           'div',
           { class: 'head head--results' },
           h('h2', null, plural(n, 'match', 'matches'), n > 0 && h('span', null, ` · ${plural(s.windowCount, 'window')}`)),
-          n > 0 && h('button', { class: 'btn', type: 'button', 'data-action': 'unload-results' }, `Unload ${n}`),
+          n > 0 && h('button', { class: 'btn', type: 'button', 'data-action': 'unload-results' }, `Unload ${num(n)}`),
           n > 0 && h('button', { class: 'btn', type: 'button', 'data-action': 'move-results', title: 'Gather into a new window (M)' }, 'Move'),
           n > 0 &&
             (s.extra === undefined
-              ? h('button', { class: 'btn btn--danger', type: 'button', 'data-action': 'close-results' }, `Close ${n}`)
+              ? h('button', { class: 'btn btn--danger', type: 'button', 'data-action': 'close-results' }, `Close ${num(n)}`)
               : h(
                   'button',
                   { class: 'btn btn--danger', type: 'button', 'data-action': 'close-results', disabled: s.extra === 0, title: 'Closes the extra copies; one of each stays' },
@@ -90,7 +92,7 @@ function body(m: PopupModel): Child[] {
                 `+${plural(hidden, 'more match', 'more matches')} · keep typing to narrow, or `,
                 h('button', { class: 'btn btn--ghost', type: 'button', 'data-action': 'show-all-results' }, 'Show all'),
               )
-            : h('p', { class: 'note' }, 'Search covers every window. ', h('kbd', { class: 'k' }, 'Esc'), ' clears it and returns to where you were.'),
+            : h('p', { class: 'note' }, 'Search covers every window. ', h('kbd', { class: 'k k--box' }, 'Esc'), ' clears it and returns to where you were.'),
         ),
       ];
     }

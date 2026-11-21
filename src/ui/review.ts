@@ -1,6 +1,6 @@
 import { cls, h } from './dom';
 import { favicon } from './favicon';
-import { plural } from './format';
+import { num, plural } from './format';
 import { icon } from './icons';
 import type { DuplicateCopy, DuplicateSet, ItemKey, Screen } from './model';
 
@@ -18,7 +18,7 @@ export function reviewHeader(screen: ReviewScreen): HTMLElement {
     h('button', { class: 'btn btn--ghost', type: 'button', 'data-action': 'close-review' }, icon('back', 12), 'Back'),
     h('h2', null, 'Duplicates ', screen.sets.length > 0 && h('span', null, `· ${plural(screen.sets.length, 'set')}`)),
     screen.sets.length > 0 &&
-      h('button', { class: 'btn btn--solid-danger', type: 'button', disabled: n === 0, 'data-action': 'confirm-review' }, `Close ${n}`, h('kbd', { class: 'k' }, '⌘D')),
+      h('button', { class: 'btn btn--solid-danger', type: 'button', disabled: n === 0, 'data-action': 'confirm-review' }, `Close ${num(n)}`, h('kbd', { class: 'k k--box' }, '⌘D')),
   );
 }
 
@@ -109,7 +109,7 @@ export function reviewDone(): HTMLElement {
     h('span', { class: 'done-mark', 'aria-hidden': 'true' }, icon('check', 22)),
     h('p', { class: 'done-title' }, 'No duplicates left'),
     h('p', { class: 'done-sub' }, 'Every tab is open once.'),
-    h('button', { class: 'btn', type: 'button', 'data-action': 'close-review' }, icon('back', 12), 'Back to tabs', h('kbd', { class: 'k' }, 'Esc')),
+    h('button', { class: 'btn', type: 'button', 'data-action': 'close-review' }, icon('back', 12), 'Back to tabs', h('kbd', { class: 'k k--box' }, 'Esc')),
   );
 }
 
@@ -141,11 +141,11 @@ function setGroup(set: DuplicateSet, cursor: ItemKey | undefined): HTMLElement {
         favicon(set.domain, set.favIconUrl),
         h('span', { class: 'set-text' }, h('span', { class: 'name' }, set.title), h('span', { class: 'set-sub' }, `${set.address} · keeps ${set.kept}`)),
       ),
-      h('span', { class: 'count', title: plural(set.size, 'copy', 'copies') }, `×${set.size}`),
+      h('span', { class: 'count', title: plural(set.size, 'copy', 'copies') }, `×${num(set.size)}`),
       h(
         'button',
         { class: 'btn btn--danger', type: 'button', 'data-action': 'close-set', 'data-set': set.key, disabled: set.toClose === 0, tabindex: -1, title: 'Close the extra copies; one stays (⌫)' },
-        `Close ${set.toClose}`,
+        `Close ${num(set.toClose)}`,
       ),
     ),
     h(

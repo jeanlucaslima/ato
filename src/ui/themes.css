@@ -1,4 +1,7 @@
 @import './theme-cyber.css';
+@import './theme-daylight.css';
+@import './theme-riso.css';
+@import './theme-poster.css';
 
 /* Themes with personality. Each block is a complete palette over the tokens
    in tokens.css (Graphite and Paper live there). Order of keys matches tokens.css. */
@@ -170,4 +173,32 @@
   --ok-fill: #e8f0dc;
   --ok-line: #c2d6ae;
   --shadow: 0 8px 24px rgb(70 40 10 / 0.12);
+}
+/* Onyx — true black, for OLED and late nights */
+[data-theme='onyx'] {
+  color-scheme: dark;
+  --canvas: #000000;
+  --surface: #0d0d0e;
+  --raised: #222325;
+  --line: #1e1f21;
+  --line-soft: #141516;
+  --ink: #f2f2f2;
+  --ink-2: #a8aaad;
+  --ink-3: #8a8d91;
+  --key: #c9cacc;
+  --focus: #a9c4d6;
+  --focus-fill: #16232b;
+  --match: #28394a;
+  --select-fill: #13201a;
+  --amber: #e6c27f;
+  --amber-fill: #17140e;
+  --amber-line: #3d3524;
+  --danger: #f29a94;
+  --danger-ink: #1a0a09;
+  --danger-line: #4a2724;
+  --danger-fill: #241210;
+  --ok: #9fd0b0;
+  --ok-fill: #0f1a14;
+  --ok-line: #2a4535;
+  --shadow: 0 8px 24px rgb(0 0 0 / 0.7);
 }

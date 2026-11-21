@@ -144,6 +144,12 @@ function toggleInSet<T>(set: ReadonlySet<T>, value: T, on = !set.has(value)): Se
   return copy;
 }
 
+/** Back from review to the front screen, the cursor on the duplicates bar when it is there. */
+function leaveReview(state: AppState): Result {
+  const [back, effects] = update(state, { type: 'closeReview' });
+  return navOrder(deriveModel(back)).includes('dupes') ? [setUi(back, { cursor: 'dupes' }), effects] : [back, effects];
+}
+
 function onCursorKey(state: AppState, key: Extract<Action, { type: 'cursorKey' }>['key']): Result {
   const { ui } = state;
   const cursor = ui.cursor;
@@ -154,13 +160,15 @@ function onCursorKey(state: AppState, key: Extract<Action, { type: 'cursorKey' }
     if (cursor?.startsWith('set:')) {
       const setKey = cursor.slice(4);
       if (key === 'enter' || key === 'space') return update(state, { type: 'toggleSet', key: setKey });
+      // ← on a folded set leaves review, back onto the duplicates bar that → opened it from.
+      if (key === 'left' && model.screen.kind === 'review' && !model.screen.sets.find((s) => s.key === setKey)?.expanded) return leaveReview(state);
       if (key === 'right' || key === 'left') return update(state, { type: 'toggleSet', key: setKey, open: key === 'right' });
       if (key === 'delete') return update(state, { type: 'closeSet', key: setKey });
       if (key === 'unload') return update(state, { type: 'unloadSet', key: setKey });
       return [state, []];
     }
     const id = tabIdOf(cursor);
-    if (id === null) return [state, []];
+    if (id === null) return key === 'left' ? leaveReview(state) : [state, []];
     if (key === 'left' && model.screen.kind === 'review') {
       const set = model.screen.sets.find((s) => s.copies.some((c) => c.tabId === id));
       if (set) return update(state, { type: 'toggleSet', key: set.key, open: false });

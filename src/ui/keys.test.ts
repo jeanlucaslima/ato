@@ -34,12 +34,29 @@ describe('resolveKey', () => {
   });
 
   it('keeps arrows working while typing, but letters go to the field', () => {
-    expect(action({ key: 'ArrowDown' }, ctx({ typing: true }))).toEqual({ type: 'moveCursor', delta: 1 });
+    expect(resolveKey({ key: 'ArrowDown' }, ctx({ typing: true }))).toEqual({ kind: 'action', action: { type: 'moveCursor', delta: 1 }, leaveSearch: true });
+    expect(resolveKey({ key: 'ArrowDown' }, ctx({ typing: true, hasQuery: true }))).toEqual({ kind: 'action', action: { type: 'moveCursor', delta: 1 } });
     expect(resolveKey({ key: 'j' }, ctx({ typing: true }))).toBeNull();
     expect(resolveKey({ key: 'Backspace' }, ctx({ typing: true }))).toBeNull();
     expect(resolveKey({ key: 'Backspace' }, ctx({ typing: true, fieldChip: true }))).toBeNull();
     expect(action({ key: 'Backspace' }, ctx({ typing: true, fieldChip: true, caretAtStart: true }))).toEqual({ type: 'clearField' });
     expect(resolveKey({ key: 'z', metaKey: true }, ctx({ typing: true }))).toBeNull();
+  });
+
+  it('closes from the search field with ⌘⌫: the results with a query, else the row under the cursor', () => {
+    expect(action({ key: 'Backspace', metaKey: true }, ctx({ typing: true, hasQuery: true }))).toEqual({ type: 'closeResults' });
+    expect(action({ key: 'Backspace', metaKey: true }, ctx({ typing: true }))).toEqual({ type: 'cursorKey', key: 'delete' });
+    expect(resolveKey({ key: 'Backspace', metaKey: true }, ctx({ typing: true, hasCursor: false }))).toBeNull();
+    // Plain ⌫ in an empty field still does nothing: holding it to clear the text never closes tabs.
+    expect(resolveKey({ key: 'Backspace' }, ctx({ typing: true }))).toBeNull();
+  });
+
+  it('goes up into search with ↑ from the top of the list; from search, or in review, ↑ wraps', () => {
+    expect(resolveKey({ key: 'ArrowUp' }, ctx({ atTop: true }))).toEqual({ kind: 'focusSearch', fromList: true });
+    expect(action({ key: 'ArrowUp' }, ctx({ atTop: false }))).toEqual({ type: 'moveCursor', delta: -1 });
+    expect(action({ key: 'ArrowUp' }, ctx({ atTop: true, typing: true }))).toEqual({ type: 'moveCursor', delta: -1 });
+    expect(action({ key: 'ArrowUp' }, ctx({ atTop: true, reviewOpen: true }))).toEqual({ type: 'moveCursor', delta: -1 });
+    expect(action({ key: 'ArrowDown' }, ctx({ atTop: true }))).toEqual({ type: 'moveCursor', delta: 1 });
   });
 
   it('only takes Enter when there is something to act on', () => {

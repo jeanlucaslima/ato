@@ -1,6 +1,6 @@
 import { cls, h, type Child } from './dom';
 import { favicon } from './favicon';
-import { plural } from './format';
+import { num, plural } from './format';
 import { icon } from './icons';
 import type { Range, SiteGroup, TabRow } from './model';
 
@@ -31,7 +31,7 @@ function rowMeta(row: TabRow): HTMLElement {
     row.audible && h('span', { class: 'audio' }, icon('audio', 15, 'Playing audio')),
     row.pinned && icon('pin', 14, 'Pinned'),
     row.unloaded && h('span', null, 'Unloaded'),
-    row.copies && row.copies > 1 ? h('span', { class: 'dup', title: `${row.copies} copies` }, `×${row.copies}`) : null,
+    row.copies && row.copies > 1 ? h('span', { class: 'dup', title: `${row.copies} copies` }, `×${num(row.copies)}`) : null,
     !row.current && !row.copies && row.age ? h('span', { class: 't' }, row.age) : null,
   );
 }
@@ -120,13 +120,13 @@ export function siteGroup(group: SiteGroup, cursor: string | undefined, selectio
         'span',
         { class: 'site-actions' },
         unloadable > 0 &&
-          h('button', { class: 'btn', type: 'button', 'data-action': 'unload-site', 'data-domain': group.domain, tabindex: -1, title: 'Unload (U)' }, `Unload ${unloadable}`),
+          h('button', { class: 'btn', type: 'button', 'data-action': 'unload-site', 'data-domain': group.domain, tabindex: -1, title: 'Unload (U)' }, `Unload ${num(unloadable)}`),
         h(
           'button',
           { class: 'btn btn--icon', type: 'button', 'data-action': 'move-site', 'data-domain': group.domain, tabindex: -1, title: 'Move to a new window (M)', 'aria-label': 'Move to a new window' },
           icon('newWindow', 15),
         ),
-        h('button', { class: 'btn btn--danger', type: 'button', 'data-action': 'close-site', 'data-domain': group.domain, tabindex: -1, title: 'Close (⌫)' }, `Close ${count}`),
+        h('button', { class: 'btn btn--danger', type: 'button', 'data-action': 'close-site', 'data-domain': group.domain, tabindex: -1, title: 'Close (⌫)' }, `Close ${num(count)}`),
       ),
     ),
     h(

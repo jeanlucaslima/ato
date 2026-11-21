@@ -1,0 +1,70 @@
+/* Daylight: neutral light, the light half of System. Cool greys and one blue,
+   nothing tinted. Beyond the palette it makes every signal easier to read at a
+   glance (Current, copies, audio, asleep, keep/close) and adds a little motion.
+   All of it is decoration: reduced motion stops it, and nothing waits on it. */
+
+[data-theme='daylight'] {
+  color-scheme: light;
+  --canvas: #f4f5f7;
+  --surface: #ffffff;
+  --raised: #e7e9ed;
+  --line: #dcdfe4;
+  --line-soft: #eceef1;
+  --ink: #16181d;
+  --ink-2: #4a505a;
+  --ink-3: #5f6671;
+  --key: #2a2e35;
+  --focus: #2563eb;
+  --focus-fill: #e8effd;
+  --match: #d3e0fb;
+  --select-fill: #e9eefb;
+  --amber: #8a5300;
+  --amber-fill: #fdf3e1;
+  --amber-line: #efd6a4;
+  --danger: #c42b2b;
+  --danger-ink: #ffffff;
+  --danger-line: #f1c1be;
+  --danger-fill: #fdeded;
+  --ok: #1d7444;
+  --ok-fill: #e4f3ea;
+  --ok-line: #b3dac2;
+  --shadow: 0 8px 24px rgb(15 20 30 / 0.1);
+}
+
+/* Signals: each state is a small labelled pill, not just a colour */
+[data-theme='daylight'] .meta { gap: 6px; }
+[data-theme='daylight'] .meta .cur { padding: 2px 7px; border-radius: 999px; background: var(--focus-fill); color: var(--focus); }
+[data-theme='daylight'] .meta .dup { padding: 2px 6px; border-radius: 999px; background: var(--amber-fill); box-shadow: inset 0 0 0 1px var(--amber-line); font-weight: 600; }
+[data-theme='daylight'] .meta .audio { display: grid; place-items: center; width: 22px; height: 20px; border-radius: 999px; background: var(--ok-fill); }
+[data-theme='daylight'] .meta .t { color: var(--ink-2); }
+[data-theme='daylight'] .win-name .cur { padding: 1px 7px; border-radius: 999px; background: var(--focus-fill); }
+[data-theme='daylight'] .win-flags .dup { padding: 1px 6px; border-radius: 999px; background: var(--amber-fill); }
+/* Asleep: the title fades and the icon gets a dashed ring, so it reads without colour */
+[data-theme='daylight'] .is-asleep .row-title { color: var(--ink-3); font-style: italic; }
+[data-theme='daylight'] .is-asleep .fav { outline: 1px dashed var(--ink-3); outline-offset: 2px; }
+/* Review: the whole copy row says keep or close, not only its pill */
+[data-theme='daylight'] .copy--close { background: color-mix(in srgb, var(--danger-fill) 55%, transparent); }
+[data-theme='daylight'] .verdict--keep { box-shadow: inset 0 0 0 1px var(--ok-line); }
+[data-theme='daylight'] .verdict--close { box-shadow: inset 0 0 0 1px var(--danger-line); }
+
+/* Controls */
+[data-theme='daylight'] .seg { background: var(--raised); }
+[data-theme='daylight'] .seg-thumb { background: var(--surface); box-shadow: 0 1px 2px rgb(15 20 30 / 0.14), 0 0 0 1px var(--line); }
+[data-theme='daylight'] .search { box-shadow: 0 1px 2px rgb(15 20 30 / 0.05); }
+[data-theme='daylight'] :is(.search.is-focused, .search:focus-within) { border-color: color-mix(in srgb, var(--focus) 60%, var(--line)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 14%, transparent); animation: daylight-ring var(--t-slow, 240ms) var(--ease, ease) both; }
+[data-theme='daylight'] .playing, [data-theme='daylight'] .group { box-shadow: 0 1px 2px rgb(15 20 30 / 0.05); }
+
+/* Motion */
+/* The cursor's bar grows in from the middle as it lands on a row */
+[data-theme='daylight'] :is(.row, .site-row, .win-row).is-cursor { animation: daylight-cursor 160ms var(--ease, ease) both; }
+/* Duplicates waiting: the dot sends out a slow ripple */
+[data-theme='daylight'] .strip:not(.strip--clean, .strip--idle) .dot { animation: daylight-ping 2.2s ease-out infinite; }
+/* All clear: the dot pops once */
+[data-theme='daylight'] .strip--clean .dot { animation: daylight-pop 420ms var(--ease, ease) both; }
+@keyframes daylight-cursor { from { box-shadow: inset 0 0 var(--focus); } }
+@keyframes daylight-ping { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--amber) 45%, transparent); } 70%, 100% { box-shadow: 0 0 0 7px transparent; } }
+@keyframes daylight-pop { 0% { scale: 0.4; } 60% { scale: 1.35; } 100% { scale: 1; } }
+@keyframes daylight-ring { from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--focus) 14%, transparent); } }
+
+/* Picker preview card */
+.mini[data-theme='daylight'] .mini-search { box-shadow: 0 0 0 2px color-mix(in srgb, var(--focus) 14%, transparent); }

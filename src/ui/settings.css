@@ -2,26 +2,23 @@
 .settings { max-width: 640px; margin: 0 auto; padding: 36px 24px 48px; }
 
 .settings-head { display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: 32px; }
-.settings-head h1 { margin: 18px 0 0; font-size: 26px; letter-spacing: 0.12em; }
+.settings-title { display: flex; align-items: center; gap: 8px; margin-top: 18px; }
+.settings-head h1 { margin: 0; font-size: 26px; letter-spacing: 0.12em; }
+.version { padding: 2px 7px; border-radius: 999px; background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink-2); font-family: var(--mono); font-size: 11.5px; }
 .settings-head p { margin: 4px 0 0; font-size: 13px; color: var(--ink-3); }
 .saved { margin-top: 10px; font-size: 12px; color: var(--ink-3); }
 
-/* Logo: a 3D icosahedron turning slowly on a tilted axis through two face
-   centres, like a globe. icosahedron.ts builds it and drives the turn (drag to
-   spin). Front edges are solid, edges facing away are dashed, as in the logo. */
-.ico { position: relative; width: var(--ico-size); height: var(--ico-size); perspective: 900px; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+/* Logo: a 3D icosahedron turning slowly on a tilted axis, like a globe.
+   icosahedron.ts redraws one SVG each frame (drag to spin): solid edges in
+   front, dashed behind, corners cut by small shaded facets, nearer lines a
+   little heavier (--w). --ico-ink is the drawing colour; themes can set it. */
+.ico { --ico-ink: var(--ink-2); --ico-stroke: 2.7px; position: relative; width: var(--ico-size); height: var(--ico-size); cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
 .ico.is-dragging { cursor: grabbing; }
-.ico-tilt, .ico-spin { position: absolute; inset: 0; transform-style: preserve-3d; }
-/* Axis leans top-left to bottom-right, about as much as the Earth's (~20°). */
-.ico-tilt { transform: rotateZ(-20deg) rotateX(-6deg); }
-.ico-face { position: absolute; left: 50%; top: 50%; width: 100px; height: 86.6px; transform-origin: 0 0; transform-style: preserve-3d; }
-.ico-face svg { position: absolute; inset: 0; overflow: visible; backface-visibility: hidden; }
-/* Depth: edges on the far side are fainter and very slightly out of focus. */
-.ico-back { transform: rotateY(180deg); opacity: 0.45; filter: blur(0.45px); }
-.ico line { stroke: var(--ink-2); stroke-width: 3.6; stroke-linecap: round; }
-/* 6 dashes + 5 gaps fill an edge exactly (6×7.5 + 5×11 = 100), so the pattern is
-   symmetric and the two faces sharing an edge draw the same dashes. */
-.ico-back line { stroke-dasharray: 7.5 11; }
+.ico-svg { display: block; overflow: visible; }
+.ico line { stroke: var(--ico-ink); stroke-width: calc(var(--ico-stroke) * var(--w, 1)); stroke-linecap: round; }
+.ico-back line { stroke-dasharray: 5 7.5; }
+/* A corner's facet: lit ones toward the ink, turned-away ones toward the page. */
+.ico-facet { fill: color-mix(in srgb, var(--ico-ink) calc(25% + var(--lit, 0) * 65%), var(--canvas)); stroke: var(--ico-ink); stroke-width: calc(var(--ico-stroke) * 0.7 * var(--w, 1)); stroke-linejoin: miter; }
 .saved.is-saved { color: var(--ok); }
 .saved.is-saved::before { content: '✓ '; }
 
@@ -30,10 +27,11 @@
 .section-note { margin: -4px 0 10px; font-size: 12.5px; color: var(--ink-2); }
 .group { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); }
 
-.setting { display: flex; align-items: center; gap: 16px; padding: 14px 16px; }
+/* A control too wide to sit beside readable text wraps under it. */
+.setting { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; padding: 14px 16px; }
 .setting + .setting { border-top: 1px solid var(--line-soft); }
 .setting--toggle { cursor: pointer; }
-.setting-text { flex: 1; min-width: 0; }
+.setting-text { flex: 1 1 240px; min-width: 0; }
 .setting-title { font-size: 14px; font-weight: 600; }
 .setting-note { margin: 3px 0 0; font-size: 12.5px; color: var(--ink-2); }
 
@@ -44,6 +42,17 @@
 .choice-opt span { display: block; padding: 5px 12px; border-radius: 6px; font-size: 12.5px; color: var(--ink-2); white-space: nowrap; transition: background-color 90ms, color 90ms; }
 .choice-opt:hover span { color: var(--ink); }
 .choice-opt input:checked + span { background: var(--raised); color: var(--ink); font-weight: 600; }
+/* A row whose control sits under its text, with a worked example below. */
+.setting--stack { flex-direction: column; align-items: stretch; }
+.setting--stack .setting-text { flex: none; }
+.setting--stack .choice { align-self: flex-start; }
+.match-example { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; padding: 10px 12px; background: var(--canvas); border: 1px dashed var(--line); border-radius: 8px; }
+.match-urls { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.match-urls code { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--ink); overflow-wrap: anywhere; }
+/* The part the rule ignores: lighter, struck through and on a grey tint, so it reads as set aside in every theme. */
+.match-ignored { margin-left: 1px; padding: 0 3px; border-radius: 3px; background: color-mix(in srgb, var(--ink) 7%, transparent); color: var(--ink-3); font-weight: 400; text-decoration: line-through; text-decoration-color: var(--ink-3); text-decoration-thickness: 1.5px; }
+.match-verdict { margin: 0 0 0 auto; font-size: 12.5px; color: var(--ink-2); }
+.match-verdict.is-same { color: var(--ok); }
 .choice-opt input:focus-visible + span { outline: 2px solid var(--focus); outline-offset: 1px; }
 
 /* On/off: a styled checkbox with role="switch" */
@@ -118,7 +127,7 @@
 .is-disabled .swatch, .is-disabled .swatch input { cursor: not-allowed; }
 
 .keys { flex: none; display: flex; gap: 6px; }
-.settings kbd { font-family: var(--mono); font-size: 12px; color: var(--key); border: 1px solid var(--line); border-radius: 5px; padding: 2px 7px; }
+.settings kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 5px; background: color-mix(in srgb, var(--ink) 9%, transparent); color: var(--ink-2); font-family: var(--sans); font-size: 12px; font-weight: 600; line-height: 1; }
 
 .settings-foot { display: flex; gap: 16px; font-size: 12px; color: var(--ink-3); }
 .settings-foot a { color: var(--focus); text-decoration: none; }

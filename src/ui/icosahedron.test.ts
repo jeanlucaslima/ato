@@ -1,14 +1,11 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { AUTO_SPEED, FACE_H, FACE_W, INRADIUS_RATIO, centroid, coast, faceMatrix, icosahedronFaces, type Vec } from './icosahedron';
+import { AUTO_SPEED, CHAMFER, DEPTH, INRADIUS_RATIO, centroid, coast, frame, frontness, icosahedronFaces, icosahedronModel, type Vec } from './icosahedron';
 
 const dist = (a: Vec, b: Vec) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 const R = 72;
 const faces = icosahedronFaces(R);
 
-function matrixOf(css: string): number[] {
-  return css.slice('matrix3d('.length, -1).split(',').map(Number);
-}
 
 describe('icosahedron', () => {
   it('has 20 equilateral faces over 12 vertices on the sphere', () => {
@@ -39,16 +36,84 @@ describe('icosahedron', () => {
     }
   });
 
-  it('maps the face box triangle onto each face, front looking outward', () => {
-    for (const face of faces) {
-      const m = matrixOf(faceMatrix(face));
-      const apply = (x: number, y: number): Vec => [m[0]! * x + m[4]! * y + m[12]!, m[1]! * x + m[5]! * y + m[13]!, m[2]! * x + m[6]! * y + m[14]!];
-      const corners = [apply(0, FACE_H), apply(FACE_W, FACE_H), apply(FACE_W / 2, 0)];
-      corners.forEach((c, i) => expect(dist(c, face[i]!)).toBeLessThan(0.01));
-      const z: Vec = [m[8]!, m[9]!, m[10]!];
-      const c = centroid(face);
-      expect(z[0] * c[0] + z[1] * c[1] + z[2] * c[2]).toBeGreaterThan(0);
-    }
+});
+
+describe('frame', () => {
+  const model = icosahedronModel(R);
+  const angles = fc.double({ min: -720, max: 720, noNaN: true });
+
+  it('draws each of the 30 edges once, and cuts each of the 12 corners with a pentagon', () => {
+    expect(model.edges).toHaveLength(30);
+    expect(model.rings.every((ring) => ring.length === 5)).toBe(true);
+    const f = frame(model, 18);
+    expect(f.edges).toHaveLength(30);
+    expect(f.facets).toHaveLength(12);
+    expect(f.facets.every((facet) => facet.points.length === 5)).toBe(true);
+  });
+
+  it('keeps the outline solid at every angle: an edge is solid when either of its faces looks at you', () => {
+    fc.assert(
+      fc.property(angles, (deg) => {
+        const f = frame(model, deg);
+        // Some edges are fully solid, some fully dashed, and every value is a blend in 0…1.
+        return f.edges.some((e) => e.front === 1) && f.edges.some((e) => e.front === 0) && f.edges.every((e) => e.front >= 0 && e.front <= 1);
+      }),
+    );
+  });
+
+  it('cross-fades solid and dashed smoothly, never a jump', () => {
+    expect(frontness(-1)).toBe(0);
+    expect(frontness(1)).toBe(1);
+    expect(frontness(0)).toBeCloseTo(0.5, 9);
+    for (let f = -0.2; f < 0.2; f += 0.01) expect(frontness(f + 0.01) - frontness(f)).toBeLessThan(0.15);
+  });
+
+  it('turns smoothly: a small turn moves every edge end only a little (no glitch at the outline)', () => {
+    fc.assert(
+      fc.property(angles, (deg) => {
+        const [a, b] = [frame(model, deg), frame(model, deg + 0.5)];
+        return a.edges.every((e, i) => Math.hypot(e.x1 - b.edges[i]!.x1, e.y1 - b.edges[i]!.y1) < 1.5 && Math.abs(e.front - b.edges[i]!.front) < 0.2);
+      }),
+    );
+  });
+
+  it('never draws a dashed line past a front corner’s cut, so no dot pokes out of the outline', () => {
+    fc.assert(
+      fc.property(angles, (deg) => {
+        const f = frame(model, deg);
+        // Dashed ends lie between the cut (front corner) and the point (back corner), never beyond.
+        return f.edges.every((e) => {
+          const solid = Math.hypot(e.x2 - e.x1, e.y2 - e.y1);
+          const dash = Math.hypot(e.full[2] - e.full[0], e.full[3] - e.full[1]);
+          return dash >= solid - 1e-6 && dash <= (solid / (1 - 2 * CHAMFER)) * 1.01 + 1e-6;
+        });
+      }),
+    );
+    // Where a corner fully faces you, the dashed line ends exactly where the solid one does: at the cut.
+    fc.assert(
+      fc.property(angles, (deg) => {
+        const f = frame(model, deg);
+        const front = new Map(f.facets.map((c) => [c.corner, c.front]));
+        return f.edges.every((e, i) => {
+          const { a, b } = model.edges[i]!;
+          const okA = front.get(a)! < 1 || Math.hypot(e.full[0] - e.x1, e.full[1] - e.y1) < 1e-6;
+          const okB = front.get(b)! < 1 || Math.hypot(e.full[2] - e.x2, e.full[3] - e.y2) < 1e-6;
+          return okA && okB;
+        });
+      }),
+    );
+    // Uncut (chamfer 0) the dashed and solid lines coincide.
+    const plain = frame(model, 30, 0);
+    expect(plain.edges.every((e) => Math.abs(e.full[0] - e.x1) < 1e-9 && Math.abs(e.full[3] - e.y2) < 1e-9)).toBe(true);
+  });
+
+  it('cuts corners at CHAMFER along each edge, and weighs lines by nearness within ±DEPTH', () => {
+    const f = frame(model, 0);
+    const len = (e: (typeof f.edges)[number]) => Math.hypot(e.x2 - e.x1, e.y2 - e.y1);
+    // Projected, a cut edge is about (1 - 2·CHAMFER) of the full edge (edges seen face on are the longest).
+    const full = dist(model.vertices[model.edges[0]!.a]!, model.vertices[model.edges[0]!.b]!);
+    expect(Math.max(...f.edges.map(len))).toBeLessThan(full * (1 - 2 * CHAMFER) * 1.1);
+    expect(f.edges.every((e) => e.weight >= 1 - DEPTH - 1e-9 && e.weight <= 1 + DEPTH + 1e-9)).toBe(true);
   });
 });
 

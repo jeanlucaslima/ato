@@ -48,13 +48,15 @@ SEE AND MOVE YOUR TABS
 KEYBOARD FIRST
 ━━━━━━━━━━━━━━━━━━━━
 
-Start typing to search titles and URLs across every window. Arrow keys and Enter to jump, Delete to close, D to review duplicates, S to switch views, X to select several tabs, Cmd+Z to undo. Press ? in the popup for every shortcut.
+Start typing to search titles and URLs across every window. Arrow keys and Enter to jump, Delete to close (Cmd+Delete while you're still typing), D to review duplicates, S to switch views, X to select several tabs, Cmd+Z to undo. Press ? in the popup for every shortcut.
 
 ━━━━━━━━━━━━━━━━━━━━
 MAKE IT YOURS
 ━━━━━━━━━━━━━━━━━━━━
 
-Nine themes, light and dark, or follow your system. Choose which copy to keep, what counts as the same page, what's protected, the view the popup opens on, and what the badge shows. Settings saved by ATO 2 carry over.
+Thirteen themes, light, dark and true black: Graphite, Daylight, Paper, Onyx, Cyber, Neon, Poster, Riso, Nebula, Ember, Lagoon, Sakura and Dune. Or leave it on System, the default, which is Daylight by day and Graphite by night.
+
+Choose which copy to keep, what counts as the same page, what's protected, the view the popup opens on, and what the badge shows. Settings saved by ATO 2 carry over.
 
 ━━━━━━━━━━━━━━━━━━━━
 PRIVATE BY DESIGN
@@ -66,6 +68,49 @@ Open source: https://github.com/jeanlucaslima/ato
 
 Requires Chrome 157 or newer. Change the shortcut at chrome://extensions/shortcuts.
 ```
+
+## What's new in 3.1
+
+The store has no field for this. Paste it into the detailed description, above
+"Open source:", and take it out at the next release.
+
+```
+━━━━━━━━━━━━━━━━━━━━
+NEW IN 3.1
+━━━━━━━━━━━━━━━━━━━━
+
+• Four new themes. Daylight: neutral light where the current tab, copies, audio and keep or close are each a clear mark. Onyx: true black for OLED. Poster: black type, signal red, hard shadows. Riso: two fluorescent inks a touch off register.
+• System is the default for new installs: Daylight by day, Graphite by night. A theme you already chose stays.
+• Settings: "Same page when" shows two example URLs and whether they count as the same page.
+• Keyboard: from an empty search field the arrows step into the list, so Delete closes the row. Cmd+Delete closes from the search field. The footer always shows the key that works right now.
+• Big counts read properly (1,102 duplicates), and light themes show the selected view clearly.
+• Now playing no longer slows the popup down with thousands of tabs open.
+```
+
+## Screenshot captions
+
+The store shows screenshots without captions, so these are the text to set into
+each 1280×800 image, in order. The store takes up to five; the five in
+`docs/screenshots/store/` follow this table.
+
+| # | Shows | Caption |
+| --- | --- | --- |
+| 1 | Tabs with the duplicates bar, Daylight (`daylight-tabs.png`) | **Close duplicate tabs, safely.** See how many duplicates are open, and close them in one go. The tab you’re on, playing and pinned tabs stay. |
+| 2 | Duplicate review, Daylight (`review.png`) | **Review before you close.** Which copy stays, which close, and why. Flip any copy, then close the rest. |
+| 3 | Windows, Paper, beside Sites, Nebula (`windows.png`, `sites.png`) | **Every window at a glance.** Every window as a map of its tabs. Merge, focus or close a window, or a whole site. |
+| 4 | Search with matches highlighted, Graphite (the gallery's Search screen) | **Find any tab.** Type to find any tab in any window, matches highlighted. Everything has a key. |
+| 5 | The theme picker (`themes.png`) | **Thirteen themes.** Light, dark and true black, or follow your system. |
+
+Alt text for the repo's own shots in `docs/screenshots/`:
+
+- `cyber-tabs.png`: ATO in the Cyber theme: search, the duplicates bar, Now playing and the tab list, on a neon grid.
+- `riso-tabs.png`: The tab list in Riso: two fluorescent inks a touch off register, on grained paper.
+- `graphite-tabs.png`: The tab list in Graphite, the dark half of System.
+- `daylight-tabs.png`: The tab list in Daylight, the light half of System: the current tab, copies and audio each have their own mark.
+- `review.png`: Duplicate review in Daylight: each page with its copies, keep or close on each, and the reason a copy stays.
+- `sites.png`: Sites view in Nebula: a site opened to show its tabs, with Unload, Move and Close for the whole site.
+- `windows.png`: Windows view in Paper: each window with a dot map of its tab strip, tab groups outlined, and Focus, Merge and Close.
+- `themes.png`: The settings page's theme picker: System and the thirteen themes, each as a miniature popup in its own colours.
 
 ## Supporting dashboard fields
 
@@ -127,6 +172,6 @@ in the store form.
 ## Assets checklist
 
 - [x] Icon: 128×128 (`src/assets/icons/icon128.png`)
-- [x] Screenshots, 1280×800: `docs/screenshots/store/screenshot-1-1280x800.png` (duplicates), `-2-` (windows and sites), `-3-` (search and select, light theme)
+- [x] Screenshots, 1280×800, for 3.1: `docs/screenshots/store/screenshot-1-1280x800.png` to `-5-`, in the order of [Screenshot captions](#screenshot-captions), each with its caption set into the image
 - [ ] Small promo tile 440×280 (optional)
-- [ ] Package: `npm run zip` → `ato-v3.0.0.zip`
+- [ ] Package: `npm run zip` → `ato-v3.1.0.zip`

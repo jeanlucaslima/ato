@@ -6,8 +6,8 @@
 import type { DuplicatePolicy } from './duplicates';
 import type { MatchMode } from './tabs';
 
-/** Named colour themes. `system` (a setting, not a theme) follows the OS: Paper or Graphite. */
-export const THEMES = ['graphite', 'paper', 'cyber', 'nebula', 'ember', 'neon', 'lagoon', 'sakura', 'dune'] as const;
+/** Named colour themes. `system` (a setting, not a theme) follows the OS: Daylight or Graphite. */
+export const THEMES = ['graphite', 'daylight', 'paper', 'onyx', 'cyber', 'neon', 'poster', 'riso', 'nebula', 'ember', 'lagoon', 'sakura', 'dune'] as const;
 export type ThemeId = (typeof THEMES)[number];
 
 export const BADGE_COLORS = ['#dc2626', '#ea580c', '#ca8a04', '#16a34a', '#0891b2', '#2563eb', '#7c3aed', '#db2777', '#475569'] as const;
@@ -37,7 +37,7 @@ export const DEFAULT_SETTINGS: Settings = {
   protectGroups: true,
   view: 'tabs',
   scope: 'all',
-  theme: 'graphite',
+  theme: 'system',
   badge: 'duplicates',
   badgeColor: '#dc2626',
 };
@@ -65,7 +65,8 @@ const TOGGLES: readonly ToggleKey[] = ['protectPinned', 'protectGroups'];
 export function readSettings(raw: unknown): Settings {
   const data = raw !== null && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
   const out: Record<string, unknown> = { ...DEFAULT_SETTINGS };
-  if (typeof data.theme === 'string' && THEME_ALIASES[data.theme]) out.theme = THEME_ALIASES[data.theme];
+  // Own keys only: a stored "constructor" or "toString" must not reach Object.prototype.
+  if (typeof data.theme === 'string' && Object.hasOwn(THEME_ALIASES, data.theme)) out.theme = THEME_ALIASES[data.theme];
   for (const [key, allowed] of Object.entries(CHOICES)) {
     if ((allowed as readonly unknown[]).includes(data[key])) out[key] = data[key];
   }
@@ -92,7 +93,7 @@ export function hasLegacy(raw: Record<string, unknown>): boolean {
  * to v3's defaults.
  */
 export function fromLegacy(raw: Record<string, unknown>): Settings {
-  const pick = <T,>(table: Record<string, T>, value: unknown): T | undefined => (typeof value === 'string' ? table[value] : undefined);
+  const pick = <T,>(table: Record<string, T>, value: unknown): T | undefined => (typeof value === 'string' && Object.hasOwn(table, value) ? table[value] : undefined);
   const badge = raw.showBadge === false || raw.badgeMode === 'off' ? 'off' : raw.badgeMode === 'allTabs' ? 'all' : raw.badgeMode === 'duplicates' ? 'duplicates' : undefined;
   return readSettings({
     keep: raw.keepTab,

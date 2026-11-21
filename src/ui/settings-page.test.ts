@@ -33,10 +33,29 @@ describe('settings page', () => {
     expect(container.querySelector('.saved')!.textContent).toBe('Saved');
   });
 
+  it('shows what the chosen match rule does to an example pair of URLs', async () => {
+    const container = document.createElement('div');
+    await mountSettings(container, new MemorySettings(), { version: '3' });
+    const example = () => container.querySelector('.match-example')!;
+    expect(example().querySelector('.match-ignored')).toBeNull();
+    expect(example().querySelector('.match-verdict')!.textContent).toContain('Different pages');
+    const query = container.querySelector<HTMLInputElement>('input[name="match"][value="ignoreQuery"]')!;
+    query.checked = true;
+    query.dispatchEvent(new Event('change', { bubbles: true }));
+    await flush();
+    expect([...example().querySelectorAll('.match-ignored')].map((e) => e.textContent)).toEqual(['?lang=en', '?lang=pt']);
+    expect(example().querySelector('.match-verdict')!.textContent).toContain('Same page');
+  });
+
+  it('shows the installed version beside the name', () => {
+    const page = renderSettings({ settings: DEFAULT_SETTINGS, version: '3.1.0', saved: false });
+    expect(page.querySelector('.settings-title .version')!.textContent).toBe('v3.1.0');
+  });
+
   it('offers every theme, each card previewed in its own colours', () => {
     const page = renderSettings({ settings: DEFAULT_SETTINGS, version: '3', saved: false });
     const cards = page.querySelectorAll('.theme-card');
-    expect(cards).toHaveLength(10);
+    expect(cards).toHaveLength(14);
     expect(page.querySelector('.theme-card input[value="ember"]')!.closest('.theme-card')!.querySelector('[data-theme="ember"]')).not.toBeNull();
   });
 

@@ -5,7 +5,10 @@
 .popup { width: 440px; height: 600px; display: flex; flex-direction: column; overflow: hidden; position: relative; background: var(--canvas); }
 
 .k { font-family: var(--mono); font-size: 11px; color: var(--key); }
-.k--box { border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; }
+/* A key, drawn as a soft keycap: tinted, no border, the same in every theme. */
+.k--box { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 4px; background: color-mix(in srgb, var(--ink) 9%, transparent); color: var(--ink-2); font-family: var(--sans); font-size: 11px; font-weight: 600; line-height: 1; vertical-align: middle; }
+.btn .k--box { background: color-mix(in srgb, currentColor 14%, transparent); color: inherit; }
+.foot > span, .foot-help { display: inline-flex; align-items: center; gap: 5px; }
 
 /* Brand */
 .brand { flex: none; display: flex; align-items: center; gap: 10px; padding: 10px 8px 2px 12px; }
@@ -44,8 +47,8 @@
 .strip--clean strong { color: var(--ok); }
 .strip--idle { border-color: var(--line); background: var(--surface); }
 .strip--idle .dot { background: var(--ink-3); }
-/* Cursor on the bar: the list's cursor marks (focus border, left bar) plus a ring, so it reads in every theme. */
-.strip.is-cursor { border-color: var(--focus); box-shadow: 0 0 0 1.5px var(--focus), inset 4px 0 var(--focus); }
+/* Cursor on a boxed item (the bar, Now playing): an even ring all round, no left bar. */
+.strip.is-cursor { border-color: var(--focus); box-shadow: 0 0 0 1.5px var(--focus); }
 
 /* Now playing: audible tabs from any window */
 .playing { flex: none; margin: 0 12px 10px; padding: 3px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
@@ -59,21 +62,22 @@
 .play-mute { color: var(--ok); }
 .is-muted .play-mute { color: var(--ink-3); }
 .is-muted .play-title { color: var(--ink-2); }
-.play-row.is-cursor { border-radius: 7px; background: var(--focus-fill); box-shadow: inset 3px 0 var(--focus), 0 0 0 1px var(--focus); }
+.play-row.is-cursor { border-radius: 7px; background: var(--focus-fill); box-shadow: 0 0 0 1px var(--focus); }
 .play-more { margin: 0; padding: 2px 8px 5px 34px; font-size: 11px; color: var(--ink-3); }
 .eq { flex: none; display: flex; align-items: flex-end; gap: 2px; width: 16px; height: 14px; color: var(--ok); }
-.eq i { flex: 1; height: 40%; border-radius: 1px; background: currentColor; animation: eq 820ms ease-in-out infinite alternate; }
+/* The bars scale (compositor only) rather than change height, so they never relayout the popup. */
+.eq i { flex: 1; height: 100%; border-radius: 1px; background: currentColor; transform: scaleY(0.4); transform-origin: bottom; animation: eq 820ms ease-in-out infinite alternate; }
 .eq i:nth-child(2) { animation-duration: 640ms; animation-delay: -200ms; }
 .eq i:nth-child(3) { animation-duration: 940ms; animation-delay: -420ms; }
 .eq i:nth-child(4) { animation-duration: 720ms; animation-delay: -120ms; }
 .is-muted .eq { color: var(--ink-3); }
-.is-muted .eq i { height: 20%; animation-play-state: paused; }
-@keyframes eq { from { height: 18%; } to { height: 100%; } }
+.is-muted .eq i { transform: scaleY(0.2); animation: none; }
+@keyframes eq { from { transform: scaleY(0.18); } to { transform: scaleY(1); } }
 
 /* Buttons */
 .btn { height: 30px; padding: 0 10px; border: 1px solid var(--line); border-radius: 7px; background: transparent; font-size: 12px; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
 .btn:hover:not(:disabled) { background: var(--surface); }
-.btn .k { color: inherit; }
+.btn .k:not(.k--box) { color: inherit; }
 .btn--danger { color: var(--danger); border-color: var(--danger-line); }
 .btn--icon { padding-inline: 7px; }
 .btn--icon svg { display: block; }
@@ -84,14 +88,21 @@
 /* View bar */
 .bar { display: flex; align-items: center; gap: 4px; padding: 0 12px 8px; border-bottom: 1px solid var(--line); }
 .seg { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); padding: 2px; background: var(--surface); border-radius: 8px; }
-.seg button { position: relative; height: 28px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; color: var(--ink-2); font-size: 12px; }
+.seg button { position: relative; height: 28px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; color: var(--ink-2); font-size: 12px; }
 .seg button[aria-pressed='true'] { color: var(--ink); font-weight: 600; }
 .seg-thumb { position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc((100% - 4px) / 3); border-radius: 6px; background: var(--raised); }
 .seg--at-sites .seg-thumb { transform: translateX(100%); }
 .seg--at-windows .seg-thumb { transform: translateX(200%); }
-.seg .n { font-family: var(--mono); font-weight: 400; color: var(--ink-2); margin-left: 4px; }
+/* Light themes: on a white track a darker thumb barely shows, so the track takes the
+   tint and the thumb is a raised white key. The search ring is softer, too: a
+   2px dark outline reads heavy on a light page, and search is focused on open. */
+:is([data-theme='paper'], [data-theme='lagoon'], [data-theme='sakura'], [data-theme='dune']) .seg { background: var(--raised); }
+:is([data-theme='paper'], [data-theme='lagoon'], [data-theme='sakura'], [data-theme='dune']) .seg-thumb { background: var(--surface); box-shadow: 0 1px 2px rgb(0 0 0 / 0.12), 0 0 0 1px var(--line); }
+:is([data-theme='paper'], [data-theme='lagoon'], [data-theme='sakura'], [data-theme='dune']) :is(.search.is-focused, .search:focus-within) { border-color: color-mix(in srgb, var(--focus) 55%, var(--line)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 14%, transparent); }
+/* Sans with fixed-width digits: mono digits are wide, and at 10k+ tabs the bar ran out of room. */
+.seg .n { font-family: var(--sans); font-variant-numeric: tabular-nums; font-weight: 500; color: var(--ink-2); margin-left: 4px; }
 .bar .spacer { flex: 1; }
-.menu-btn { height: 28px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; color: var(--ink-2); font-size: 12px; display: flex; align-items: center; gap: 4px; }
+.menu-btn { flex: none; white-space: nowrap; height: 28px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; color: var(--ink-2); font-size: 12px; display: flex; align-items: center; gap: 4px; }
 .menu-btn:hover { background: var(--surface); }
 
 /* Section headers */
@@ -246,7 +257,7 @@ button.verdict:disabled { cursor: default; opacity: 1; }
 .help-section dd { margin: 0; font-size: 12.5px; color: var(--ink-2); }
 
 /* Bottom: hints, selection bar, toast */
-.foot { height: 34px; flex: none; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 14px; padding: 0 14px; font-size: 11px; color: var(--ink-3); white-space: nowrap; }
+.foot { height: 34px; flex: none; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 10px; padding: 0 12px; font-size: 11px; color: var(--ink-3); white-space: nowrap; }
 .foot-help { margin-left: auto; height: 26px; padding: 0 6px; border: 0; border-radius: 6px; background: transparent; color: var(--ink-3); font-size: 11px; }
 .foot-help:hover { background: var(--surface); color: var(--ink); }
 .actionbar { flex: none; display: flex; align-items: center; gap: 6px; height: 52px; padding: 0 12px 0 14px; border-top: 1px solid var(--focus); background: var(--surface); }

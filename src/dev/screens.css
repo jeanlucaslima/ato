@@ -14,3 +14,34 @@ body { padding: 32px; background: color-mix(in srgb, var(--canvas), black 22%); 
 .gallery-settings figcaption { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--ink-2); margin-bottom: 6px; }
 .gallery-settings figcaption .btn { height: 24px; font-size: 11px; }
 .settings-frame { background: var(--canvas); border: 1px solid var(--line); border-radius: 12px; scroll-margin-top: 24px; }
+
+/* Theme tabs: one per theme, then the prototypes; hover previews, click picks.
+   Sticky, so you can flick through themes anywhere on the page. Drawn with
+   fixed neutral colours so every theme's tabs look the same. */
+.theme-tabs { position: sticky; top: 8px; z-index: 20; margin: -8px 0 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 5px; border-radius: 10px; background: rgb(28 30 33 / 0.92); box-shadow: 0 6px 20px rgb(0 0 0 / 0.25); backdrop-filter: blur(8px); }
+.theme-tab { height: 28px; padding: 0 11px; border: 0; border-radius: 7px; background: transparent; color: #c9ced1; font: 600 12px/1 'Manrope Variable', system-ui, sans-serif; cursor: pointer; }
+.theme-tab:hover { background: rgb(255 255 255 / 0.1); color: #fff; }
+.theme-tab[aria-pressed='true'] { background: #f0f1ee; color: #17191b; }
+.theme-tabs-sep { margin: 0 4px 0 10px; padding-left: 12px; border-left: 1px solid rgb(255 255 255 / 0.18); color: #8f979b; font: 600 10.5px/1 'Manrope Variable', system-ui, sans-serif; text-transform: uppercase; letter-spacing: 0.08em; }
+
+/* Logos: the 3D logo at its sizes, then the static marks and app icons */
+.gallery-logos { margin-top: 56px; max-width: 832px; }
+.gallery-logos h2 { margin: 0 0 12px; font-size: 16px; }
+.logo-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 24px; margin-bottom: 24px; padding: 24px; background: var(--canvas); border: 1px solid var(--line); border-radius: 12px; }
+.logo-tile { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--ink); }
+.logo-tile figcaption { font-size: 11.5px; color: var(--ink-3); }
+.logo-art { display: grid; place-items: center; }
+.logo-art svg { display: block; }
+.logo-speed { position: static; display: inline-flex; margin: 0 0 12px; box-shadow: none; }
+.angle-picker { align-items: flex-start; }
+.angle-art { cursor: grab; touch-action: none; user-select: none; }
+.angle-art:active { cursor: grabbing; }
+.angle-art svg { display: block; }
+.angle-side { flex: 1; min-width: 260px; display: flex; flex-direction: column; gap: 10px; }
+.angle-side h3 { margin: 0; font-size: 14px; }
+.angle-side p { margin: 0; font-size: 12.5px; color: var(--ink-2); }
+.angle-readout { align-self: flex-start; padding: 6px 10px; border-radius: 7px; background: color-mix(in srgb, var(--ink) 9%, transparent); font-family: var(--mono); font-size: 13px; color: var(--ink); }
+.angle-lean { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--ink-2); }
+.angle-lean input { flex: 1; }
+.angle-sizes { display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap; }
+.angle-side .logo-speed { align-self: flex-start; margin: 0; }
