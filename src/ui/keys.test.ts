@@ -34,7 +34,8 @@ describe('resolveKey', () => {
   });
 
   it('keeps arrows working while typing, but letters go to the field', () => {
-    expect(action({ key: 'ArrowDown' }, ctx({ typing: true }))).toEqual({ type: 'moveCursor', delta: 1 });
+    expect(resolveKey({ key: 'ArrowDown' }, ctx({ typing: true }))).toEqual({ kind: 'action', action: { type: 'moveCursor', delta: 1 }, leaveSearch: true });
+    expect(resolveKey({ key: 'ArrowDown' }, ctx({ typing: true, hasQuery: true }))).toEqual({ kind: 'action', action: { type: 'moveCursor', delta: 1 } });
     expect(resolveKey({ key: 'j' }, ctx({ typing: true }))).toBeNull();
     expect(resolveKey({ key: 'Backspace' }, ctx({ typing: true }))).toBeNull();
     expect(resolveKey({ key: 'Backspace' }, ctx({ typing: true, fieldChip: true }))).toBeNull();

@@ -29,7 +29,8 @@ export interface KeyContext {
 }
 
 export type KeyCommand =
-  | { kind: 'action'; action: Action }
+  /** `leaveSearch`: move focus from the search field to the list first, so list keys (⌫, U, X…) act. */
+  | { kind: 'action'; action: Action; leaveSearch?: boolean }
   /** Move focus to search, optionally typing `text` into it. */
   | { kind: 'focusSearch'; text?: string; fromList?: boolean }
   /** Leave the search field so single-letter shortcuts work. */
@@ -59,6 +60,9 @@ export function resolveKey(e: KeyLike, ctx: KeyContext): KeyCommand | null {
       // Search sits above the list: ↑ from the top goes up into it rather than wrapping to the bottom.
       // (Review has no search field, so it wraps as before.)
       if (delta < 0 && ctx.atTop && !ctx.typing && !ctx.reviewOpen) return { kind: 'focusSearch', fromList: true };
+      // From an empty search field the arrows step down into the list, focus and all, so ⌫ and the
+      // letter keys act on the row. With a query, focus stays to keep typing (⌘⌫ closes the results).
+      if (ctx.typing && !ctx.hasQuery) return { kind: 'action', action: { type: 'moveCursor', delta }, leaveSearch: true };
       return act({ type: 'moveCursor', delta });
     }
     case 'PageDown':

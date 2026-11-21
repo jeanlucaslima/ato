@@ -347,6 +347,7 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
     event.preventDefault();
     switch (command.kind) {
       case 'action':
+        if (command.leaveSearch) root?.focus();
         return dispatch(command.action);
       case 'blurSearch':
         return root?.focus();

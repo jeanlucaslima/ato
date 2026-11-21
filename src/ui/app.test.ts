@@ -47,7 +47,8 @@ describe('cursor-only fast path', () => {
 
     const b = document.createElement('div');
     document.body.append(b);
-    app = mountApp(b, new FakeBrowser(snapshot), { snapshot, ui: initialUi({ ...ui, cursor: cursor as UiState['cursor'] }) }, { autofocus: true });
+    // The arrows stepped focus out of the (empty) search field into the list, so render that state.
+    app = mountApp(b, new FakeBrowser(snapshot), { snapshot, ui: initialUi({ ...ui, cursor: cursor as UiState['cursor'], searchFocused: false }) });
     expect(moved).toBe(html(b));
   });
 });
@@ -67,37 +68,59 @@ describe('mountApp keyboard + a11y', () => {
     expect(input.getAttribute('aria-controls')).toBe(container.querySelector('.list')?.id);
   });
 
-  it('closes the tab under the cursor with ⌘⌫ from the search field it opens in, and with ⌫ once out of it', async () => {
+  it('steps from the empty search field into the list with the arrows, where ⌫ and Delete close the row', async () => {
     const browser = new FakeBrowser(SNAPSHOT);
     const container = document.createElement('div');
     document.body.append(container);
     app = mountApp(container, browser, { snapshot: SNAPSHOT, ui: initialUi() }, { autofocus: true });
     const input = container.querySelector<HTMLInputElement>('input[name="q"]')!;
-    const key = (target: Element, k: string, metaKey = false) =>
-      target.dispatchEvent(new KeyboardEvent('keydown', { key: k, metaKey, bubbles: true, cancelable: true }));
+    const popup = container.querySelector('.popup')!;
+    const key = (k: string, metaKey = false) =>
+      (document.activeElement ?? input).dispatchEvent(new KeyboardEvent('keydown', { key: k, metaKey, bubbles: true, cancelable: true }));
     const cursorTab = () => Number(container.querySelector<HTMLElement>('.row.is-cursor')?.dataset.key?.replace('tab:', ''));
     const open = async () => (await browser.snapshot()).tabs.map((t) => t.id);
     const settle = () => new Promise((r) => setTimeout(r, CLOSE_ANIMATION_MS + 50));
+    const foot = () => container.querySelector('.foot')!.textContent;
 
-    while (!container.querySelector('.row.is-cursor')) key(input, 'ArrowDown');
-    expect(container.querySelector('.foot')!.textContent).toContain('⌘⌫ close');
+    expect(document.activeElement).toBe(input);
+    expect(foot()).toContain('⌘⌫ close');
+    while (!container.querySelector('.row.is-cursor')) key('ArrowDown');
+    expect(document.activeElement).toBe(popup);
+    expect(foot()).toContain('⌫ close');
+    expect(foot()).not.toContain('⌘⌫');
     const first = cursorTab();
-    key(input, 'Backspace');
-    await settle();
-    expect(await open()).toContain(first);
-    key(input, 'Backspace', true);
+    key('Backspace');
     await settle();
     expect(await open()).not.toContain(first);
-
-    key(input, 'Escape');
-    const popup = container.querySelector('.popup')!;
-    expect(container.querySelector('.foot')!.textContent).toContain('⌫ close');
-    expect(container.querySelector('.foot')!.textContent).not.toContain('⌘⌫');
     const second = cursorTab();
     expect(second).toBeTruthy();
-    key(popup, 'Delete');
+    key('Delete');
     await settle();
     expect(await open()).not.toContain(second);
+  });
+
+  it('keeps focus in search while there is a query, and ⌘⌫ (not ⌫) closes from there', async () => {
+    const browser = new FakeBrowser(SNAPSHOT);
+    const container = document.createElement('div');
+    document.body.append(container);
+    app = mountApp(container, browser, { snapshot: SNAPSHOT, ui: initialUi() }, { autofocus: true });
+    const input = container.querySelector<HTMLInputElement>('input[name="q"]')!;
+    const key = (k: string, metaKey = false) => input.dispatchEvent(new KeyboardEvent('keydown', { key: k, metaKey, bubbles: true, cancelable: true }));
+    // A cursor while typing in an empty field (as after pointing at a row): ⌫ edits, ⌘⌫ closes that row.
+    const row = container.querySelector<HTMLElement>('.row')!;
+    row.dispatchEvent(new PointerEvent('pointermove', { bubbles: true }));
+    const id = Number(container.querySelector<HTMLElement>('.row.is-cursor')!.dataset.key!.replace('tab:', ''));
+    key('Backspace');
+    await new Promise((r) => setTimeout(r, CLOSE_ANIMATION_MS + 50));
+    expect((await browser.snapshot()).tabs.map((t) => t.id)).toContain(id);
+    key('Backspace', true);
+    await new Promise((r) => setTimeout(r, CLOSE_ANIMATION_MS + 50));
+    expect((await browser.snapshot()).tabs.map((t) => t.id)).not.toContain(id);
+    // With a query the arrows keep focus in the field.
+    input.value = 'chrome';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    key('ArrowDown');
+    expect(document.activeElement).toBe(input);
   });
 
   it.each([
