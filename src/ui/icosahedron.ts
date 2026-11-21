@@ -235,6 +235,11 @@ const drawings = new WeakMap<HTMLElement, (spinDeg: number) => void>();
 /** The angle it is first drawn at, before any spin. */
 const START = 18;
 
+/** Draw a logo made by `icosahedron` at a given spin angle (screenshots and the README's GIF). */
+export function drawAt(stage: HTMLElement, spinDeg: number): void {
+  drawings.get(stage)?.(spinDeg);
+}
+
 /**
  * The solid, standing still. Decorative: hidden from assistive tech. Marked
  * `data-morph-keep` because `attachSpin` owns its drawing once mounted.
