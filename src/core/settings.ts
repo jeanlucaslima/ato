@@ -65,7 +65,8 @@ const TOGGLES: readonly ToggleKey[] = ['protectPinned', 'protectGroups'];
 export function readSettings(raw: unknown): Settings {
   const data = raw !== null && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
   const out: Record<string, unknown> = { ...DEFAULT_SETTINGS };
-  if (typeof data.theme === 'string' && THEME_ALIASES[data.theme]) out.theme = THEME_ALIASES[data.theme];
+  // Own keys only: a stored "constructor" or "toString" must not reach Object.prototype.
+  if (typeof data.theme === 'string' && Object.hasOwn(THEME_ALIASES, data.theme)) out.theme = THEME_ALIASES[data.theme];
   for (const [key, allowed] of Object.entries(CHOICES)) {
     if ((allowed as readonly unknown[]).includes(data[key])) out[key] = data[key];
   }
@@ -92,7 +93,7 @@ export function hasLegacy(raw: Record<string, unknown>): boolean {
  * to v3's defaults.
  */
 export function fromLegacy(raw: Record<string, unknown>): Settings {
-  const pick = <T,>(table: Record<string, T>, value: unknown): T | undefined => (typeof value === 'string' ? table[value] : undefined);
+  const pick = <T,>(table: Record<string, T>, value: unknown): T | undefined => (typeof value === 'string' && Object.hasOwn(table, value) ? table[value] : undefined);
   const badge = raw.showBadge === false || raw.badgeMode === 'off' ? 'off' : raw.badgeMode === 'allTabs' ? 'all' : raw.badgeMode === 'duplicates' ? 'duplicates' : undefined;
   return readSettings({
     keep: raw.keepTab,
