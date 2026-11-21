@@ -153,7 +153,6 @@ export function stillClosable(fresh: readonly Tab[], ids: Iterable<number>, poli
   return { closable, kept };
 }
 
-/** Tabs a plan would close. */
 export function tabsToClose(sets: readonly DuplicateSet[]): Tab[] {
   return sets.flatMap((s) => s.copies.filter((c) => c.decision.action === 'close').map((c) => c.tab));
 }

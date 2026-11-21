@@ -55,9 +55,7 @@ export function findRanges(text: string, terms: readonly string[], mode: ParsedQ
 const WORD_CHAR = /[\p{L}\p{N}]/u;
 
 interface Matcher {
-  /** Every term occurs in `text`. */
   all(text: string): boolean;
-  /** Where the terms occur in `text`. */
   ranges(text: string): Range[];
 }
 

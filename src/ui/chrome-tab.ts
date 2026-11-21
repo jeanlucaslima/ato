@@ -27,7 +27,6 @@ export function fromChromeTab(t: chrome.tabs.Tab, now: number): Tab | null {
 /** `chrome.tabs.TAB_ID_NONE`, inlined so this module loads outside the extension (tests). */
 const chrome_TAB_ID_NONE = -1;
 
-/** ATO's view of a Chrome tab group. */
 export function fromChromeGroup(g: chrome.tabGroups.TabGroup): TabGroup {
   return { id: g.id, windowId: g.windowId, title: g.title ?? '', color: g.color as TabGroup['color'], collapsed: g.collapsed };
 }

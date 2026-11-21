@@ -99,7 +99,6 @@ export function logoEdges(options: LogoOptions = {}): Edge[] {
   return [...edges.values()];
 }
 
-/** Render the logo SVG. */
 export function logoSvg(options: LogoOptions = {}): string {
   const o = withDefaults(options);
   const project = ([x, y, z]: Vec): [number, number] => {

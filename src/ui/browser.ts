@@ -32,7 +32,7 @@ export interface BrowserPort {
    * left. Resolves with the tabs really closed.
    */
   close(tabIds: number[], policy: DuplicatePolicy | null, cleanup?: boolean): Promise<CloseResult>;
-  /** Reopens closed tabs, any number; resolves with how many came back (and how many without history). */
+  /** Reopens closed tabs, any number; resolves with how many came back, how many without history, and which couldn't. */
   restore(tabs: readonly Tab[], closedAt?: number): Promise<Restored>;
   /** A recent right-click close to offer undo for when the popup opens, or `null`. */
   pendingUndo(): Promise<UndoOffer | null>;

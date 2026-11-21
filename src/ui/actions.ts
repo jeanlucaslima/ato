@@ -45,7 +45,8 @@ export type Action =
   | { type: 'unloadResults' }
   /**
    * A close ran: `tabs` were really closed (undo covers exactly these), out of
-   * `requested`; `kept` were left open as protected (at the decision or the recheck).
+   * `requested`; `kept` were left open: protected (at the decision or the recheck),
+   * or the copy a duplicate cleanup kept because the planned one was gone.
    */
   | { type: 'closed'; tabs: readonly Tab[]; requested: readonly number[]; noun: string; kept: number; at?: number }
   /**

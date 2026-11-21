@@ -24,7 +24,6 @@ export function resolveTheme(theme: Settings['theme'], prefersLight = matchMedia
   return theme === 'system' ? (prefersLight ? 'paper' : 'graphite') : theme;
 }
 
-/** Apply a theme setting to the page. */
 export function applyTheme(theme: Settings['theme'], root: HTMLElement = document.documentElement): void {
   root.dataset.theme = resolveTheme(theme);
 }
