@@ -77,6 +77,36 @@ describe('frame', () => {
     );
   });
 
+  it('never draws a dashed line past a front corner’s cut, so no dot pokes out of the outline', () => {
+    fc.assert(
+      fc.property(angles, (deg) => {
+        const f = frame(model, deg);
+        // Dashed ends lie between the cut (front corner) and the point (back corner), never beyond.
+        return f.edges.every((e) => {
+          const solid = Math.hypot(e.x2 - e.x1, e.y2 - e.y1);
+          const dash = Math.hypot(e.full[2] - e.full[0], e.full[3] - e.full[1]);
+          return dash >= solid - 1e-6 && dash <= (solid / (1 - 2 * CHAMFER)) * 1.01 + 1e-6;
+        });
+      }),
+    );
+    // Where a corner fully faces you, the dashed line ends exactly where the solid one does: at the cut.
+    fc.assert(
+      fc.property(angles, (deg) => {
+        const f = frame(model, deg);
+        const front = new Map(f.facets.map((c) => [c.corner, c.front]));
+        return f.edges.every((e, i) => {
+          const { a, b } = model.edges[i]!;
+          const okA = front.get(a)! < 1 || Math.hypot(e.full[0] - e.x1, e.full[1] - e.y1) < 1e-6;
+          const okB = front.get(b)! < 1 || Math.hypot(e.full[2] - e.x2, e.full[3] - e.y2) < 1e-6;
+          return okA && okB;
+        });
+      }),
+    );
+    // Uncut (chamfer 0) the dashed and solid lines coincide.
+    const plain = frame(model, 30, 0);
+    expect(plain.edges.every((e) => Math.abs(e.full[0] - e.x1) < 1e-9 && Math.abs(e.full[3] - e.y2) < 1e-9)).toBe(true);
+  });
+
   it('cuts corners at CHAMFER along each edge, and weighs lines by nearness within ±DEPTH', () => {
     const f = frame(model, 0);
     const len = (e: (typeof f.edges)[number]) => Math.hypot(e.x2 - e.x1, e.y2 - e.y1);

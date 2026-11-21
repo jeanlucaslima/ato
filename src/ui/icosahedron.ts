@@ -150,28 +150,31 @@ export interface Frame {
   /** Each edge once, between its two cut points: `front` 1 solid … 0 dashed; `weight` its line width, 1 ± DEPTH by nearness. */
   edges: { x1: number; y1: number; x2: number; y2: number; front: number; weight: number; full: [number, number, number, number] }[];
   /** Each corner's cut: a pentagon, its frontness, how lit it is (0…1) and its line weight. */
-  facets: { points: [number, number][]; front: number; light: number; weight: number; z: number }[];
+  facets: { corner: number; points: [number, number][]; front: number; light: number; weight: number; z: number }[];
 }
 
-/** `full`: the uncut edge, for the dashed line, so hidden edges still meet at the corners. */
+/** `full`: the dashed line's ends: the corner's point when it is behind, its cut when it faces you. */
 export function frame(model: Model, spinDeg: number, chamfer = CHAMFER): Frame {
   const at = model.vertices.map((v) => turn(v, spinDeg));
   const radius = norm(model.vertices[0]!);
   const weight = (z: number) => 1 + DEPTH * (z / radius);
-  const cut = (i: number, j: number): Vec => add(at[i]!, scale(sub(at[j]!, at[i]!), chamfer));
+  const cut = (i: number, j: number, t = chamfer): Vec => add(at[i]!, scale(sub(at[j]!, at[i]!), t));
+  /** How much each corner faces you (0…1): a front corner is cut, so even dashed lines stop at its cut. */
+  const cornerFront = at.map((v) => frontness(facing(scale(v, 1 / norm(v)), v)));
   const edges = model.edges.map((e) => {
     const mid = scale(add(at[e.a]!, at[e.b]!), 0.5);
     const front = frontness(Math.max(...e.normals.map((n) => facing(turn(n, spinDeg), mid))));
     const [x1, y1] = project(cut(e.a, e.b));
     const [x2, y2] = project(cut(e.b, e.a));
-    const [fx1, fy1] = project(at[e.a]!);
-    const [fx2, fy2] = project(at[e.b]!);
+    // Dashed ends run into the point of a back corner (stars meet) but stop at a front corner's cut.
+    const [fx1, fy1] = project(cut(e.a, e.b, chamfer * cornerFront[e.a]!));
+    const [fx2, fy2] = project(cut(e.b, e.a, chamfer * cornerFront[e.b]!));
     return { x1, y1, x2, y2, front, weight: weight(mid[2]), full: [fx1, fy1, fx2, fy2] as [number, number, number, number] };
   });
   const facets = model.rings
     .map((ring, i) => {
       const n = scale(at[i]!, 1 / norm(at[i]!));
-      return { points: ring.map((j) => project(cut(i, j))), front: frontness(facing(n, at[i]!)), light: Math.max(0, dot(n, LIGHT)), weight: weight(at[i]![2]), z: at[i]![2] };
+      return { corner: i, points: ring.map((j) => project(cut(i, j))), front: frontness(facing(n, at[i]!)), light: Math.max(0, dot(n, LIGHT)), weight: weight(at[i]![2]), z: at[i]![2] };
     })
     .sort((p, q) => p.z - q.z);
   return { edges, facets };
