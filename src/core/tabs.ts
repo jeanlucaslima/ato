@@ -26,12 +26,12 @@ export function duplicateKey(tab: Pick<Tab, 'url'>, match: MatchMode = 'exact'):
   if (match === 'exact') return tab.url;
   try {
     const u = new URL(tab.url);
-    // Read each line as "every mode except X clears this": the #hash is cleared by
-    // all modes but ignoreQuery (so ignoreHash and ignoreBoth), and the ?query by
-    // all modes but ignoreHash (so ignoreQuery and ignoreBoth). 'exact' returned above.
-    // Not swapped: tabs.test.ts pins it with examples and properties.
-    if (match !== 'ignoreQuery') u.hash = '';
-    if (match !== 'ignoreHash') u.search = '';
+    // Each mode names what it ignores ('exact' returned above). tabs.test.ts pins
+    // this with examples and properties: ignoreHash keeps the ?query, ignoreQuery the #hash.
+    const dropHash = match === 'ignoreHash' || match === 'ignoreBoth';
+    const dropQuery = match === 'ignoreQuery' || match === 'ignoreBoth';
+    if (dropHash) u.hash = '';
+    if (dropQuery) u.search = '';
     return u.href;
   } catch {
     return tab.url;
