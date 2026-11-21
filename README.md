@@ -1,8 +1,12 @@
 # ATO - Advanced Tab Organizer
 
 <p align="center">
-  <img src="docs/screenshots/cyber-tabs.png" alt="ATO in the Cyber theme: search, the duplicates bar, Now playing and the tab list, on a neon grid" width="360">
-  <img src="docs/screenshots/cyber-review.png" alt="Duplicate review in Cyber: each page with its copies, a green KEEP or red CLOSE on each, and the reason a copy stays (pinned, current tab, oldest)" width="360">
+  <img src="docs/screenshots/cyber-tabs.png" alt="ATO in the Cyber theme: search, the duplicates bar, Now playing and the tab list with site favicons, on a neon grid" width="360">
+  <img src="docs/screenshots/riso-tabs.png" alt="The same popup in Riso: warm paper, pink and blue ink a touch off register, halftone dots on the duplicates bar" width="360">
+</p>
+<p align="center">
+  <img src="docs/screenshots/graphite-tabs.png" alt="The same popup in Graphite, the quiet dark theme" width="360">
+  <img src="docs/screenshots/daylight-tabs.png" alt="The same popup in Daylight, the neutral light theme: Current and copy counts drawn as pills" width="360">
 </p>
 
 I keep far too many tabs open. The same docs page ends up open three times in two windows, a video plays somewhere I can't find, and Chrome's tab strip turns into a row of identical favicons. ATO is the popup I built for that: press **⌘U** (Ctrl+U on Windows and Linux), see everything across every window, and clean it up from the keyboard without losing anything I meant to keep.
@@ -12,6 +16,10 @@ It's a Chrome extension, it needs **Chrome 157 or newer**, and it runs entirely 
 ## What I use it for
 
 **"I have the same page open five times."** The bar at the top counts the extra copies. **Close N** closes them; **Review** first shows each page with its copies, which one stays and why (current tab, playing, pinned, in a split view, or simply the oldest). Flip any copy between keep and close, or close one page's copies at a time. What counts as "the same page" is up to you: the whole URL, or ignoring its `#hash`, its `?query`, or both.
+
+<p align="center">
+  <img src="docs/screenshots/review.png" alt="Duplicate review in Daylight: each page with its copies, a green KEEP or red CLOSE on each, the reason a copy stays (pinned, current tab, oldest), and Close 4 at the top" width="360">
+</p>
 
 **"Where was that tab?"** Start typing. Search covers titles and URLs in every window and highlights what matched; ↑↓ and ↵ take you there. `"quotes"` match whole words, and `url:`, `title:` and `dupe:` narrow the search. Whatever it finds can be closed, unloaded or moved to a new window in one go.
 
@@ -30,7 +38,7 @@ It's a Chrome extension, it needs **Chrome 157 or newer**, and it runs entirely 
 
 **"Chrome is using too much memory."** **Unload** (U) discards a tab, a site, a selection or search results: they stay in the strip and reload when you visit them.
 
-**"I want to do this without the mouse."** Everything has a key. ↑↓ wrap around, ←→ fold, ⌫ closes whatever the cursor is on, Space selects, ⌘D opens the duplicate review and ⌘D again closes them all, and `?` lists every shortcut. The footer always shows the keys that work right now.
+**"I want to do this without the mouse."** Everything has a key. ↓ steps from the search field into the list and ↑ from the top goes back up, ←→ fold (and ← leaves the duplicate review), ⌫ closes whatever the cursor is on (⌘⌫ while you're in search), Space selects, ⌘D opens the duplicate review and ⌘D again closes them all, and `?` lists every shortcut. The footer always shows the keys that work right now.
 
 Also: a toolbar badge with the duplicate count (or all tabs) in your colour, and a tab right-click menu to close the duplicates of a tab or the other tabs from its site.
 
@@ -48,7 +56,7 @@ Graphite, Daylight and Paper are the quiet ones, and **System**, the default, sw
 
 <img src="docs/screenshots/logo-spin.gif" alt="The ATO logo, a wireframe icosahedron with solid front edges and dashed hidden edges, spinning after a drag and slowing down" width="192" align="right">
 
-The logo on the settings page is a real 3D icosahedron built from 20 CSS triangles, each placed with a `matrix3d`. Edges facing you are solid, hidden edges are dashed. It turns slowly on its own; drag it to spin it, let go mid-swipe and it keeps going, easing back to the slow turn over a few seconds. The small logo in the popup's header is a static SVG rendered from the same geometry.
+The logo on the settings page is a real 3D icosahedron, redrawn as one SVG every frame: its 12 corners are turned and projected, and each of its 30 edges is drawn once, so lines keep their width at every angle. An edge is solid while either of its faces looks at you and fades to dashed as both turn away; each front corner is cut by a small pentagon shaded by the light, and nearer lines are a little heavier. It turns slowly on its own; drag it to spin it, let go mid-swipe and it keeps going, easing back to the slow turn over a few seconds. The small logo in the popup's header is a static SVG rendered from the same geometry.
 
 <br clear="right">
 
@@ -62,7 +70,7 @@ ATO is vanilla TypeScript with no UI framework, so keeping it quick with thousan
 - **Drawing less:** search draws the first 150 results (actions still cover all of them), and long lists use `content-visibility`.
 - **Benchmarks:** `npm run perf` times every hot path at 500 to 5,000 generated tabs. At 2,000 tabs, moving the cursor costs about 2 ms and a keystroke in search about 7 ms of script.
 
-Measured in real Chrome at 2,000 tabs, ↓ renders within a frame (median 7.6 ms, p95 11 ms). Typing in search doesn't yet: about 28 ms per keystroke, and more on a slow machine or at 5,000 tabs. The traces point at re-parsing icon SVGs and URL parsing, and fixing that is planned for 3.1. The numbers and traces are in [docs/v3-status.md](docs/v3-status.md#301-measurements).
+Measured in real Chrome at 2,000 tabs, ↓ renders within a frame (median 7.6 ms, p95 11 ms). Typing in search doesn't yet: about 28 ms per keystroke, and more on a slow machine or at 5,000 tabs. The traces point at re-parsing icon SVGs and URL parsing; fixing that is next. The numbers and traces are in [docs/v3-status.md](docs/v3-status.md#301-measurements).
 
 ## Careful about what it closes
 
@@ -96,15 +104,16 @@ Details, including how closing and undo work: [docs/architecture.md](docs/archit
 
 ## Keyboard
 
-The popup opens with search focused; ↑↓ work from there.
+The popup opens with search focused. With the field empty, ↓ steps into the list; with a query, the arrows move through the results and typing carries on.
 
 | Key | Does |
 | --- | --- |
 | ⌘U / Ctrl+U | Open ATO |
-| ↑ ↓ (also j k) | Move; wraps around the ends. The duplicates bar and Now playing come first |
+| ↑ ↓ (also j k) | Move. The duplicates bar and Now playing come first; ↑ from the top goes back to search |
 | ↵ | Go to the tab or window · open review from the duplicates bar · fold a site or set |
-| ← → | Fold / unfold a site, window or duplicate set |
-| ⌫ | Close the tab, site, selection, or a duplicate set's extra copies |
+| ← → | Fold / unfold a site, window or duplicate set; ← on a folded set leaves the review |
+| ⌫ / Delete | Close the tab, site, selection, or a duplicate set's extra copies |
+| ⌘⌫ | From the search field: close the row under the cursor, or every result when there's a query |
 | U | Unload (free memory, keep the tab) |
 | M | Move to a new window · merge a window into this one |
 | Space | Select · flip keep/close in review |
