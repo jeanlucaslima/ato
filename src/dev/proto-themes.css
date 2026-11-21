@@ -79,7 +79,7 @@
     linear-gradient(var(--mark), var(--mark)) right 5px bottom 5px / 1.5px 9px;
 }
 :root[data-theme='blueprint'] body, [data-theme='blueprint'] .popup { background: var(--grid), var(--canvas); }
-[data-theme='blueprint'] .brand-name, [data-theme='blueprint'] .settings h1 { font-family: var(--mono); letter-spacing: 0.3em; color: var(--focus); }
+[data-theme='blueprint'] .brand-name, [data-theme='blueprint'] .settings h1 { font-family: var(--mono); letter-spacing: 0.06em; margin-right: -0.06em; color: var(--focus); }
 [data-theme='blueprint'] .brand-tag { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; }
 [data-theme='blueprint'] .brand-logo { color: var(--focus); }
 [data-theme='blueprint'] :is(.head h2, .settings h2) { font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.08em; font-size: 11px; }
