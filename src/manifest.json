@@ -3,25 +3,22 @@
   "name": "ATO - Advanced Tab Organizer",
   "short_name": "ATO",
   "description": "Kill duplicate tabs instantly. Stay focused.",
-  "version": "2.0.1",
+  "version": "3.0.0",
+  "minimum_chrome_version": "157",
   "author": "Jean Lucas Lima <github.com/jeanlucaslima>",
-
-  "options_page": "options/options.html",
-
+  "options_page": "options/index.html",
+  "background": {
+    "service_worker": "background/worker.js",
+    "type": "module"
+  },
   "icons": {
     "16": "assets/icons/icon16.png",
     "32": "assets/icons/icon32.png",
     "48": "assets/icons/icon48.png",
     "128": "assets/icons/icon128.png"
   },
-
-  "background": {
-    "service_worker": "background/service-worker.js",
-    "type": "module"
-  },
-
   "action": {
-    "default_popup": "popup/popup.html",
+    "default_popup": "popup/index.html",
     "default_icon": {
       "16": "assets/icons/icon16.png",
       "32": "assets/icons/icon32.png",
@@ -29,7 +26,6 @@
     },
     "default_title": "ATO - Kill Duplicates"
   },
-
   "commands": {
     "_execute_action": {
       "suggested_key": {
@@ -39,10 +35,11 @@
       "description": "Open ATO popup"
     }
   },
-
   "permissions": [
     "tabs",
     "storage",
-    "sessions"
+    "sessions",
+    "tabGroups",
+    "contextMenus"
   ]
 }

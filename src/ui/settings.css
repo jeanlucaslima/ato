@@ -1,0 +1,125 @@
+/* Options page. Uses the tokens from tokens.css. */
+.settings { max-width: 640px; margin: 0 auto; padding: 36px 24px 48px; }
+
+.settings-head { display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: 32px; }
+.settings-head h1 { margin: 18px 0 0; font-size: 26px; letter-spacing: 0.12em; }
+.settings-head p { margin: 4px 0 0; font-size: 13px; color: var(--ink-3); }
+.saved { margin-top: 10px; font-size: 12px; color: var(--ink-3); }
+
+/* Logo: a 3D icosahedron turning slowly on a tilted axis through two face
+   centres, like a globe. icosahedron.ts builds it and drives the turn (drag to
+   spin). Front edges are solid, edges facing away are dashed, as in the logo. */
+.ico { position: relative; width: var(--ico-size); height: var(--ico-size); perspective: 900px; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+.ico.is-dragging { cursor: grabbing; }
+.ico-tilt, .ico-spin { position: absolute; inset: 0; transform-style: preserve-3d; }
+/* Axis leans top-left to bottom-right, about as much as the Earth's (~20°). */
+.ico-tilt { transform: rotateZ(-20deg) rotateX(-6deg); }
+.ico-face { position: absolute; left: 50%; top: 50%; width: 100px; height: 86.6px; transform-origin: 0 0; transform-style: preserve-3d; }
+.ico-face svg { position: absolute; inset: 0; overflow: visible; backface-visibility: hidden; }
+/* Depth: edges on the far side are fainter and very slightly out of focus. */
+.ico-back { transform: rotateY(180deg); opacity: 0.45; filter: blur(0.45px); }
+.ico line { stroke: var(--ink-2); stroke-width: 3.6; stroke-linecap: round; }
+/* 6 dashes + 5 gaps fill an edge exactly (6×7.5 + 5×11 = 100), so the pattern is
+   symmetric and the two faces sharing an edge draw the same dashes. */
+.ico-back line { stroke-dasharray: 7.5 11; }
+.saved.is-saved { color: var(--ok); }
+.saved.is-saved::before { content: '✓ '; }
+
+.settings section { margin-bottom: 26px; }
+.settings h2 { margin: 0 0 8px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
+.section-note { margin: -4px 0 10px; font-size: 12.5px; color: var(--ink-2); }
+.group { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); }
+
+.setting { display: flex; align-items: center; gap: 16px; padding: 14px 16px; }
+.setting + .setting { border-top: 1px solid var(--line-soft); }
+.setting--toggle { cursor: pointer; }
+.setting-text { flex: 1; min-width: 0; }
+.setting-title { font-size: 14px; font-weight: 600; }
+.setting-note { margin: 3px 0 0; font-size: 12.5px; color: var(--ink-2); }
+
+/* Multiple choice: a segmented control over real radio buttons */
+.choice { flex: none; display: inline-flex; gap: 2px; padding: 3px; background: var(--canvas); border: 1px solid var(--line); border-radius: 8px; }
+.choice-opt { position: relative; }
+.choice-opt input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.choice-opt span { display: block; padding: 5px 12px; border-radius: 6px; font-size: 12.5px; color: var(--ink-2); white-space: nowrap; transition: background-color 90ms, color 90ms; }
+.choice-opt:hover span { color: var(--ink); }
+.choice-opt input:checked + span { background: var(--raised); color: var(--ink); font-weight: 600; }
+.choice-opt input:focus-visible + span { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+/* On/off: a styled checkbox with role="switch" */
+.switch { appearance: none; flex: none; position: relative; width: 38px; height: 22px; margin: 0; border: 1px solid var(--line); border-radius: 11px; background: var(--raised); cursor: pointer; transition: background-color 150ms, border-color 150ms; }
+.switch::before { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--ink-2); transition: translate 150ms cubic-bezier(0.2, 0.7, 0.2, 1), background-color 150ms; }
+.switch:checked { background: var(--ok-fill); border-color: var(--ok-line); }
+.switch:checked::before { translate: 16px 0; background: var(--ok); }
+
+/* Theme picker: each card shows a tiny popup in the theme's own colours */
+.theme-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 2px; }
+/* Folded: a row and a half, fading out; opening animates to the full height. */
+.theme-fold { interpolate-size: allow-keywords; height: 252px; overflow: hidden; margin: -2px; mask-image: linear-gradient(to bottom, #000 62%, transparent); transition: height var(--t-slow, 240ms) cubic-bezier(0.2, 0.7, 0.2, 1); }
+.theme-fold.is-open { height: auto; mask-image: none; }
+.theme-more { display: flex; align-items: center; gap: 6px; margin: 6px auto 0; height: 30px; padding: 0 14px; border: 1px solid var(--line); border-radius: 15px; background: var(--surface); color: var(--ink-2); font-size: 12.5px; font-weight: 600; }
+.theme-more:hover { color: var(--ink); border-color: var(--ink-3); }
+.theme-more svg { transition: rotate var(--t, 180ms); }
+.theme-more[aria-expanded='true'] svg { rotate: 180deg; }
+.theme-more-current { font-weight: 400; color: var(--ink-3); }
+.theme-card { position: relative; display: flex; flex-direction: column; gap: 2px; padding: 8px 8px 10px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); cursor: pointer; transition: border-color 120ms, translate 160ms cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 160ms; }
+.theme-card:hover { translate: 0 -2px; box-shadow: var(--shadow); }
+.theme-card input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.theme-card:has(input:checked) { border-color: var(--focus); box-shadow: 0 0 0 1px var(--focus); }
+.theme-card:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
+.theme-name { margin-top: 8px; padding: 0 2px; font-size: 13.5px; font-weight: 700; }
+.theme-card:has(input:checked) .theme-name::after { content: ' ✓'; color: var(--focus); }
+.theme-tag { padding: 0 2px; font-size: 11.5px; color: var(--ink-3); }
+
+.theme-preview { position: relative; display: block; height: 96px; border-radius: 7px; overflow: hidden; }
+.theme-preview--split .mini { position: absolute; inset: 0; }
+.theme-preview--split .mini:first-child { clip-path: polygon(0 0, 62% 0, 38% 100%, 0 100%); }
+.theme-preview--split .mini:last-child { clip-path: polygon(62% 0, 100% 0, 100% 100%, 38% 100%); }
+.mini { display: flex; flex-direction: column; gap: 5px; height: 100%; padding: 8px; background: var(--canvas); color: var(--ink); }
+.mini-search { display: flex; align-items: center; height: 14px; padding: 0 5px; border: 1px solid var(--focus); border-radius: 4px; background: var(--surface); }
+.mini-caret { width: 1px; height: 7px; background: var(--focus); }
+.mini-strip { display: flex; align-items: center; gap: 4px; height: 12px; padding: 0 5px; border: 1px solid var(--amber-line); border-radius: 4px; background: var(--amber-fill); }
+.mini-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--amber); }
+.mini-strip-line { width: 34%; height: 3px; border-radius: 2px; background: var(--amber); }
+.mini-row { display: flex; align-items: center; gap: 5px; height: 12px; padding: 0 4px; border-radius: 3px; }
+.mini-row.is-cursor { background: var(--focus-fill); box-shadow: inset 2px 0 var(--focus); }
+.mini-fav { width: 7px; height: 7px; border-radius: 2px; flex: none; }
+.mini-fav--a { background: var(--focus); }
+.mini-fav--b { background: var(--ok); }
+.mini-fav--c { background: var(--danger); }
+.mini-line { height: 3px; border-radius: 2px; background: var(--ink-2); }
+.mini-line--a { width: 70%; background: var(--ink); }
+.mini-line--b { width: 52%; }
+.mini-line--c { width: 62%; }
+
+/* Toolbar badge preview: a mock browser toolbar with ATO's icon */
+.toolbar-mock { flex: none; display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 12px; border-radius: 20px; background: var(--canvas); border: 1px solid var(--line); }
+.tb-icon { width: 18px; height: 18px; border-radius: 50%; background: var(--raised); }
+.tb-icon--ato { border-radius: 0; background: none; color: var(--ink); }
+.tb-icon--ato svg { display: block; }
+.tb-slot { position: relative; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 6px; background: var(--surface); }
+.tb-badge { position: absolute; right: -7px; bottom: -4px; min-width: 16px; height: 14px; padding: 0 4px; border-radius: 4px; color: #fff; font-size: 9.5px; font-weight: 700; line-height: 14px; text-align: center; font-family: system-ui, sans-serif; box-shadow: 0 0 0 1.5px var(--canvas); transition: background-color 150ms; }
+@starting-style { .tb-badge { scale: 0.6; opacity: 0; } }
+.tb-badge { transition: background-color 150ms, scale 160ms cubic-bezier(0.2, 0.7, 0.2, 1), opacity 160ms; }
+
+.tb-slot--menu { color: var(--ink-2); }
+.tb-icon--menu { display: grid; place-items: center; background: none; color: var(--ink-3); }
+.pin-status { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 14px; border: 1px solid var(--amber-line); background: var(--amber-fill); color: var(--amber); font-size: 12px; font-weight: 700; }
+.pin-status.is-pinned { border-color: var(--ok-line); background: var(--ok-fill); color: var(--ok); }
+
+.swatches { flex: none; display: flex; gap: 6px; }
+.swatch { position: relative; width: 22px; height: 22px; cursor: pointer; }
+.swatch input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.swatch span { display: block; width: 100%; height: 100%; border-radius: 50%; box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.15); transition: scale 120ms; }
+.swatch:hover span { scale: 1.12; }
+.swatch input:checked + span { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink); }
+.swatch input:focus-visible + span { outline: 2px solid var(--focus); outline-offset: 4px; }
+.is-disabled .swatches { opacity: 0.35; }
+.is-disabled .swatch, .is-disabled .swatch input { cursor: not-allowed; }
+
+.keys { flex: none; display: flex; gap: 6px; }
+.settings kbd { font-family: var(--mono); font-size: 12px; color: var(--key); border: 1px solid var(--line); border-radius: 5px; padding: 2px 7px; }
+
+.settings-foot { display: flex; gap: 16px; font-size: 12px; color: var(--ink-3); }
+.settings-foot a { color: var(--focus); text-decoration: none; }
+.settings-foot a:hover { text-decoration: underline; }

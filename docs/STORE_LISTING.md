@@ -1,7 +1,8 @@
 # Chrome Web Store Listing
 
 Source of truth for ATO's Chrome Web Store listing. Update this when the listing
-changes, then copy fields into the Developer Dashboard.
+changes, then copy fields into the Developer Dashboard. This is the **v3** listing:
+v3 replaces 2.x under the same store item.
 
 ## Name (max 75 chars)
 
@@ -12,64 +13,58 @@ ATO – Advanced Tab Organizer
 ## Short summary (max 132 chars — shown in search results)
 
 ```
-Kill duplicate tabs instantly. Find, group, and clean up open tabs from a fast keyboard-driven popup. No data leaves your browser.
+Close duplicate tabs safely, see every window at a glance, and find any tab fast. Keyboard-first. No data leaves your browser.
 ```
 
 ## Detailed description
 
 ```
-Drowning in tabs? ATO (Advanced Tab Organizer) finds and closes duplicate tabs in one click, and gives you a fast, keyboard-driven popup to search, group, and tidy everything you have open — without sending a single byte off your device.
+Too many tabs? ATO finds the duplicates and closes them safely, shows every window at a glance, and finds any tab as you type, all from a fast, keyboard-first popup. Nothing leaves your browser.
 
-Open it with Cmd+U (Mac) or Ctrl+U (Windows/Linux), or click the toolbar icon. The badge always shows how many duplicates you have, so you know at a glance when it's time to clean up.
+Open it with Cmd+U (Mac) or Ctrl+U (Windows/Linux), or click the toolbar icon. The badge shows how many duplicates you have.
 
 ━━━━━━━━━━━━━━━━━━━━
-WHAT IT DOES
+DUPLICATES, SAFELY
 ━━━━━━━━━━━━━━━━━━━━
 
-• Duplicate detection — Spots duplicate tabs automatically and shows the count on the toolbar badge in real time.
+• One bar tells you how many extra copies are open. "Close" closes them; "Review" shows each page with its copies, which one stays, and why.
+• Never closed: the tab you're on, tabs playing sound, tabs in a split view, pinned tabs, and (if you like) tabs in a group.
+• Flip any copy between keep and close, close one page's copies, or all of them at once.
+• Match the whole URL, or ignore the #hash, the ?query, or both.
+• Undo brings back everything you closed, however many tabs.
+• Right-click a tab: close its duplicates, or the other tabs from its site.
 
-• One-click cleanup — Close every duplicate at once, keeping the tab you want (oldest or newest). Your active tab is never closed.
+━━━━━━━━━━━━━━━━━━━━
+SEE AND MOVE YOUR TABS
+━━━━━━━━━━━━━━━━━━━━
 
-• Powerful search — Filter tabs by title, URL, or domain with full keyboard navigation and match highlighting. Three modes:
-   – Fuzzy (default): forgiving, typo-tolerant matching
-   – Exact whole-word: wrap a query in quotes, e.g. "burger"
-   – Wildcard substring: add an asterisk, e.g. hack* — matches the literal text anywhere
-   Plus field scopes — narrow any search to just the URL (inurl:) or just the title (intitle:), shown as a chip you can also pick from a menu.
+• Tabs: every tab, by recency, title, site or number of copies.
+• Sites: each site with its tabs; close, unload or move a whole site to its own window.
+• Windows: a map of each window's tab strip, tab groups included. Merge a window into this one, focus it, or close it.
+• Now playing: the tabs making sound, with mute.
+• Unload tabs you're not using to free memory; they stay in the tab strip.
 
-• Playing media — Tabs making sound float to a section at the top and get a speaker icon wherever they appear, so you can find that noisy tab instantly.
+━━━━━━━━━━━━━━━━━━━━
+KEYBOARD FIRST
+━━━━━━━━━━━━━━━━━━━━
 
-• Domain groups — See your tabs grouped by site, sortable A–Z, by most tabs, or by most recent. Merge or close every tab from a domain in one move.
-
-• Undo — Accidentally closed something? Restore the tabs you just closed.
-
-• Real-time updates — The badge and popup react as you browse.
+Start typing to search titles and URLs across every window. Arrow keys and Enter to jump, Delete to close, D to review duplicates, S to switch views, X to select several tabs, Cmd+Z to undo. Press ? in the popup for every shortcut.
 
 ━━━━━━━━━━━━━━━━━━━━
 MAKE IT YOURS
 ━━━━━━━━━━━━━━━━━━━━
 
-A full options page lets you tune ATO to your workflow:
-• Light / dark theme and a choice of bundled fonts
-• How duplicates are matched (exact URL, or ignore query string and/or hash)
-• Which tab to keep when closing duplicates
-• Protect pinned tabs and tab groups from being closed
-• Badge behavior — show duplicate count or total tab count, custom color, or hide it
-• Scope detection to the current window only
+Nine themes, light and dark, or follow your system. Choose which copy to keep, what counts as the same page, what's protected, the view the popup opens on, and what the badge shows. Settings saved by ATO 2 carry over.
 
 ━━━━━━━━━━━━━━━━━━━━
 PRIVATE BY DESIGN
 ━━━━━━━━━━━━━━━━━━━━
 
-ATO runs entirely in your browser. It makes no network requests, has no analytics or trackers, and never collects, transmits, or sells your data. Your tabs and settings stay on your device (settings sync only through your own Chrome account, if you have sync enabled).
+ATO runs entirely in your browser. It makes no network requests, has no analytics or trackers, and never collects, transmits or sells your data. Settings sync only through your own Chrome account, if sync is on.
 
-Built with vanilla JavaScript for a tiny footprint and fast load times. Open source — review the code or contribute at:
-https://github.com/jeanlucaslima/ato
+Open source: https://github.com/jeanlucaslima/ato
 
-━━━━━━━━━━━━━━━━━━━━
-KEYBOARD SHORTCUT
-━━━━━━━━━━━━━━━━━━━━
-
-Cmd+U (Mac) / Ctrl+U (Windows & Linux) to open the popup. You can change this in chrome://extensions/shortcuts.
+Requires Chrome 157 or newer. Change the shortcut at chrome://extensions/shortcuts.
 ```
 
 ## Supporting dashboard fields
@@ -80,7 +75,7 @@ Cmd+U (Mac) / Ctrl+U (Windows & Linux) to open the popup. You can change this in
 ### Single purpose (required)
 
 ```
-ATO helps users find and close duplicate and excess browser tabs, and search, group, and manage their open tabs, from a single popup.
+ATO helps users find and close duplicate and excess browser tabs, and search, group, and manage their open tabs and windows, from a single popup.
 ```
 
 ### Remote code use (required)
@@ -93,14 +88,14 @@ package; nothing is fetched or evaluated at runtime. Favicons loaded from
 
 | Permission | Justification |
 | --- | --- |
-| `tabs` | Read tab titles and URLs (including local `file://` pages) to detect duplicates, search, and group tabs; close tabs on request. |
-| `storage` | Save the user's settings (theme, match mode, badge options, etc.). |
-| `sessions` | Restore recently closed tabs for the Undo feature. |
+| `tabs` | Read tab titles and URLs (including local `file://` pages) to detect duplicates, search and group tabs; close, move, mute and unload tabs on request. |
+| `storage` | Save the user's settings (theme, matching, badge options, protections). |
+| `sessions` | Restore recently closed tabs for Undo. |
+| `tabGroups` | Show tab group names and colours in the Windows view, keep grouped tabs protected, and move whole groups when merging windows. |
+| `contextMenus` | Add "Close duplicates of this tab" and "Close other tabs from this site" to the tab right-click menu. |
 
-No host permissions are requested — the `tabs` permission alone exposes tab URLs
-(verified to include `file://`), and favicons load as plain `<img>` from
-`tab.favIconUrl`. Dropping `<all_urls>` avoids the broad-host-permission in-depth
-review with no loss of functionality.
+No host permissions are requested: the `tabs` permission alone exposes tab URLs,
+and favicons load as plain `<img>` from `tab.favIconUrl`.
 
 ### Data usage disclosure
 
@@ -131,7 +126,7 @@ in the store form.
 
 ## Assets checklist
 
-- [ ] Icon: 128×128 (from `src/assets/icons/`)
-- [ ] At least 1 screenshot, 1280×800 or 640×400 (have `docs/screenshots/popup.png` — verify dimensions/crop)
-- [ ] Small promo tile 440×280 (optional but recommended)
-- [ ] Package: `ato-v1.20.0.zip`
+- [x] Icon: 128×128 (`src/assets/icons/icon128.png`)
+- [x] Screenshots, 1280×800: `docs/screenshots/store/screenshot-1-1280x800.png` (duplicates), `-2-` (windows and sites), `-3-` (search and select, light theme)
+- [ ] Small promo tile 440×280 (optional)
+- [ ] Package: `npm run zip` → `ato-v3.0.0.zip`

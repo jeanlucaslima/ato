@@ -1,230 +1,31 @@
 # Contributing to ATO
 
-Thank you for your interest in contributing to ATO (Advanced Tab Organizer)!
+Thanks for helping. ATO is a Chrome extension in vanilla TypeScript (Vite + Vitest, no UI framework); it needs Chrome 157 or newer.
 
-## Development Setup
-
-### Prerequisites
-
-- Node.js 18+
-- npm 9+
-- Chrome browser for testing
-
-### Getting Started
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/jeanlucaslima/ato.git
-   cd ato
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Generate icons (first time only):
-   ```bash
-   npm run icons
-   ```
-
-4. Build the extension:
-   ```bash
-   npm run build
-   ```
-
-5. Load in Chrome:
-   - Navigate to `chrome://extensions`
-   - Enable "Developer mode"
-   - Click "Load unpacked"
-   - Select the `dist/` folder
-
-### Development Workflow
-
-For active development with auto-rebuild:
+## Setup
 
 ```bash
-npm run dev
+git clone https://github.com/jeanlucaslima/ato.git
+cd ato
+npm install
+npm run build   # unpacked dev copy in dist/ ("ATO 3 (dev)", ⇧⌘U)
 ```
 
-After each rebuild, refresh the extension in `chrome://extensions`.
+Load it: `chrome://extensions` → Developer mode → **Load unpacked** → `dist/`. After each rebuild, click the reload icon on the extension.
 
-### Amp Orbs
-
-Amp runs the executable `.agents/setup` when preparing a fresh orb without an
-exact cached snapshot. It checks the documented Node.js/npm prerequisites,
-installs missing system tools (including `zip`), installs dependencies from
-`package-lock.json`, and builds the unpacked extension in `dist/`.
-Subsequent orbs can reuse the prepared snapshot without reinstalling dependencies.
-When setup runs again on a stale snapshot, npm reuses its download cache.
-
-No resume script is needed: this project has no credentials, databases, or
-background services to reconnect. After editing source files, run `npm run build`
-as usual. This prepares build and test tooling; testing the actual extension
-still requires loading `dist/` in Chrome.
-
-## Project Structure
-
-```
-src/
-├── background/
-│   └── service-worker.js    # Background service worker
-├── popup/
-│   ├── popup.html           # Popup UI
-│   ├── popup.css            # Styles
-│   └── popup.js             # Popup logic
-├── shared/
-│   ├── tab-utils.js         # Shared utility functions
-│   └── tab-utils.test.js    # Tests for utilities
-└── manifest.json            # Extension manifest
-```
-
-## Code Style
-
-- **Vanilla JavaScript**: No frameworks, keep it simple
-- **JSDoc Comments**: Document all exported functions
-- **Descriptive Names**: Functions should be self-documenting
-- **Pure Functions**: Prefer pure functions where possible
-
-### JSDoc Example
-
-```javascript
-/**
- * Finds duplicate tabs based on exact URL matching.
- *
- * @param {Object[]} tabs - Array of tab objects
- * @returns {Object[]} Array of duplicate tabs
- */
-export function findDuplicates(tabs) {
-  // ...
-}
-```
-
-## Testing
-
-Run the test suite:
+## Working on it
 
 ```bash
-npm test
+npm run dev        # live gallery: every popup state as a working popup, plus the settings page
+npm test           # Vitest once
+npm run test:watch # Vitest watching
+npm run perf       # timings at 500–5,000 tabs
+npm run zip        # store package
 ```
 
-Run tests in watch mode:
+- Most work happens in the gallery (`npm run dev`): add a fixture in `src/dev/fixtures.ts` for any new state.
+- Logic that decides what to close lives in `src/core/` and is tested with fast-check properties. If you touch it, keep the properties passing and add one for any new rule.
+- Keep interactions under a frame at 2,000 tabs; run `npm run perf` after touching `derive`, `update` or the planner.
+- One concern per commit, conventional commit messages (`feat:`, `fix:`, `docs:` …).
 
-```bash
-npm run test:watch
-```
-
-### Writing Tests
-
-Tests are located alongside source files with `.test.js` extension.
-
-```javascript
-// src/shared/tab-utils.test.js
-import { describe, it, expect } from 'vitest';
-import { findDuplicates } from './tab-utils.js';
-
-describe('findDuplicates', () => {
-  it('returns empty array for no duplicates', () => {
-    const tabs = [
-      { id: 1, url: 'https://a.com' },
-      { id: 2, url: 'https://b.com' }
-    ];
-    expect(findDuplicates(tabs)).toEqual([]);
-  });
-});
-```
-
-### Test Coverage
-
-Focus tests on:
-
-- **Shared utilities** (`src/shared/`): These are pure functions that can be tested in isolation
-- **Edge cases**: Empty arrays, null values, invalid URLs
-- **Business logic**: Duplicate detection, sorting, grouping
-
-## Submitting Changes
-
-1. Create a feature branch from `main`:
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-
-2. Make your changes
-
-3. Ensure tests pass:
-   ```bash
-   npm test
-   ```
-
-4. Ensure build succeeds:
-   ```bash
-   npm run build
-   ```
-
-5. Commit with a descriptive message:
-   ```bash
-   git commit -m "feat: add your feature description"
-   ```
-
-6. Submit a pull request
-
-### Commit Message Format
-
-Follow conventional commits:
-
-- `feat:` New feature
-- `fix:` Bug fix
-- `docs:` Documentation changes
-- `refactor:` Code refactoring
-- `test:` Adding or updating tests
-- `chore:` Maintenance tasks
-
-## Architecture Notes
-
-### Two-Context Model
-
-ATO runs in two separate contexts:
-
-1. **Background Service Worker** (`background/service-worker.js`)
-   - Runs independently in the background
-   - Monitors tab events via Chrome APIs
-   - Updates the badge with duplicate count
-   - No DOM access
-
-2. **Popup** (`popup/popup.html` + `.js` + `.css`)
-   - Opens when user clicks extension icon
-   - Renders tab lists and handles user actions
-   - Each popup instance is independent
-
-### Shared Utilities
-
-Common logic lives in `src/shared/tab-utils.js`:
-
-| Function | Purpose |
-|----------|---------|
-| `findDuplicates(tabs)` | Identifies duplicate tabs by URL |
-| `extractDomain(url)` | Extracts hostname from URL |
-| `countDuplicatesByUrl(tabs)` | Counts occurrences per URL |
-| `groupTabsByDomain(tabs)` | Groups tabs by domain |
-| `formatTimeAgo(timestamp)` | Formats relative time |
-| `sortTabs(tabs, sortBy, urlCounts)` | Sorts tab arrays |
-
-### Communication
-
-Contexts communicate via `chrome.runtime.sendMessage()`:
-
-```javascript
-// Popup -> Background
-chrome.runtime.sendMessage({ action: 'undoCloseTabs', count: 3 });
-
-// Background listener
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === 'undoCloseTabs') {
-    // Handle undo
-  }
-});
-```
-
-## Questions?
-
-Open an issue on GitHub for questions or suggestions.
+See [docs/architecture.md](docs/architecture.md) for how the pieces fit, and [CLAUDE.md](CLAUDE.md) for settings and conventions.

@@ -2,13 +2,8 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    globals: true,
+    // Pure logic runs in node; DOM tests opt in with `// @vitest-environment happy-dom`.
     environment: 'node',
-    include: ['src/**/*.{test,spec}.js'],
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'html'],
-      include: ['src/shared/**/*.js']
-    }
-  }
+    include: ['src/**/*.test.ts'],
+  },
 });

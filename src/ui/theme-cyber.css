@@ -1,0 +1,126 @@
+/* Cyber: neon on near-black, with glow.
+   The other themes are palettes only; this one also adds light: glowing edges,
+   text and dots, a faint grid and scanlines. All of it is scoped under
+   [data-theme='cyber'], so the picker's preview card glows too, and it is all
+   decoration (reduced motion stops the pulse; nothing depends on it). */
+
+[data-theme='cyber'] {
+  color-scheme: dark;
+  --canvas: #05070d;
+  --surface: #0a1020;
+  --raised: #12203a;
+  --line: #0f3550;
+  --line-soft: #0a2236;
+  --ink: #dcfcff;
+  --ink-2: #86c3d3;
+  --ink-3: #5f93a5;
+  --key: #9ff3ff;
+  --focus: #00f0ff;
+  --focus-fill: #03262f;
+  --match: #4a0d55;
+  --select-fill: #082a22;
+  --amber: #f4ff3a;
+  --amber-fill: #151903;
+  --amber-line: #4a520c;
+  --danger: #ff2a6d;
+  --danger-ink: #ffffff;
+  --danger-line: #6a0f33;
+  --danger-fill: #24051a;
+  --ok: #39ff88;
+  --ok-fill: #03241a;
+  --ok-line: #0f5a35;
+  --shadow: 0 0 0 1px #0f3550, 0 10px 30px rgb(0 240 255 / 0.12);
+  /* Glow recipes */
+  --glow: 0 0 6px color-mix(in srgb, var(--focus) 75%, transparent), 0 0 18px color-mix(in srgb, var(--focus) 35%, transparent);
+  --glow-text: 0 0 6px color-mix(in srgb, currentColor 70%, transparent), 0 0 14px color-mix(in srgb, currentColor 35%, transparent);
+  /* Backdrop: minor + major grid lines, a cyan sky glow above, magenta and green
+     light pooling in the lower corners, and a vignette to pull focus inward. */
+  --grid:
+    linear-gradient(rgb(0 240 255 / 0.07) 1px, transparent 1px) 0 0 / 22px 22px,
+    linear-gradient(90deg, rgb(0 240 255 / 0.07) 1px, transparent 1px) 0 0 / 22px 22px,
+    linear-gradient(rgb(0 240 255 / 0.13) 1px, transparent 1px) 0 0 / 110px 110px,
+    linear-gradient(90deg, rgb(0 240 255 / 0.13) 1px, transparent 1px) 0 0 / 110px 110px;
+  --glows:
+    radial-gradient(ellipse 90% 45% at 50% -8%, rgb(0 240 255 / 0.22), transparent 70%),
+    radial-gradient(ellipse 65% 45% at 105% 108%, rgb(255 42 109 / 0.22), transparent 70%),
+    radial-gradient(ellipse 55% 40% at -5% 100%, rgb(57 255 136 / 0.1), transparent 70%),
+    radial-gradient(ellipse 120% 90% at 50% 45%, transparent 55%, rgb(0 0 0 / 0.55));
+}
+
+/* Surfaces: a faint grid behind everything, scanlines over the popup */
+:root[data-theme='cyber'] body { background: var(--glows), var(--grid), var(--canvas); background-attachment: fixed; }
+[data-theme='cyber'] .popup,
+.mini[data-theme='cyber'] { background: var(--glows), var(--grid), var(--canvas); }
+/* Panels sit on the grid like glass, so the backdrop shows through a little */
+[data-theme='cyber'] .group,
+[data-theme='cyber'] .theme-card,
+[data-theme='cyber'] .playing,
+[data-theme='cyber'] .search { background: color-mix(in srgb, var(--surface) 82%, transparent); backdrop-filter: blur(2px); }
+[data-theme='cyber'] .popup::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  background: repeating-linear-gradient(to bottom, transparent 0 2px, rgb(0 240 255 / 0.03) 2px 3px);
+}
+
+/* Brand */
+[data-theme='cyber'] .brand-name { font-family: var(--mono); letter-spacing: 0.22em; color: var(--focus); text-shadow: var(--glow-text); }
+[data-theme='cyber'] .brand-logo { color: var(--focus); }
+[data-theme='cyber'] .brand-logo svg { filter: drop-shadow(0 0 3px var(--focus)); }
+
+/* Search */
+[data-theme='cyber'] .search { background: rgb(0 240 255 / 0.03); }
+[data-theme='cyber'] .search.is-focused,
+[data-theme='cyber'] .search:focus-within { box-shadow: 0 0 0 1px var(--focus), var(--glow); }
+[data-theme='cyber'] .search input { caret-color: var(--focus); }
+[data-theme='cyber'] .chip,
+[data-theme='cyber'] .field-chip { box-shadow: 0 0 0 1px color-mix(in srgb, var(--focus) 50%, transparent), 0 0 10px color-mix(in srgb, var(--focus) 30%, transparent); text-shadow: var(--glow-text); }
+[data-theme='cyber'] mark.hl { background: color-mix(in srgb, var(--danger) 22%, transparent); color: #ffd1e6; box-shadow: 0 0 8px color-mix(in srgb, var(--danger) 45%, transparent); }
+
+/* Duplicate strip: acid yellow, the dot pulses */
+[data-theme='cyber'] .strip:not(.strip--clean, .strip--idle) { box-shadow: 0 0 12px color-mix(in srgb, var(--amber) 22%, transparent), inset 0 0 12px color-mix(in srgb, var(--amber) 8%, transparent); }
+[data-theme='cyber'] .strip strong { text-shadow: var(--glow-text); }
+[data-theme='cyber'] .strip .dot { box-shadow: 0 0 8px currentColor, 0 0 8px var(--amber); animation: cyber-pulse 1.6s ease-in-out infinite; }
+[data-theme='cyber'] .strip--clean .dot { box-shadow: 0 0 8px var(--ok); }
+@keyframes cyber-pulse { 50% { opacity: 0.45; } }
+
+/* Lists */
+[data-theme='cyber'] .row.is-cursor,
+[data-theme='cyber'] .site-row.is-cursor { box-shadow: inset 3px 0 var(--focus), inset 14px 0 18px -14px var(--focus); }
+[data-theme='cyber'] .meta .cur { text-shadow: var(--glow-text); }
+[data-theme='cyber'] .meta .dup { text-shadow: var(--glow-text); }
+[data-theme='cyber'] .seg-thumb { box-shadow: 0 0 0 1px color-mix(in srgb, var(--focus) 45%, transparent), 0 0 10px color-mix(in srgb, var(--focus) 25%, transparent); }
+
+/* Buttons */
+[data-theme='cyber'] .btn--danger:hover:not(:disabled) { box-shadow: 0 0 12px color-mix(in srgb, var(--danger) 45%, transparent); }
+/* White text needs a deeper fill than the neon pink to read (≈4.8:1); the glow keeps the neon. */
+[data-theme='cyber'] .btn--solid-danger { background: #e0115a; border-color: #e0115a; box-shadow: 0 0 14px color-mix(in srgb, var(--danger) 55%, transparent); }
+[data-theme='cyber'] .btn--solid-danger:hover:not(:disabled) { background: #e0115a; }
+
+/* Now playing */
+[data-theme='cyber'] .eq { filter: drop-shadow(0 0 3px var(--ok)); }
+[data-theme='cyber'] .is-muted .eq { filter: none; }
+
+/* Settings page */
+[data-theme='cyber'] .settings h1 { font-family: var(--mono); letter-spacing: 0.3em; color: var(--focus); text-shadow: var(--glow-text); }
+[data-theme='cyber'] .settings h2 { color: var(--focus); text-shadow: var(--glow-text); }
+[data-theme='cyber'] .group { box-shadow: 0 0 0 1px rgb(0 240 255 / 0.04), 0 0 24px rgb(0 240 255 / 0.05); }
+[data-theme='cyber'] .ico line { stroke: var(--focus); }
+[data-theme='cyber'] .ico-front { filter: drop-shadow(0 0 2.5px var(--focus)); }
+[data-theme='cyber'] .theme-card:has(input:checked) { box-shadow: 0 0 0 1px var(--focus), var(--glow); }
+[data-theme='cyber'] .choice-opt input:checked + span { box-shadow: 0 0 0 1px color-mix(in srgb, var(--focus) 45%, transparent), 0 0 10px color-mix(in srgb, var(--focus) 25%, transparent); }
+[data-theme='cyber'] .switch:checked { box-shadow: 0 0 10px color-mix(in srgb, var(--ok) 40%, transparent); }
+[data-theme='cyber'] .tb-badge { box-shadow: 0 0 0 1.5px var(--canvas), 0 0 10px currentColor; }
+
+/* Picker preview card */
+.mini[data-theme='cyber'] .mini-search { box-shadow: var(--glow); }
+.mini[data-theme='cyber'] .mini-row.is-cursor { box-shadow: inset 2px 0 var(--focus), 0 0 8px color-mix(in srgb, var(--focus) 30%, transparent); }
+.mini[data-theme='cyber'] .mini-dot { box-shadow: 0 0 6px var(--amber); }
+.mini[data-theme='cyber'] .mini-strip-line,
+.mini[data-theme='cyber'] .mini-fav { box-shadow: 0 0 5px currentColor; }
+.mini[data-theme='cyber'] .mini-fav--a { color: var(--focus); }
+.mini[data-theme='cyber'] .mini-fav--b { color: var(--ok); }
+.mini[data-theme='cyber'] .mini-fav--c { color: var(--danger); }
+.mini[data-theme='cyber'] .mini-strip-line { color: var(--amber); }

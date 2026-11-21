@@ -1,0 +1,146 @@
+/**
+ * The real browser: `BrowserPort` over the `chrome.*` extension APIs.
+ * Everything Chrome-specific stays in this file; the rest of the popup only
+ * sees plain `Snapshot`s and `Tab`s.
+ */
+import type { Snapshot, Tab, TabGroup } from '../core/types';
+import type { BrowserPort } from './browser';
+import { RESTORE_MESSAGE, restoreTabs, type Restored } from './chrome-restore';
+
+/** Batch bursts of tab events (a page load fires several) into one refresh. */
+const REFRESH_DEBOUNCE_MS = 120;
+
+/** ATO's view of a Chrome tab, or `null` for one without an id (devtools, apps). */
+export function fromChromeTab(t: chrome.tabs.Tab, now: number): Tab | null {
+  if (t.id === undefined || t.id === chrome_TAB_ID_NONE) return null;
+  const url = t.url || t.pendingUrl || '';
+  return {
+    id: t.id,
+    windowId: t.windowId,
+    index: t.index,
+    title: t.title || url,
+    url,
+    favIconUrl: t.favIconUrl || undefined,
+    active: t.active,
+    pinned: t.pinned,
+    audible: t.audible ?? false,
+    muted: t.mutedInfo?.muted ?? false,
+    discarded: t.discarded,
+    // Not in @types/chrome yet (Chrome 140+).
+    splitViewId: (t as chrome.tabs.Tab & { splitViewId?: number }).splitViewId ?? -1,
+    groupId: t.groupId ?? -1,
+    lastAccessed: t.lastAccessed ?? now,
+  };
+}
+
+/** `chrome.tabs.TAB_ID_NONE`, inlined so this module loads outside the extension (tests). */
+const chrome_TAB_ID_NONE = -1;
+
+/** ATO's view of a Chrome tab group. */
+export function fromChromeGroup(g: chrome.tabGroups.TabGroup): TabGroup {
+  return { id: g.id, windowId: g.windowId, title: g.title ?? '', color: g.color as TabGroup['color'], collapsed: g.collapsed };
+}
+
+export class ChromeBrowser implements BrowserPort {
+  async snapshot(): Promise<Snapshot> {
+    const [tabs, groups, focused] = await Promise.all([
+      chrome.tabs.query({ windowType: 'normal' }),
+      chrome.tabGroups.query({}).catch(() => []),
+      chrome.windows.getLastFocused({ windowTypes: ['normal'] }).catch(() => undefined),
+    ]);
+    const now = Date.now();
+    return {
+      tabs: tabs.flatMap((t) => fromChromeTab(t, now) ?? []),
+      groups: groups.map(fromChromeGroup),
+      focusedWindowId: focused?.id ?? -1,
+      now,
+    };
+  }
+
+  subscribe(listener: () => void): () => void {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const changed = () => {
+      clearTimeout(timer);
+      timer = setTimeout(listener, REFRESH_DEBOUNCE_MS);
+    };
+    const events: chrome.events.Event<(...args: never[]) => void>[] = [
+      chrome.tabs.onCreated,
+      chrome.tabs.onRemoved,
+      chrome.tabs.onUpdated,
+      chrome.tabs.onMoved,
+      chrome.tabs.onActivated,
+      chrome.tabs.onAttached,
+      chrome.tabs.onDetached,
+      chrome.tabs.onReplaced,
+      chrome.windows.onFocusChanged,
+      chrome.tabGroups.onCreated,
+      chrome.tabGroups.onUpdated,
+      chrome.tabGroups.onRemoved,
+      chrome.tabGroups.onMoved,
+    ];
+    for (const event of events) event.addListener(changed);
+    return () => {
+      clearTimeout(timer);
+      for (const event of events) event.removeListener(changed);
+    };
+  }
+
+  async close(tabIds: number[]): Promise<Tab[]> {
+    const ids = new Set(tabIds);
+    const closing = (await this.snapshot()).tabs.filter((t) => ids.has(t.id));
+    if (closing.length === 0) return [];
+    await chrome.tabs.remove(closing.map((t) => t.id));
+    return closing;
+  }
+
+  /** Undo runs in the service worker so it finishes even if the popup closes; here only if the worker can't be reached. */
+  async restore(tabs: readonly Tab[]): Promise<Restored> {
+    try {
+      const reply = (await chrome.runtime.sendMessage({ type: RESTORE_MESSAGE, tabs })) as Restored | undefined;
+      if (reply && typeof reply.count === 'number') return reply;
+    } catch {
+      // No worker listening: restore from here.
+    }
+    return restoreTabs(tabs);
+  }
+
+  async activate(tabId: number): Promise<void> {
+    const tab = await chrome.tabs.update(tabId, { active: true });
+    if (tab) await chrome.windows.update(tab.windowId, { focused: true });
+  }
+
+  async discard(tabIds: number[]): Promise<void> {
+    // Chrome refuses some tabs (active, already discarded); the rest still go.
+    await Promise.all(tabIds.map((id) => chrome.tabs.discard(id).catch(() => undefined)));
+  }
+
+  async moveToNewWindow(tabIds: number[]): Promise<void> {
+    const [first, ...rest] = tabIds;
+    if (first === undefined) return;
+    const win = await chrome.windows.create({ tabId: first, focused: false });
+    if (rest.length > 0 && win?.id !== undefined) await chrome.tabs.move(rest, { windowId: win.id, index: -1 });
+  }
+
+  async moveToWindow(tabIds: number[], windowId: number): Promise<void> {
+    const { tabs, groups = [] } = await this.snapshot();
+    const moving = new Set(tabIds);
+    // A group whose every tab is moving goes as a group (tabs.move alone would ungroup them).
+    const whole = groups.filter((g) => g.windowId !== windowId && tabs.some((t) => t.groupId === g.id) && tabs.every((t) => t.groupId !== g.id || moving.has(t.id)));
+    const inWhole = new Set(whole.map((g) => g.id));
+    for (const g of whole) await chrome.tabGroups.move(g.id, { windowId, index: -1 });
+    const loose = tabs.filter((t) => moving.has(t.id) && t.windowId !== windowId && !inWhole.has(t.groupId)).map((t) => t.id);
+    if (loose.length > 0) await chrome.tabs.move(loose, { windowId, index: -1 });
+  }
+
+  async focusWindow(windowId: number): Promise<void> {
+    await chrome.windows.update(windowId, { focused: true });
+  }
+
+  async setMuted(tabId: number, muted: boolean): Promise<void> {
+    await chrome.tabs.update(tabId, { muted });
+  }
+
+  async openSettings(): Promise<void> {
+    await chrome.runtime.openOptionsPage();
+  }
+}
