@@ -28,4 +28,4 @@ npm run zip        # store package
 - Keep interactions under a frame at 2,000 tabs; run `npm run perf` after touching `derive`, `update` or the planner.
 - One concern per commit, conventional commit messages (`feat:`, `fix:`, `docs:` …).
 
-See [docs/architecture.md](docs/architecture.md) for how the pieces fit, and [CLAUDE.md](CLAUDE.md) for settings and conventions.
+See [docs/architecture.md](docs/architecture.md) for how the pieces fit (and the settings), and [AGENTS.md](AGENTS.md) for the rules and conventions.
