@@ -87,7 +87,7 @@
 /* View bar */
 .bar { display: flex; align-items: center; gap: 4px; padding: 0 12px 8px; border-bottom: 1px solid var(--line); }
 .seg { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); padding: 2px; background: var(--surface); border-radius: 8px; }
-.seg button { position: relative; height: 28px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; color: var(--ink-2); font-size: 12px; }
+.seg button { position: relative; height: 28px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; color: var(--ink-2); font-size: 12px; }
 .seg button[aria-pressed='true'] { color: var(--ink); font-weight: 600; }
 .seg-thumb { position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc((100% - 4px) / 3); border-radius: 6px; background: var(--raised); }
 .seg--at-sites .seg-thumb { transform: translateX(100%); }
@@ -98,7 +98,8 @@
 :is([data-theme='paper'], [data-theme='lagoon'], [data-theme='sakura'], [data-theme='dune']) .seg { background: var(--raised); }
 :is([data-theme='paper'], [data-theme='lagoon'], [data-theme='sakura'], [data-theme='dune']) .seg-thumb { background: var(--surface); box-shadow: 0 1px 2px rgb(0 0 0 / 0.12), 0 0 0 1px var(--line); }
 :is([data-theme='paper'], [data-theme='lagoon'], [data-theme='sakura'], [data-theme='dune']) :is(.search.is-focused, .search:focus-within) { border-color: color-mix(in srgb, var(--focus) 55%, var(--line)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 14%, transparent); }
-.seg .n { font-family: var(--mono); font-weight: 400; color: var(--ink-2); margin-left: 4px; }
+/* Sans with fixed-width digits: mono digits are wide, and at 10k+ tabs the bar ran out of room. */
+.seg .n { font-family: var(--sans); font-variant-numeric: tabular-nums; font-weight: 500; color: var(--ink-2); margin-left: 4px; }
 .bar .spacer { flex: 1; }
 .menu-btn { flex: none; white-space: nowrap; height: 28px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; color: var(--ink-2); font-size: 12px; display: flex; align-items: center; gap: 4px; }
 .menu-btn:hover { background: var(--surface); }

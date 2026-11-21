@@ -6,7 +6,7 @@
 import type { GroupColor } from '../core/types';
 import { cls, h } from './dom';
 import { tintFor } from './favicon';
-import { plural } from './format';
+import { num, plural } from './format';
 import { icon } from './icons';
 import type { GroupLabel, TabDot, WindowGroup, WindowRun } from './model';
 import { tabRow } from './rows';
@@ -93,7 +93,7 @@ export function windowGroup(w: WindowGroup, cursor: string | undefined, selectio
       h(
         'span',
         { class: 'win-flags' },
-        w.duplicates > 0 && h('span', { class: 'dup', title: plural(w.duplicates, 'duplicate') }, `×${w.duplicates}`),
+        w.duplicates > 0 && h('span', { class: 'dup', title: plural(w.duplicates, 'duplicate') }, `×${num(w.duplicates)}`),
         w.playing && h('span', { class: 'audio' }, icon('audio', 14, 'Playing audio')),
       ),
       h(
@@ -101,7 +101,7 @@ export function windowGroup(w: WindowGroup, cursor: string | undefined, selectio
         { class: 'win-actions' },
         !w.current && h('button', { class: 'btn', type: 'button', 'data-action': 'focus-window', 'data-window': w.id, tabindex: -1, title: 'Bring to the front (↵)' }, 'Focus'),
         !w.current && h('button', { class: 'btn', type: 'button', 'data-action': 'merge-window', 'data-window': w.id, tabindex: -1, title: 'Move its tabs into this window (M)' }, 'Merge'),
-        w.closable > 0 && h('button', { class: 'btn btn--danger', type: 'button', 'data-action': 'close-window', 'data-window': w.id, tabindex: -1, title: closeTitle(w), 'aria-label': closeTitle(w) }, `Close ${w.closable}`),
+        w.closable > 0 && h('button', { class: 'btn btn--danger', type: 'button', 'data-action': 'close-window', 'data-window': w.id, tabindex: -1, title: closeTitle(w), 'aria-label': closeTitle(w) }, `Close ${num(w.closable)}`),
       ),
     ),
     h('div', { class: 'win-map', 'data-action': 'toggle-window', 'data-window': w.id }, tabMap(w.runs)),

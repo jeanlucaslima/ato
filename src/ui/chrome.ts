@@ -1,6 +1,6 @@
 /** The popup's fixed frame parts: search bar, duplicate strip, view bar, footers. */
 import { cls, h } from './dom';
-import { plural } from './format';
+import { num, plural, shortNum } from './format';
 import { icon } from './icons';
 import { logoSvg } from './logo-svg';
 import { PLAYING_ROWS, type ItemKey, type PopupModel, type Scope, type SearchField, type SearchMode, type SiteSort, type TabRow, type TabSort } from './model';
@@ -126,7 +126,7 @@ export function nowPlaying(rows: readonly TabRow[], cursor?: ItemKey): HTMLEleme
         ),
       ),
     ),
-    extra > 0 && h('p', { class: 'play-more' }, `+${extra} more playing`),
+    extra > 0 && h('p', { class: 'play-more' }, `+${num(extra)} more playing`),
   );
 }
 
@@ -153,7 +153,7 @@ export function duplicateStrip(m: PopupModel): HTMLElement {
       h(
         'button',
         { class: 'btn btn--danger', type: 'button', 'data-action': 'close-duplicates', title: 'Close every extra copy now; one of each stays (undo after)' },
-        `Close ${extra}`,
+        `Close ${num(extra)}`,
       ),
   );
 }
@@ -177,9 +177,9 @@ export function viewBar(m: PopupModel): HTMLElement {
       'div',
       { class: cls('seg', `seg--at-${view}`), role: 'group', 'aria-label': 'View' },
       h('span', { class: 'seg-thumb', 'aria-hidden': 'true' }),
-      h('button', { type: 'button', 'aria-pressed': String(view === 'tabs'), 'data-action': 'view', 'data-view': 'tabs' }, 'Tabs', counted && h('span', { class: 'n' }, m.tabCount)),
-      h('button', { type: 'button', 'aria-pressed': String(view === 'sites'), 'data-action': 'view', 'data-view': 'sites' }, 'Sites', counted && h('span', { class: 'n' }, m.siteCount)),
-      h('button', { type: 'button', 'aria-pressed': String(view === 'windows'), 'data-action': 'view', 'data-view': 'windows' }, 'Windows', counted && h('span', { class: 'n' }, m.windowTotal)),
+      h('button', { type: 'button', 'aria-pressed': String(view === 'tabs'), 'data-action': 'view', 'data-view': 'tabs' }, 'Tabs', counted && h('span', { class: 'n' }, shortNum(m.tabCount))),
+      h('button', { type: 'button', 'aria-pressed': String(view === 'sites'), 'data-action': 'view', 'data-view': 'sites' }, 'Sites', counted && h('span', { class: 'n' }, shortNum(m.siteCount))),
+      h('button', { type: 'button', 'aria-pressed': String(view === 'windows'), 'data-action': 'view', 'data-view': 'windows' }, 'Windows', counted && h('span', { class: 'n' }, shortNum(m.windowTotal))),
     ),
     h('span', { class: 'spacer' }),
     sortLabel && cycleButton(sortLabel, 'cycle-sort', 'Change sort order'),
@@ -204,7 +204,7 @@ export function selectionBar(count: number): HTMLElement {
   return h(
     'div',
     { class: 'actionbar', role: 'toolbar', 'aria-label': 'Selection actions', 'data-key': 'actionbar' },
-    h('span', { class: 'count' }, none ? 'Select tabs' : `${count} selected`),
+    h('span', { class: 'count' }, none ? 'Select tabs' : `${num(count)} selected`),
     h('button', { class: 'btn', type: 'button', disabled: none, 'data-action': 'move-selected' }, 'Move'),
     h('button', { class: 'btn', type: 'button', disabled: none, 'data-action': 'unload-selected' }, 'Unload'),
     h('button', { class: 'btn btn--danger', type: 'button', disabled: none, 'data-action': 'close-selected' }, 'Close'),
