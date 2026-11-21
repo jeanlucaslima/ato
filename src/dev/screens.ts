@@ -7,7 +7,7 @@ import { CHOICES, DEFAULT_SETTINGS, readSettings, type Settings } from '../core/
 import { mountApp, type App } from '../ui/app';
 import { h } from '../ui/dom';
 import { mountSettings } from '../ui/settings-page';
-import { applyTheme, THEME_INFO } from '../ui/theme';
+import { applyTheme, resolveTheme, THEME_INFO } from '../ui/theme';
 import { FakeBrowser } from './fake-browser';
 import { FIXTURES, type Fixture } from './fixtures';
 import { MemorySettings } from './memory-settings';
@@ -33,41 +33,58 @@ function mountFixture(slot: HTMLElement, fixture: Fixture): App {
   return mountApp(slot, browser, fixture.state);
 }
 
-const themeButton = h('button', { class: 'btn', type: 'button' });
-/** Cycles through every theme; the settings page's picker does the same. */
-themeButton.addEventListener('click', async () => {
-  const current = await settings.load();
-  const themes = CHOICES.theme;
-  await settings.save({ ...current, theme: themes[(themes.indexOf(current.theme) + 1) % themes.length]! });
-});
 
 /** Prototype themes (gallery only, see proto-themes.css): `?proto=holo` wears one over every screen. */
-const PROTOS = { holo: 'Holo', riso: 'Riso', blueprint: 'Blueprint', glacier: 'Glacier', poster: 'Poster' } as const;
+const PROTOS = { holo: 'Holo', blueprint: 'Blueprint', glacier: 'Glacier' } as const;
 type Proto = keyof typeof PROTOS;
 const isProto = (v: string | null): v is Proto => v !== null && v in PROTOS;
 const fromUrl = new URLSearchParams(location.search).get('proto');
 let proto: Proto | null = isProto(fromUrl) ? fromUrl : null;
 let currentTheme: Settings['theme'] = startSettings.theme;
-const protoButton = h('button', { class: 'btn', type: 'button', title: 'Cycle the prototype light themes (gallery only)' });
+/**
+ * Every theme, and the prototypes after them, as a row of tabs: click to wear one
+ * (saved like the settings picker), hover to preview it without leaving the current one.
+ */
+const themeTab = (label: string, value: string, title: string) => h('button', { class: 'theme-tab', type: 'button', 'data-theme-tab': value, title }, label);
+const themeTabs = h(
+  'nav',
+  { class: 'theme-tabs', 'aria-label': 'Theme' },
+  CHOICES.theme.map((t) => themeTab(THEME_INFO[t].name, t, THEME_INFO[t].tagline)),
+  h('span', { class: 'theme-tabs-sep' }, 'Prototypes'),
+  (Object.keys(PROTOS) as Proto[]).map((p) => themeTab(PROTOS[p], `proto:${p}`, 'Prototype, gallery only')),
+);
+const tabValue = (el: EventTarget | null) => (el as HTMLElement | null)?.closest<HTMLElement>('[data-theme-tab]')?.dataset.themeTab;
+themeTabs.addEventListener('click', async (e) => {
+  const value = tabValue(e.target);
+  if (!value) return;
+  if (value.startsWith('proto:')) {
+    proto = value.slice(6) as Proto;
+    applyProto();
+    return;
+  }
+  proto = null;
+  await settings.save({ ...(await settings.load()), theme: value as Settings['theme'] });
+});
+themeTabs.addEventListener('mouseover', (e) => {
+  const value = tabValue(e.target);
+  if (!value) return;
+  document.documentElement.dataset.theme = value.startsWith('proto:') ? value.slice(6) : resolveTheme(value as Settings['theme']);
+});
+themeTabs.addEventListener('mouseleave', () => applyProto());
 function applyProto(): void {
   applyTheme(currentTheme);
   if (proto) document.documentElement.dataset.theme = proto;
-  protoButton.textContent = `Prototype: ${proto ? PROTOS[proto] : 'off'} →`;
+  const active = proto ? `proto:${proto}` : currentTheme;
+  for (const tab of themeTabs.querySelectorAll<HTMLElement>('[data-theme-tab]')) tab.setAttribute('aria-pressed', String(tab.dataset.themeTab === active));
   const params = new URLSearchParams(location.search);
   if (proto) params.set('proto', proto);
   else params.delete('proto');
   history.replaceState(null, '', params.size ? `?${params}` : location.pathname);
 }
-protoButton.addEventListener('click', () => {
-  const keys = Object.keys(PROTOS) as Proto[];
-  proto = proto === null ? keys[0]! : (keys[keys.indexOf(proto) + 1] ?? null);
-  applyProto();
-});
 
 function onSettings(s: Settings): void {
   currentTheme = s.theme;
   applyTheme(s.theme);
-  themeButton.textContent = `Theme: ${THEME_INFO[s.theme].name} →`;
   const params = new URLSearchParams(location.search);
   if (s.theme === DEFAULT_SETTINGS.theme) params.delete('theme');
   else params.set('theme', s.theme);
@@ -99,10 +116,9 @@ document.body.replaceChildren(
     'header',
     { class: 'gallery-head' },
     h('h1', null, 'ATO 3 — popup screens'),
-    themeButton,
-    protoButton,
     h('p', null, 'Every popup is live: click, type, or focus one and use the keyboard. The gear in any popup jumps to the settings page below.'),
   ),
+  themeTabs,
   h('main', { class: 'gallery' }, figures),
   h(
     'section',
