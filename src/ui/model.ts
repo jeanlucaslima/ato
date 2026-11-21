@@ -138,6 +138,7 @@ export interface DuplicateSet {
   copies: DuplicateCopy[];
 }
 
+/** `contains`: substrings; `exact`: a quoted phrase, matched as whole words. */
 export type SearchMode = 'contains' | 'exact';
 export type { SearchField } from '../core/search';
 import type { SearchField } from '../core/search';

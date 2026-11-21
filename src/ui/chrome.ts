@@ -81,7 +81,7 @@ export function searchBar(m: PopupModel): HTMLElement {
   );
 }
 
-const MODE_LABEL: Record<SearchMode, string> = { contains: 'Contains', exact: 'Exact' };
+const MODE_LABEL: Record<SearchMode, string> = { contains: 'Contains', exact: 'Whole words' };
 
 export function searchTips(mode: SearchMode, field: SearchField | null): HTMLElement {
   return h(
