@@ -3,44 +3,17 @@
  * Everything Chrome-specific stays in this file; the rest of the popup only
  * sees plain `Snapshot`s and `Tab`s.
  */
-import { stillClosable, type DuplicatePolicy } from '../core/duplicates';
-import type { Snapshot, Tab, TabGroup } from '../core/types';
+import type { DuplicatePolicy } from '../core/duplicates';
+import type { Snapshot, Tab } from '../core/types';
 import type { BrowserPort, CloseResult } from './browser';
+import { CLOSE_MESSAGE, closeTabs, type CloseReply } from './chrome-close';
 import { RESTORE_MESSAGE, restoreTabs, type Restored } from './chrome-restore';
+import { fromChromeGroup, fromChromeTab } from './chrome-tab';
+
+export { fromChromeGroup, fromChromeTab };
 
 /** Batch bursts of tab events (a page load fires several) into one refresh. */
 const REFRESH_DEBOUNCE_MS = 120;
-
-/** ATO's view of a Chrome tab, or `null` for one without an id (devtools, apps). */
-export function fromChromeTab(t: chrome.tabs.Tab, now: number): Tab | null {
-  if (t.id === undefined || t.id === chrome_TAB_ID_NONE) return null;
-  const url = t.url || t.pendingUrl || '';
-  return {
-    id: t.id,
-    windowId: t.windowId,
-    index: t.index,
-    title: t.title || url,
-    url,
-    favIconUrl: t.favIconUrl || undefined,
-    active: t.active,
-    pinned: t.pinned,
-    audible: t.audible ?? false,
-    muted: t.mutedInfo?.muted ?? false,
-    discarded: t.discarded,
-    // Not in @types/chrome yet (Chrome 140+).
-    splitViewId: (t as chrome.tabs.Tab & { splitViewId?: number }).splitViewId ?? -1,
-    groupId: t.groupId ?? -1,
-    lastAccessed: t.lastAccessed ?? now,
-  };
-}
-
-/** `chrome.tabs.TAB_ID_NONE`, inlined so this module loads outside the extension (tests). */
-const chrome_TAB_ID_NONE = -1;
-
-/** ATO's view of a Chrome tab group. */
-export function fromChromeGroup(g: chrome.tabGroups.TabGroup): TabGroup {
-  return { id: g.id, windowId: g.windowId, title: g.title ?? '', color: g.color as TabGroup['color'], collapsed: g.collapsed };
-}
 
 export class ChromeBrowser implements BrowserPort {
   async snapshot(): Promise<Snapshot> {
@@ -86,10 +59,20 @@ export class ChromeBrowser implements BrowserPort {
     };
   }
 
+  /**
+   * Closing runs in the service worker, the same path as the right-click menu
+   * (recheck, remove, record); here only if the worker can't be reached.
+   */
   async close(tabIds: number[], policy: DuplicatePolicy | null): Promise<CloseResult> {
-    const { closable, kept } = stillClosable((await this.snapshot()).tabs, tabIds, policy);
-    if (closable.length > 0) await chrome.tabs.remove(closable.map((t) => t.id));
-    return { closed: closable, kept };
+    let reply: CloseReply | undefined;
+    try {
+      reply = (await chrome.runtime.sendMessage({ type: CLOSE_MESSAGE, tabIds, policy })) as CloseReply | undefined;
+    } catch {
+      // No worker listening: close from here.
+    }
+    if (reply?.ok) return { closed: reply.closed, kept: reply.kept };
+    if (reply && !reply.ok) throw new Error(reply.error);
+    return closeTabs(tabIds, policy);
   }
 
   /** Undo runs in the service worker so it finishes even if the popup closes; here only if the worker can't be reached. */

@@ -8,8 +8,9 @@ import { badgeFor } from '../core/badge';
 import { DEFAULT_SETTINGS, policyOf } from '../core/settings';
 import { duplicatesOf, othersFromSite } from '../core/tab-menu';
 import type { Tab } from '../core/types';
-import { fromChromeTab } from '../ui/chrome-browser';
+import { closeTabs, readCloseRequest } from '../ui/chrome-close';
 import { RESTORE_MESSAGE, restoreTabs } from '../ui/chrome-restore';
+import { fromChromeTab } from '../ui/chrome-tab';
 import { ChromeSettings } from '../ui/chrome-settings';
 
 /** Batch bursts of tab events (opening a window fires dozens) into one recount. */
@@ -55,10 +56,22 @@ chrome.tabs.onUpdated.addListener((_id, change) => {
 });
 settings.subscribe(scheduleRefresh);
 
-// --- Undo ------------------------------------------------------------------------
+// --- Closing and undo --------------------------------------------------------------
+
+// The popup closes through the worker, the same path as the right-click menu.
+// Only ATO's own pages may ask.
+chrome.runtime.onMessage.addListener((message: unknown, sender, reply) => {
+  const request = sender.id === chrome.runtime.id ? readCloseRequest(message) : null;
+  if (!request) return false;
+  void closeTabs(request.tabIds, request.policy).then(
+    (result) => reply({ ok: true, ...result }),
+    (error: unknown) => reply({ ok: false, error: String(error) }),
+  );
+  return true; // reply comes later
+});
 
 // The popup asks the worker to restore: Chrome may close the popup as tabs come
-// back, and the worker keeps going. Only ATO's own pages may ask.
+// back, and the worker keeps going.
 chrome.runtime.onMessage.addListener((message: { type?: string; tabs?: Tab[]; closedAt?: number }, sender, reply) => {
   if (sender.id !== chrome.runtime.id || message?.type !== RESTORE_MESSAGE || !Array.isArray(message.tabs)) return false;
   const closedAt = typeof message.closedAt === 'number' ? message.closedAt : undefined;
@@ -92,9 +105,10 @@ async function onMenuClick(menuItemId: string | number, clickedId: number | unde
   const [tabs, current] = await readState();
   const clicked = tabs.find((t) => t.id === clickedId);
   if (!clicked) return;
-  const closing = item.pick(clicked, tabs, policyOf(current)).map((t) => t.id);
-  // Closed tabs come back with Chrome's own ⇧⌘T for now (ATO's undo record is plan step 2).
-  if (closing.length > 0) await chrome.tabs.remove(closing);
+  const policy = policyOf(current);
+  const closing = item.pick(clicked, tabs, policy).map((t) => t.id);
+  // The popup's close path: protection is checked again right before removing.
+  if (closing.length > 0) await closeTabs(closing, policy);
 }
 
 chrome.contextMenus.onClicked.addListener((info, tab) => void onMenuClick(info.menuItemId, tab?.id));
