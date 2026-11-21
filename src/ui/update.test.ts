@@ -181,9 +181,9 @@ describe('update', () => {
     const s0: AppState = { snapshot: GROUPED, ui: initialUi({ view: 'windows', scope: 'current' }) };
     const screen = deriveModel(s0).screen;
     if (screen.kind !== 'windows') throw new Error('expected windows');
-    expect(screen.windows.map((w) => [w.n, w.tabCount, w.current])).toEqual([[1, 12, true], [2, 8, false], [3, 16, false]]);
+    expect(screen.windows.map((w) => [w.n, w.tabCount, w.current])).toEqual([[1, 13, true], [2, 8, false], [3, 16, false]]);
     const w1 = screen.windows[0]!;
-    expect(w1.runs.map((r) => [r.group?.title ?? null, r.tabs.length])).toEqual([[null, 5], ['ATO v3', 2], [null, 2], ['Read later', 3]]);
+    expect(w1.runs.map((r) => [r.group?.title ?? null, r.tabs.length])).toEqual([[null, 5], ['ATO v3', 2], [null, 2], ['Read later', 3], [null, 1]]);
     expect(w1.runs.flatMap((r) => r.dots.map((d) => d.id))).toEqual(GROUPED.tabs.filter((t) => t.windowId === 1).sort((a, b) => a.index - b.index).map((t) => t.id));
     expect(screen.windows[2]!.duplicates).toBe(16);
     expect(listKeys(s0)).toEqual(['win:1', 'win:2', 'win:3']);

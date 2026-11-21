@@ -9,6 +9,27 @@ const MIN = 60_000;
 let nextId = 1;
 const counters = new Map<number, number>();
 
+/**
+ * Real favicons for the sample sites, loaded from the sites themselves (gallery
+ * and README screenshots only: nothing is bundled). A tab Chrome reports without
+ * one still gets the tinted letter tile.
+ */
+const FAVICONS: Record<string, string> = {
+  'news.ycombinator.com': 'https://news.ycombinator.com/favicon.ico',
+  'www.youtube.com': 'https://www.youtube.com/favicon.ico',
+  'github.com': 'https://github.com/favicon.ico',
+  'mail.proton.me': 'https://proton.me/favicon.ico',
+  'developer.chrome.com': 'https://www.google.com/chrome/static/images/favicons/favicon-32x32.png',
+  'docs.google.com': 'https://ssl.gstatic.com/docs/documents/images/kix-favicon-2023q4.ico',
+  'fast-check.dev': 'https://fast-check.dev/img/favicon.ico',
+  'developer.mozilla.org': 'https://developer.mozilla.org/favicon-48x48.png',
+  'stackoverflow.com': 'https://cdn.sstatic.net/Sites/stackoverflow/Img/favicon.ico',
+  'medium.com': 'https://medium.com/favicon.ico',
+  'blog.chromium.org': 'https://www.chromium.org/favicon.ico',
+  'chromewebstore.google.com': 'https://ssl.gstatic.com/chrome/webstore/images/icon_48px.png',
+  'www.techmeme.com': 'https://www.techmeme.com/favicon.ico',
+};
+
 function tab(windowId: number, title: string, url: string, minutesAgo: number, extra: Partial<Tab> = {}): Tab {
   const index = counters.get(windowId) ?? 0;
   counters.set(windowId, index + 1);
@@ -24,6 +45,7 @@ function tab(windowId: number, title: string, url: string, minutesAgo: number, e
     discarded: false,
     groupId: -1,
     lastAccessed: NOW - minutesAgo * MIN,
+    favIconUrl: FAVICONS[new URL(url).hostname],
     ...extra,
   };
 }
@@ -46,6 +68,7 @@ export const TABS: Tab[] = [
   tab(1, 'Intl.RelativeTimeFormat — MDN', 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/RelativeTimeFormat', 2 * 24 * 60, { discarded: true }),
   tab(1, 'Show HN: a tab manager that stays out of the way', 'https://news.ycombinator.com/item?id=4242', 3 * 24 * 60, { discarded: true }),
   tab(1, 'Pull request #212 · vitejs/vite', 'https://github.com/vitejs/vite/pull/212', 4 * 24 * 60),
+  tab(1, 'Techmeme', 'https://www.techmeme.com/', 5),
   tab(2, 'Hacker News', HN, 24 * 60),
   tab(2, 'Inbox (3)', INBOX, 5 * 60),
   tab(2, 'Postgres connection pooling explained', 'https://stackoverflow.com/questions/pooling', 9 * 24 * 60),
