@@ -7,6 +7,7 @@ export type Range = readonly [start: number, end: number];
 export type SearchField = 'url' | 'title' | 'dupe';
 
 export interface ParsedQuery {
+  /** `contains`: each term anywhere (substring). `exact`: a quoted phrase, as whole words. */
   mode: 'contains' | 'exact';
   field: 'all' | SearchField;
   terms: string[];
@@ -30,7 +31,7 @@ export function joinField(field: SearchField | null, rest: string): string {
 }
 
 /**
- * `"exact phrase"` → one exact term; `url:` / `title:` prefixes scope the field;
+ * `"exact phrase"` → one term matched as whole words (see `matcher`); `url:` / `title:` prefixes scope the field;
  * anything else → whitespace-separated terms that must all appear.
  */
 export function parseQuery(raw: string): ParsedQuery {
@@ -45,16 +46,56 @@ export function parseQuery(raw: string): ParsedQuery {
   return { mode: 'contains', field, terms: text.toLowerCase().split(/\s+/).filter(Boolean) };
 }
 
-/** Every occurrence of every term in `text` (case-insensitive). */
-export function findRanges(text: string, terms: readonly string[]): Range[] {
-  const lower = text.toLowerCase();
-  const ranges: Range[] = [];
-  for (const term of terms) {
-    for (let i = lower.indexOf(term); i !== -1; i = lower.indexOf(term, i + term.length)) {
-      ranges.push([i, i + term.length]);
-    }
+/** Every occurrence of every term in `text` (case-insensitive), as `mode` matches them. */
+export function findRanges(text: string, terms: readonly string[], mode: ParsedQuery['mode'] = 'contains'): Range[] {
+  return matcher(terms, mode).ranges(text);
+}
+
+/** A letter or digit in any script: what a word is made of. */
+const WORD_CHAR = /[\p{L}\p{N}]/u;
+
+interface Matcher {
+  all(text: string): boolean;
+  ranges(text: string): Range[];
+}
+
+const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * How terms are found, built once per query. `contains`: substrings. `exact`:
+ * the phrase as whole words, so `"cat"` finds "my cat" and "cat-food" but not
+ * "catalog" or "bobcat"; an edge of the phrase that is itself a letter or digit
+ * must not touch another one (`"/docs"` still finds "a.test/docs/x").
+ */
+function matcher(terms: readonly string[], mode: ParsedQuery['mode']): Matcher {
+  if (mode === 'contains') {
+    return {
+      all: (text) => {
+        const lower = text.toLowerCase();
+        return terms.every((t) => lower.includes(t));
+      },
+      ranges: (text) => {
+        const lower = text.toLowerCase();
+        const ranges: Range[] = [];
+        for (const term of terms) {
+          for (let i = lower.indexOf(term); i !== -1; i = lower.indexOf(term, i + term.length)) ranges.push([i, i + term.length]);
+        }
+        return ranges;
+      },
+    };
   }
-  return ranges;
+  const patterns = terms.map((term) => {
+    const before = WORD_CHAR.test(term[0] ?? '') ? '(?<![\\p{L}\\p{N}])' : '';
+    const after = WORD_CHAR.test(term[term.length - 1] ?? '') ? '(?![\\p{L}\\p{N}])' : '';
+    return before + escapeRegExp(term) + after;
+  });
+  // Separate regexes: `test` on a global one would leave a lastIndex that matchAll copies.
+  const tests = patterns.map((p) => new RegExp(p, 'iu'));
+  const finds = patterns.map((p) => new RegExp(p, 'giu'));
+  return {
+    all: (text) => tests.every((p) => p.test(text)),
+    ranges: (text) => finds.flatMap((p) => [...text.matchAll(p)].map((m): Range => [m.index, m.index + m[0].length])),
+  };
 }
 
 export interface SearchHit {
@@ -81,14 +122,15 @@ export function searchTabs(tabs: readonly Tab[], query: ParsedQuery, match: Matc
     return searchTabs(duplicated, { ...query, field: 'all' });
   }
   if (query.terms.length === 0) return [];
+  const find = matcher(query.terms, query.mode);
   const hits: (SearchHit & { score: number })[] = [];
   for (const tab of tabs) {
     const title = query.field === 'url' ? '' : tab.title;
     const url = query.field === 'title' ? '' : tab.url;
-    const haystack = `${title}\n${url}\n${query.field === 'all' ? domainOf(tab.url) : ''}`.toLowerCase();
-    if (!query.terms.every((t) => haystack.includes(t))) continue;
-    const titleRanges = findRanges(title, query.terms);
-    hits.push({ tab, titleRanges, urlRanges: findRanges(url, query.terms), score: titleRanges.length });
+    // Newlines keep fields apart: a phrase never runs from one into the next.
+    if (!find.all(`${title}\n${url}\n${query.field === 'all' ? domainOf(tab.url) : ''}`)) continue;
+    const titleRanges = find.ranges(title);
+    hits.push({ tab, titleRanges, urlRanges: find.ranges(url), score: titleRanges.length });
   }
   return hits.sort((a, b) => b.score - a.score || b.tab.lastAccessed - a.tab.lastAccessed).map(({ score: _s, ...hit }) => hit);
 }

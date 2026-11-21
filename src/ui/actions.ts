@@ -43,9 +43,24 @@ export type Action =
   | { type: 'closeResults' }
   | { type: 'showAllResults' }
   | { type: 'unloadResults' }
-  | { type: 'closed'; tabs: readonly Tab[]; message: string }
+  /**
+   * A close ran: `tabs` were really closed (undo covers exactly these), out of
+   * `requested`; `kept` were left open: protected (at the decision or the recheck),
+   * or the copy a duplicate cleanup kept because the planned one was gone.
+   */
+  | { type: 'closed'; tabs: readonly Tab[]; requested: readonly number[]; noun: string; kept: number; at?: number }
+  /**
+   * A close failed (Chrome refused: a tab being dragged, a window closing). `tabs`
+   * of `requested` were gone afterwards anyway (closed before the failure).
+   */
+  | { type: 'closeFailed'; tabs: readonly Tab[]; requested: readonly number[]; noun: string; at?: number }
+  /** Some other browser effect failed; say so. */
+  | { type: 'effectFailed'; message: string }
+  /** The popup opened soon after a right-click close: offer its undo. */
+  | { type: 'offerUndo'; tabs: readonly Tab[]; closedAt: number; message: string }
   | { type: 'undo' }
-  | { type: 'restored'; count: number; fresh?: number }
+  /** Undo ran: `failed` couldn't come back and keep their undo (closed at `closedAt`). */
+  | { type: 'restored'; count: number; fresh?: number; failed?: readonly Tab[]; closedAt?: number }
   | { type: 'dismissToast'; id: number }
   | { type: 'toggleSelectMode' }
   | { type: 'exitSelect' }
@@ -70,8 +85,14 @@ export type Action =
 
 /** Side effects the runtime performs; results come back as actions. */
 export type Effect =
-  | { kind: 'close'; tabIds: number[]; message: string }
-  | { kind: 'restore'; tabs: readonly Tab[] }
+  /**
+   * Close after the animation. `policy` (bulk closes) has protection checked again
+   * on the fresh state; `null` closes what the user picked. `skipped`: protected
+   * tabs already left out when deciding, for the message. `cleanup`: duplicate
+   * cleanup, which also keeps a copy of every page on the fresh state.
+   */
+  | { kind: 'close'; tabIds: number[]; noun: string; skipped: number; policy: DuplicatePolicy | null; cleanup: boolean }
+  | { kind: 'restore'; tabs: readonly Tab[]; closedAt?: number }
   | { kind: 'activate'; tabId: number }
   | { kind: 'discard'; tabIds: number[] }
   | { kind: 'move'; tabIds: number[] }

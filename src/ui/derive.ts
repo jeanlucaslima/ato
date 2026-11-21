@@ -149,6 +149,8 @@ function windowGroups(snapshot: Snapshot, ui: UiState): WindowGroup[] {
         siteCount: new Set(tabs.map((t) => domainOf(t.url) || 'Other')).size,
         groupCount: runs.filter((r) => r.group).length,
         duplicates: tabs.filter((t) => extras.has(t.id)).length,
+        closable: tabs.filter((t) => protection(t, ui.policy) === null && !ui.closing.has(t.id)).length,
+        protectedCount: tabs.filter((t) => protection(t, ui.policy) !== null).length,
         playing: tabs.some((t) => t.audible),
         lastUsed: formatAge(snapshot.now - Math.max(...tabs.map((t) => t.lastAccessed))),
         expanded: ui.openWindows.has(id),
@@ -212,7 +214,24 @@ export function displayUrl(url: string, ranges: readonly Range[]): { text: strin
   };
 }
 
-export function deriveModel({ snapshot, ui }: AppState): PopupModel {
+/**
+ * Models already derived, by state. States are immutable (every update makes a
+ * new one), so identity is a safe key; one ↓ press used to derive the same
+ * state up to three times (update, withValidCursor, render). Treat the model
+ * returned as read-only: it may be shared.
+ */
+const derived = new WeakMap<AppState, PopupModel>();
+
+export function deriveModel(state: AppState): PopupModel {
+  let model = derived.get(state);
+  if (!model) {
+    model = computeModel(state);
+    derived.set(state, model);
+  }
+  return model;
+}
+
+function computeModel({ snapshot, ui }: AppState): PopupModel {
   if (!snapshot) return { ...loadingModel(), searchFocused: ui.searchFocused, helpOpen: ui.helpOpen, scope: ui.scope };
 
   const tabs = scopedTabs(snapshot, ui);

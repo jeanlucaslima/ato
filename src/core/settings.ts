@@ -10,7 +10,6 @@ import type { MatchMode } from './tabs';
 export const THEMES = ['graphite', 'paper', 'cyber', 'nebula', 'ember', 'neon', 'lagoon', 'sakura', 'dune'] as const;
 export type ThemeId = (typeof THEMES)[number];
 
-/** Badge background colours on offer. */
 export const BADGE_COLORS = ['#dc2626', '#ea580c', '#ca8a04', '#16a34a', '#0891b2', '#2563eb', '#7c3aed', '#db2777', '#475569'] as const;
 export type BadgeColor = (typeof BADGE_COLORS)[number];
 
@@ -83,7 +82,6 @@ const LEGACY_THEME: Record<string, ThemeId> = { paper: 'paper', ivory: 'paper', 
 const LEGACY_MATCH: Record<string, Settings['match']> = { exact: 'exact', ignoreHash: 'ignoreHash', ignoreQuery: 'ignoreQuery', ignoreQueryAndHash: 'ignoreBoth' };
 const LEGACY_VIEW: Record<string, Settings['view']> = { tabs: 'tabs', domains: 'sites' };
 
-/** Whether stored data holds 2.x settings. */
 export function hasLegacy(raw: Record<string, unknown>): boolean {
   return LEGACY_KEYS.some((k) => raw[k] !== undefined);
 }

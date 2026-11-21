@@ -122,41 +122,64 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
     for (const effect of effects) run(effect);
   }
 
+  /** Browser work that can fail: a rejection becomes a toast, never a stuck state. */
+  function attempt(work: Promise<unknown>, message: string): void {
+    work.catch(() => dispatch({ type: 'effectFailed', message }));
+  }
+
+  /** Close for real, then report what closed; on failure, what is gone anyway. */
+  async function close(effect: Extract<Effect, { kind: 'close' }>): Promise<void> {
+    const port = browser!;
+    const asked = state.snapshot?.tabs.filter((t) => effect.tabIds.includes(t.id)) ?? [];
+    const at = Date.now();
+    try {
+      const { closed, kept, closedAt } = await port.close(effect.tabIds, effect.policy, effect.cleanup);
+      dispatch({ type: 'closed', tabs: closed, requested: effect.tabIds, noun: effect.noun, kept: effect.skipped + kept.length, at: closedAt ?? at });
+    } catch {
+      // tabs.remove can reject after closing some: those still get their undo.
+      const fresh = await port.snapshot().catch(() => null);
+      const open = new Set(fresh ? fresh.tabs.map((t) => t.id) : effect.tabIds);
+      dispatch({ type: 'closeFailed', tabs: asked.filter((t) => !open.has(t.id)), requested: effect.tabIds, noun: effect.noun, at });
+      if (fresh) dispatch({ type: 'snapshot', snapshot: fresh });
+    }
+  }
+
   function run(effect: Effect): void {
     if (!browser) return;
     switch (effect.kind) {
       case 'close':
         // Let the rows animate out, then close for real.
-        later(CLOSE_ANIMATION_MS, () => {
-          void browser.close(effect.tabIds).then((tabs) => dispatch({ type: 'closed', tabs, message: effect.message }));
-        });
+        later(CLOSE_ANIMATION_MS, () => void close(effect));
         return;
       case 'restore':
-        void browser.restore(effect.tabs).then(({ count, fresh }) => dispatch({ type: 'restored', count, fresh }));
+        browser.restore(effect.tabs, effect.closedAt).then(
+          ({ count, fresh, failed }) => dispatch({ type: 'restored', count, fresh, failed, closedAt: effect.closedAt }),
+          () => dispatch({ type: 'effectFailed', message: 'Couldn’t restore tabs' }),
+        );
         return;
       case 'activate':
-        void browser.activate(effect.tabId);
+        attempt(browser.activate(effect.tabId), 'Couldn’t switch to that tab');
         return;
       case 'discard':
-        void browser.discard(effect.tabIds);
+        attempt(browser.discard(effect.tabIds), 'Couldn’t unload tabs');
         return;
       case 'move':
-        void browser.moveToNewWindow(effect.tabIds);
+        attempt(browser.moveToNewWindow(effect.tabIds), 'Couldn’t move tabs');
         return;
       case 'moveTo':
-        void browser.moveToWindow(effect.tabIds, effect.windowId);
+        attempt(browser.moveToWindow(effect.tabIds, effect.windowId), 'Couldn’t move tabs');
         return;
       case 'focusWindow':
-        void browser.focusWindow(effect.windowId);
+        attempt(browser.focusWindow(effect.windowId), 'Couldn’t switch to that window');
         return;
       case 'expireToast':
         later(TOAST_MS, () => dispatch({ type: 'dismissToast', id: effect.id }));
         return;
       case 'openSettings':
-        void browser.openSettings();
+        attempt(browser.openSettings(), 'Couldn’t open settings');
         return;
       case 'mute':
-        void browser.setMuted(effect.tabId, effect.muted);
+        attempt(browser.setMuted(effect.tabId, effect.muted), 'Couldn’t change the sound');
         return;
     }
   }
@@ -168,6 +191,11 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
 
   render();
   if (!state.snapshot) refresh();
+  // A right-click close in the last minute gets its undo here.
+  browser?.pendingUndo().then(
+    (offer) => offer && dispatch({ type: 'offerUndo', ...offer }),
+    () => undefined,
+  );
   if (options.autofocus) searchInput()?.focus();
   // The focus ring reflects real focus, not whatever the initial state claimed.
   const focused = document.activeElement !== null && document.activeElement === searchInput();

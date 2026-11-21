@@ -8,8 +8,10 @@ duplicate tabs and search, group, and manage your open tabs and windows from a p
 ## The short version
 
 **ATO does not collect, transmit, sell, or share any of your data.** Everything
-the extension does happens locally, inside your own browser. It makes no network
-requests, contains no analytics or trackers, and has no backend server.
+the extension does happens locally, inside your own browser. ATO has no analytics,
+tracking or backend. Your tabs never leave your browser. Favicons are shown from
+the addresses Chrome provides, so your browser may load them as it would on the
+tab strip.
 
 ## What ATO accesses (and why)
 

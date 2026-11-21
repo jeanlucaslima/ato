@@ -60,7 +60,7 @@ Nine themes, light and dark, or follow your system. Choose which copy to keep, w
 PRIVATE BY DESIGN
 ━━━━━━━━━━━━━━━━━━━━
 
-ATO runs entirely in your browser. It makes no network requests, has no analytics or trackers, and never collects, transmits or sells your data. Settings sync only through your own Chrome account, if sync is on.
+ATO runs entirely in your browser. ATO has no analytics, tracking or backend. Your tabs never leave your browser. Favicons are shown from the addresses Chrome provides, so your browser may load them as it would on the tab strip. It never collects, transmits or sells your data. Settings sync only through your own Chrome account, if sync is on.
 
 Open source: https://github.com/jeanlucaslima/ato
 
@@ -104,7 +104,7 @@ Select **"This item does not collect or use user data."** Then certify:
 - Does **not** use or transfer data for purposes unrelated to the item's single purpose.
 - Does **not** use or transfer data to determine creditworthiness or for lending.
 
-All true: ATO makes no network requests and has no analytics/trackers.
+All true: ATO has no analytics, tracking or backend, and tab data never leaves the browser (favicons are loaded by the browser from the addresses Chrome provides, as on the tab strip).
 
 ### Privacy policy URL
 

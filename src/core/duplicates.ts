@@ -111,7 +111,48 @@ export function applyOverrides(
   });
 }
 
-/** Tabs a plan would close. */
+/**
+ * The last check before a close: of the tabs asked for (`ids`), those still open
+ * in `fresh` and still unprotected under `policy`. A tab that became current,
+ * started playing or joined a split view since the decision is `kept`. With no
+ * policy (a single close the user picked) only tabs that are gone drop out.
+ *
+ * `cleanup` (duplicate cleanup, rule 2): every page keeps a copy in `fresh`. A
+ * closable tab with no copy staying open (the planned survivor was closed or
+ * navigated away, or the tab itself now shows another page) leaves one copy of
+ * its page open, chosen by `policy.keep`. Other closes close all they're asked to.
+ */
+export function stillClosable(fresh: readonly Tab[], ids: Iterable<number>, policy: DuplicatePolicy | null, cleanup = false): { closable: Tab[]; kept: Tab[] } {
+  const wanted = new Set(ids);
+  let closable: Tab[] = [];
+  const kept: Tab[] = [];
+  for (const tab of fresh) {
+    if (!wanted.has(tab.id)) continue;
+    if (policy && protection(tab, policy) !== null) kept.push(tab);
+    else closable.push(tab);
+  }
+  if (cleanup && policy) {
+    const closing = new Set(closable.map((t) => t.id));
+    const staying = new Set(fresh.filter((t) => !closing.has(t.id)).map((t) => duplicateKey(t, policy.match)));
+    const orphans = new Map<string | null, Tab[]>();
+    for (const tab of closable) {
+      const key = duplicateKey(tab, policy.match);
+      if (key !== null && staying.has(key)) continue;
+      orphans.set(key, [...(orphans.get(key) ?? []), tab]);
+    }
+    const spared = new Set<number>();
+    for (const [key, copies] of orphans) {
+      // No page to dedupe (null key): none of them is a duplicate, so none closes.
+      const ids = copies.map((t) => t.id);
+      const survivor = policy.keep === 'oldest' ? Math.min(...ids) : Math.max(...ids);
+      for (const id of key === null ? ids : [survivor]) spared.add(id);
+    }
+    kept.push(...closable.filter((t) => spared.has(t.id)));
+    closable = closable.filter((t) => !spared.has(t.id));
+  }
+  return { closable, kept };
+}
+
 export function tabsToClose(sets: readonly DuplicateSet[]): Tab[] {
   return sets.flatMap((s) => s.copies.filter((c) => c.decision.action === 'close').map((c) => c.tab));
 }

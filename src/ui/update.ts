@@ -70,8 +70,8 @@ function withValidCursor(state: AppState): AppState {
   return setUi(state, { cursor: state.ui.query.trim() ? order[0] : undefined });
 }
 
-function withToast(state: AppState, message: string, undo?: readonly Tab[]): Result {
-  const toast: Toast = { id: (state.ui.toast?.id ?? 0) + 1, message, undo };
+function withToast(state: AppState, message: string, undo?: readonly Tab[], closedAt?: number): Result {
+  const toast: Toast = { id: (state.ui.toast?.id ?? 0) + 1, message, undo, ...(undo && closedAt !== undefined ? { closedAt } : {}) };
   return [{ ...state, ui: { ...state.ui, toast } }, [{ kind: 'expireToast', id: toast.id }]];
 }
 
@@ -81,18 +81,18 @@ function setUi(state: AppState, patch: Partial<UiState>): AppState {
 
 /**
  * Start closing `tabs`: they animate out, then the runtime closes them.
- * Bulk closes skip protected tabs; an explicit single close does not.
+ * Bulk closes skip protected tabs; an explicit single close does not. `cleanup`
+ * (duplicate cleanup) has the close keep a copy of every page, whatever changed.
  */
-function startClose(state: AppState, tabs: readonly Tab[], noun: string, bulk: boolean): Result {
+function startClose(state: AppState, tabs: readonly Tab[], noun: string, bulk: boolean, cleanup = false): Result {
   const eligible = bulk ? tabs.filter((t) => protection(t, state.ui.policy) === null) : [...tabs];
   const skipped = tabs.length - eligible.length;
   if (eligible.length === 0) return withToast(state, skipped ? `Nothing to close — ${plural(skipped, 'tab')} protected` : 'Nothing to close');
   const ids = new Set(eligible.map((t) => t.id));
   const order = navOrder(deriveModel(state));
   const closing = new Set([...state.ui.closing, ...ids]);
-  const message = `Closed ${plural(eligible.length, noun)}${skipped ? ` · kept ${skipped} protected` : ''}`;
   const ui: UiState = { ...state.ui, closing, cursor: cursorAfter(order, ids, state.ui.cursor) };
-  return [{ ...state, ui }, [{ kind: 'close', tabIds: [...ids], message }]];
+  return [{ ...state, ui }, [{ kind: 'close', tabIds: [...ids], noun, skipped, policy: bulk ? state.ui.policy : null, cleanup: bulk && cleanup }]];
 }
 
 /**
@@ -306,7 +306,7 @@ function step(state: AppState, action: Action): Result {
       // The set folds away: hand the cursor to the next set (or the one before).
       const heads = navOrder(deriveModel(state)).filter((k) => k.startsWith('set:'));
       const at = heads.indexOf(`set:${action.key}`);
-      const [s, effects] = startClose(state, tabs, 'duplicate', true);
+      const [s, effects] = startClose(state, tabs, 'duplicate', true, true);
       return [setUi(s, { cursor: heads[at + 1] ?? heads[at - 1] }), effects];
     }
     case 'flip': {
@@ -324,13 +324,13 @@ function step(state: AppState, action: Action): Result {
       // ending on "No duplicates left". Copies already on their way out aren't closed twice.
       const tabs = tabsToClose(duplicatePlan(state.snapshot, ui)).filter((t) => !ui.closing.has(t.id));
       if (tabs.length === 0) return [state, []];
-      return startClose(state, tabs, 'duplicate', true);
+      return startClose(state, tabs, 'duplicate', true, true);
     }
 
     case 'closeDuplicates': {
       if (!state.snapshot) return [state, []];
       const tabs = tabsToClose(duplicatePlan(state.snapshot, setUi(state, { overrides: new Map() }).ui)).filter((t) => !ui.closing.has(t.id));
-      return startClose(state, tabs, 'duplicate', true);
+      return startClose(state, tabs, 'duplicate', true, true);
     }
     case 'activate': {
       const tab = tabsById(state, [action.tabId])[0];
@@ -348,22 +348,45 @@ function step(state: AppState, action: Action): Result {
       return [setUi(state, { showAllResults: true }), []];
     case 'closeResults':
       // dupe: results close only the extra copies: every page keeps one tab.
-      if (parseQuery(ui.query).field === 'dupe') return state.snapshot ? startClose(state, extraCopies(state.snapshot, ui, resultTabs(state)), 'duplicate', true) : [state, []];
+      if (parseQuery(ui.query).field === 'dupe') return state.snapshot ? startClose(state, extraCopies(state.snapshot, ui, resultTabs(state)), 'duplicate', true, true) : [state, []];
       return startClose(state, resultTabs(state), 'tab', true);
     case 'unloadResults':
       return startUnload(state, resultTabs(state));
     case 'closed': {
+      // Everything asked for leaves `closing`: closed, gone, or kept by the recheck.
       const closing = new Set(ui.closing);
+      for (const id of action.requested) closing.delete(id);
       for (const t of action.tabs) closing.delete(t.id);
-      return withToast(setUi(state, { closing }), action.message, action.tabs);
+      const n = action.tabs.length;
+      const kept = action.kept ? ` · kept ${action.kept} protected` : '';
+      const message = n > 0 ? `Closed ${plural(n, action.noun)}${kept}` : action.kept ? `Nothing closed — ${plural(action.kept, 'tab')} protected` : 'Nothing to close';
+      return withToast(setUi(state, { closing }), message, n > 0 ? action.tabs : undefined, action.at);
     }
+    case 'closeFailed': {
+      // Nothing stays mid-animation; tabs that did close keep their undo.
+      const closing = new Set(ui.closing);
+      for (const id of action.requested) closing.delete(id);
+      const n = action.tabs.length;
+      const failed = action.requested.length - n;
+      const message = n > 0 ? `Closed ${plural(n, action.noun)} · couldn’t close ${failed} — try again` : 'Couldn’t close tabs — try again';
+      return withToast(setUi(state, { closing }), message, n > 0 ? action.tabs : undefined, action.at);
+    }
+    case 'offerUndo':
+      return withToast(state, action.message, action.tabs, action.closedAt);
+    case 'effectFailed':
+      return withToast(state, action.message);
     case 'undo': {
       const tabs = ui.toast?.undo;
       if (!tabs?.length) return [state, []];
-      return [setUi(state, { toast: undefined }), [{ kind: 'restore', tabs }]];
+      return [setUi(state, { toast: undefined }), [{ kind: 'restore', tabs, closedAt: ui.toast?.closedAt }]];
     }
-    case 'restored':
-      return withToast(state, `Restored ${plural(action.count, 'tab')}${action.fresh ? ` (${action.fresh} without back history)` : ''}`);
+    case 'restored': {
+      // Tabs that couldn't come back are said, and keep their undo to try again.
+      const failed = action.failed?.length ? action.failed : undefined;
+      const restored = `Restored ${plural(action.count, 'tab')}${action.fresh ? ` (${action.fresh} without back history)` : ''}`;
+      const message = !failed ? restored : action.count > 0 ? `${restored} · couldn’t restore ${failed.length}` : `Couldn’t restore ${plural(failed.length, 'tab')}`;
+      return withToast(state, message, failed, action.closedAt);
+    }
     case 'dismissToast':
       return ui.toast?.id === action.id ? [setUi(state, { toast: undefined }), []] : [state, []];
 

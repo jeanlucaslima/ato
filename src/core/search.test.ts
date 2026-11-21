@@ -94,3 +94,54 @@ describe('searchTabs', () => {
     );
   });
 });
+
+describe('quoted search: whole words', () => {
+  const pages = [
+    tab(1, 'my cat', 'https://a.test/'),
+    tab(2, 'cat-food deals', 'https://b.test/'),
+    tab(3, 'Product catalog', 'https://c.test/'),
+    tab(4, 'bobcat sightings', 'https://d.test/'),
+    tab(5, 'New York Times', 'https://nytimes.com/'),
+    tab(6, 'Docs', 'https://e.test/docs/intro'),
+    tab(7, 'Le café du coin', 'https://f.test/'),
+  ];
+  const ids = (q: string) => searchTabs(pages, parseQuery(q)).map((h) => h.tab.id).sort();
+
+  it('a quoted word matches only as a whole word; unquoted stays substring', () => {
+    expect(ids('"cat"')).toEqual([1, 2]);
+    expect(ids('cat')).toEqual([1, 2, 3, 4]);
+  });
+
+  it('a phrase matches across its spaces, any case', () => {
+    expect(ids('"new york"')).toEqual([5]);
+    expect(ids('"new yor"')).toEqual([]);
+  });
+
+  it('works past ASCII and with punctuation at the edges', () => {
+    expect(ids('"café"')).toEqual([7]);
+    expect(ids('"caf"')).toEqual([]);
+    expect(ids('url:"/docs"')).toEqual([6]);
+  });
+
+  it('dupe: with a quoted phrase matches whole words too', () => {
+    const dup = [...pages, tab(8, 'Product catalog', 'https://c.test/'), tab(9, 'my cat', 'https://a.test/')];
+    expect(searchTabs(dup, parseQuery('dupe:"cat"')).map((h) => h.tab.id).sort()).toEqual([1, 9]);
+  });
+
+  it('highlights exactly what matched', () => {
+    const hit = searchTabs(pages, parseQuery('"cat"')).find((h) => h.tab.id === 1);
+    expect(hit?.titleRanges).toEqual([[3, 6]]);
+    expect(findRanges('cat catalog cat', ['cat'], 'exact')).toEqual([[0, 3], [12, 15]]);
+  });
+
+  it('every exact hit range starts and ends on a word boundary', () => {
+    const isWord = (c: string | undefined) => c !== undefined && /[\p{L}\p{N}]/u.test(c);
+    fc.assert(
+      fc.property(fc.stringMatching(/^[a-zé .-]{0,30}$/), fc.stringMatching(/^[a-zé]{1,3}( [a-zé]{1,3})?$/), (text, phrase) =>
+        findRanges(text, [phrase], 'exact').every(
+          ([s, e]) => text.slice(s, e).toLowerCase() === phrase && !isWord(text[s - 1]) && !isWord(text[e]),
+        ),
+      ),
+    );
+  });
+});

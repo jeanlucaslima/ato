@@ -106,6 +106,17 @@ export const GROUPED: Snapshot = (() => {
   };
 })();
 
+/** A third window holding only protected tabs (current, pinned, playing): its Close is hidden. */
+export const PROTECTED_WINDOW: Snapshot = {
+  ...GROUPED,
+  tabs: [
+    ...GROUPED.tabs.filter((t) => t.windowId !== 3),
+    { ...TABS[0]!, id: 950, windowId: 3, index: 0 },
+    { ...TABS[1]!, id: 951, windowId: 3, index: 1 },
+    { ...TABS[4]!, id: 952, windowId: 3, index: 2, active: false },
+  ],
+};
+
 export interface Fixture {
   name: string;
   state: AppState;
@@ -122,6 +133,10 @@ export const FIXTURES: Fixture[] = [
     state: at({ view: 'sites', searchFocused: false, expanded: new Set(['news.ycombinator.com']), cursor: 'site:news.ycombinator.com' }),
   },
   { name: 'Windows (tab map, groups)', state: at({ view: 'windows', searchFocused: false, openWindows: new Set([2]), cursor: 'win:2' }, GROUPED) },
+  {
+    name: 'Windows · Close counts only what it closes (protected stay; none left: no button)',
+    state: at({ view: 'windows', searchFocused: false, openWindows: new Set([3]), cursor: 'win:3' }, PROTECTED_WINDOW),
+  },
   { name: 'Duplicate review', state: at({ reviewOpen: true, searchFocused: false, cursor: `copy:${idOf('Hacker News', 1)}` }) },
   { name: 'Duplicate review · 19 copies of one page (folded)', state: at({ reviewOpen: true, searchFocused: false, cursor: `set:${HN}` }, MANY_COPIES) },
   {
@@ -140,6 +155,11 @@ export const FIXTURES: Fixture[] = [
     }),
   },
   { name: 'After cleanup (undo)', state: at({ toast: { id: 1, message: 'Closed 4 duplicates', undo: [] } }, cleaned) },
+  {
+    name: 'Opened after a right-click close (Undo offered)',
+    state: at({ toast: { id: 1, message: 'Closed 2 duplicates (tab menu)', undo: TABS.filter((t) => t.title === 'Hacker News').slice(1), closedAt: NOW - 20_000 } }, cleaned),
+  },
+  { name: 'A close failed (Chrome refused)', state: at({ toast: { id: 1, message: 'Couldn’t close tabs — try again' } }) },
   { name: 'Search, no matches', state: at({ query: 'kubernetes' }) },
   { name: 'Search · url: chip', state: at({ query: 'url:github', cursor: `tab:${idOf('Issues · ato')}` }) },
   { name: 'url: just typed (chip, no text yet)', state: at({ query: 'url:' }) },

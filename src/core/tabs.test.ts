@@ -1,3 +1,4 @@
+import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { domainOf, duplicateKey, formatAge, pathOf } from './tabs';
 
@@ -49,5 +50,33 @@ describe('duplicateKey match modes', () => {
     expect(key('https://a.test/p?x=1#top', 'ignoreBoth')).toBe('https://a.test/p');
     expect(key('https://a.test/p?x=1', 'ignoreBoth')).not.toBe(key('https://a.test/q?x=1', 'ignoreBoth'));
     expect(key('chrome://settings/', 'ignoreBoth')).toBeNull();
+  });
+});
+
+describe('duplicateKey match modes (properties)', () => {
+  const word = fc.stringMatching(/^[a-z0-9]{1,8}$/);
+  const page = fc.record({ host: word, path: word });
+  const pair = fc.tuple(word, word).filter(([a, b]) => a !== b);
+  const url = (host: string, path: string, q: string, h: string) => `https://${host}.test/${path}?q=${q}#${h}`;
+  const same = (a: string, b: string, m: Parameters<typeof duplicateKey>[1]) => duplicateKey({ url: a }, m) === duplicateKey({ url: b }, m);
+
+  it('URLs differing only in their ?query: one key under ignoreQuery and ignoreBoth, never under exact or ignoreHash', () => {
+    fc.assert(
+      fc.property(page, pair, word, ({ host, path }, [q1, q2], h) => {
+        const a = url(host, path, q1, h);
+        const b = url(host, path, q2, h);
+        return same(a, b, 'ignoreQuery') && same(a, b, 'ignoreBoth') && !same(a, b, 'exact') && !same(a, b, 'ignoreHash');
+      }),
+    );
+  });
+
+  it('URLs differing only in their #hash: one key under ignoreHash and ignoreBoth, never under exact or ignoreQuery', () => {
+    fc.assert(
+      fc.property(page, pair, word, ({ host, path }, [h1, h2], q) => {
+        const a = url(host, path, q, h1);
+        const b = url(host, path, q, h2);
+        return same(a, b, 'ignoreHash') && same(a, b, 'ignoreBoth') && !same(a, b, 'exact') && !same(a, b, 'ignoreQuery');
+      }),
+    );
   });
 });

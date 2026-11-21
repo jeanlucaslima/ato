@@ -53,6 +53,12 @@ function summary(w: WindowGroup): string {
   return [plural(w.tabCount, 'tab'), plural(w.siteCount, 'site'), w.groupCount > 0 && plural(w.groupCount, 'group'), `used ${w.lastUsed}`].filter(Boolean).join(' · ');
 }
 
+/** What Close does here: it never takes protected tabs, so the window stays. */
+function closeTitle(w: WindowGroup): string {
+  const stay = w.protectedCount > 0 ? `; ${w.protectedCount} protected ${w.protectedCount === 1 ? 'stays' : 'stay'}` : '';
+  return `Close ${plural(w.closable, 'tab')}${stay} (⌫)`;
+}
+
 export function windowGroup(w: WindowGroup, cursor: string | undefined, selection?: ReadonlySet<number>): HTMLElement {
   const key = `win:${w.id}`;
   const isCursor = cursor === key;
@@ -95,7 +101,7 @@ export function windowGroup(w: WindowGroup, cursor: string | undefined, selectio
         { class: 'win-actions' },
         !w.current && h('button', { class: 'btn', type: 'button', 'data-action': 'focus-window', 'data-window': w.id, tabindex: -1, title: 'Bring to the front (↵)' }, 'Focus'),
         !w.current && h('button', { class: 'btn', type: 'button', 'data-action': 'merge-window', 'data-window': w.id, tabindex: -1, title: 'Move its tabs into this window (M)' }, 'Merge'),
-        h('button', { class: 'btn btn--danger', type: 'button', 'data-action': 'close-window', 'data-window': w.id, tabindex: -1, title: 'Close its tabs (⌫)' }, `Close ${w.tabCount}`),
+        w.closable > 0 && h('button', { class: 'btn btn--danger', type: 'button', 'data-action': 'close-window', 'data-window': w.id, tabindex: -1, title: closeTitle(w), 'aria-label': closeTitle(w) }, `Close ${w.closable}`),
       ),
     ),
     h('div', { class: 'win-map', 'data-action': 'toggle-window', 'data-window': w.id }, tabMap(w.runs)),

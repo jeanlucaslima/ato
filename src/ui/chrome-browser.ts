@@ -3,43 +3,17 @@
  * Everything Chrome-specific stays in this file; the rest of the popup only
  * sees plain `Snapshot`s and `Tab`s.
  */
-import type { Snapshot, Tab, TabGroup } from '../core/types';
-import type { BrowserPort } from './browser';
-import { RESTORE_MESSAGE, restoreTabs, type Restored } from './chrome-restore';
+import type { DuplicatePolicy } from '../core/duplicates';
+import type { Snapshot, Tab } from '../core/types';
+import type { BrowserPort, CloseResult, UndoOffer } from './browser';
+import { CLOSE_MESSAGE, closeTabs, pendingUndo, undoClose, type CloseReply } from './chrome-close';
+import { RESTORE_MESSAGE, type Restored } from './chrome-restore';
+import { fromChromeGroup, fromChromeTab } from './chrome-tab';
+
+export { fromChromeGroup, fromChromeTab };
 
 /** Batch bursts of tab events (a page load fires several) into one refresh. */
 const REFRESH_DEBOUNCE_MS = 120;
-
-/** ATO's view of a Chrome tab, or `null` for one without an id (devtools, apps). */
-export function fromChromeTab(t: chrome.tabs.Tab, now: number): Tab | null {
-  if (t.id === undefined || t.id === chrome_TAB_ID_NONE) return null;
-  const url = t.url || t.pendingUrl || '';
-  return {
-    id: t.id,
-    windowId: t.windowId,
-    index: t.index,
-    title: t.title || url,
-    url,
-    favIconUrl: t.favIconUrl || undefined,
-    active: t.active,
-    pinned: t.pinned,
-    audible: t.audible ?? false,
-    muted: t.mutedInfo?.muted ?? false,
-    discarded: t.discarded,
-    // Not in @types/chrome yet (Chrome 140+).
-    splitViewId: (t as chrome.tabs.Tab & { splitViewId?: number }).splitViewId ?? -1,
-    groupId: t.groupId ?? -1,
-    lastAccessed: t.lastAccessed ?? now,
-  };
-}
-
-/** `chrome.tabs.TAB_ID_NONE`, inlined so this module loads outside the extension (tests). */
-const chrome_TAB_ID_NONE = -1;
-
-/** ATO's view of a Chrome tab group. */
-export function fromChromeGroup(g: chrome.tabGroups.TabGroup): TabGroup {
-  return { id: g.id, windowId: g.windowId, title: g.title ?? '', color: g.color as TabGroup['color'], collapsed: g.collapsed };
-}
 
 export class ChromeBrowser implements BrowserPort {
   async snapshot(): Promise<Snapshot> {
@@ -85,23 +59,35 @@ export class ChromeBrowser implements BrowserPort {
     };
   }
 
-  async close(tabIds: number[]): Promise<Tab[]> {
-    const ids = new Set(tabIds);
-    const closing = (await this.snapshot()).tabs.filter((t) => ids.has(t.id));
-    if (closing.length === 0) return [];
-    await chrome.tabs.remove(closing.map((t) => t.id));
-    return closing;
+  /**
+   * Closing runs in the service worker, the same path as the right-click menu
+   * (recheck, remove, record); here only if the worker can't be reached.
+   */
+  async close(tabIds: number[], policy: DuplicatePolicy | null, cleanup = false): Promise<CloseResult> {
+    let reply: CloseReply | undefined;
+    try {
+      reply = (await chrome.runtime.sendMessage({ type: CLOSE_MESSAGE, tabIds, policy, cleanup })) as CloseReply | undefined;
+    } catch {
+      // No worker listening: close from here.
+    }
+    if (reply?.ok) return { closed: reply.closed, kept: reply.kept, closedAt: reply.closedAt };
+    if (reply && !reply.ok) throw new Error(reply.error);
+    return closeTabs(tabIds, policy, undefined, cleanup);
   }
 
   /** Undo runs in the service worker so it finishes even if the popup closes; here only if the worker can't be reached. */
-  async restore(tabs: readonly Tab[]): Promise<Restored> {
+  async restore(tabs: readonly Tab[], closedAt?: number): Promise<Restored> {
     try {
-      const reply = (await chrome.runtime.sendMessage({ type: RESTORE_MESSAGE, tabs })) as Restored | undefined;
+      const reply = (await chrome.runtime.sendMessage({ type: RESTORE_MESSAGE, tabs, closedAt })) as Restored | undefined;
       if (reply && typeof reply.count === 'number') return reply;
     } catch {
       // No worker listening: restore from here.
     }
-    return restoreTabs(tabs);
+    return undoClose(tabs, closedAt);
+  }
+
+  async pendingUndo(): Promise<UndoOffer | null> {
+    return pendingUndo();
   }
 
   async activate(tabId: number): Promise<void> {

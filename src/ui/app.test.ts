@@ -1,10 +1,12 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from 'vitest';
 import { FakeBrowser } from '../dev/fake-browser';
-import { GROUPED, SNAPSHOT } from '../dev/fixtures';
+import { GROUPED, PROTECTED_WINDOW, SNAPSHOT, TABS } from '../dev/fixtures';
+import type { DuplicatePolicy } from '../core/duplicates';
 import type { Snapshot } from '../core/types';
+import type { CloseResult } from './browser';
 import type { UiState } from './state';
-import { mountApp, type App } from './app';
+import { CLOSE_ANIMATION_MS, mountApp, type App } from './app';
 import { initialUi } from './state';
 
 let app: App | undefined;
@@ -99,5 +101,80 @@ describe('mountApp keyboard + a11y', () => {
     expect(container.querySelector('[role="dialog"]')).not.toBeNull();
     press('Escape', popup);
     expect(container.querySelector('[role="dialog"]')).toBeNull();
+  });
+});
+
+/** Chrome refusing a close: `closesFirst` tabs go before tabs.remove rejects. */
+class FailingBrowser extends FakeBrowser {
+  constructor(private closesFirst = 0) {
+    super(SNAPSHOT);
+  }
+  override async close(tabIds: number[], policy: DuplicatePolicy | null): Promise<CloseResult> {
+    if (this.closesFirst > 0) await super.close(tabIds.slice(0, this.closesFirst), policy);
+    throw new Error('Tabs cannot be edited right now (user may be dragging a tab).');
+  }
+}
+
+describe('a close that fails', () => {
+  const settle = () => new Promise((r) => setTimeout(r, CLOSE_ANIMATION_MS + 50));
+  const windowTwo = TABS.filter((t) => t.windowId === 2 && !t.active).map((t) => t.id);
+
+  function mountFailing(closesFirst: number) {
+    const container = document.createElement('div');
+    document.body.append(container);
+    app = mountApp(container, new FailingBrowser(closesFirst), { snapshot: SNAPSHOT, ui: initialUi({ view: 'windows' }) });
+    return container;
+  }
+
+  it('leaves no row closing and says it failed', async () => {
+    const container = mountFailing(0);
+    app!.dispatch({ type: 'toggleWindow', windowId: 2, open: true });
+    app!.dispatch({ type: 'closeWindow', windowId: 2 });
+    expect(container.querySelectorAll('.row.is-closing').length).toBe(windowTwo.length);
+    await settle();
+    expect(container.querySelectorAll('.is-closing').length).toBe(0);
+    expect(container.querySelector('.toast')?.textContent).toContain('Couldn’t close tabs — try again');
+    expect(container.querySelector('[data-action="undo"]')).toBeNull();
+  });
+
+  it('closed half, then failed: undo covers exactly the tabs that went', async () => {
+    const container = mountFailing(2);
+    app!.dispatch({ type: 'toggleWindow', windowId: 2, open: true });
+    app!.dispatch({ type: 'closeWindow', windowId: 2 });
+    await settle();
+    expect(container.querySelectorAll('.is-closing').length).toBe(0);
+    expect(container.querySelector('.toast')?.textContent).toContain(`Closed 2 tabs · couldn’t close ${windowTwo.length - 2} — try again`);
+    expect(container.querySelector('[data-action="undo"]')).not.toBeNull();
+    for (const id of windowTwo.slice(0, 2)) expect(container.querySelector(`[data-key="tab:${id}"]`)).toBeNull();
+    for (const id of windowTwo.slice(2)) expect(container.querySelector(`[data-key="tab:${id}"]`)).not.toBeNull();
+  });
+});
+
+describe('Windows view Close button', () => {
+  it('counts the tabs it will close, says protected ones stay, and is gone when nothing would close', () => {
+    const container = document.createElement('div');
+    document.body.append(container);
+    app = mountApp(container, new FakeBrowser(PROTECTED_WINDOW), { snapshot: PROTECTED_WINDOW, ui: initialUi({ view: 'windows' }) });
+    const button = (w: number) => container.querySelector<HTMLButtonElement>(`[data-action="close-window"][data-window="${w}"]`);
+    // Window 2: 8 tabs; the current one and three in groups stay.
+    expect(button(2)?.textContent).toBe('Close 4');
+    expect(button(2)?.getAttribute('aria-label')).toBe('Close 4 tabs; 4 protected stay (⌫)');
+    // Window 3: current, pinned and playing only.
+    expect(button(3)).toBeNull();
+  });
+});
+
+describe('undo offered when the popup opens', () => {
+  it('shows the right-click close with its Undo, which restores those tabs', async () => {
+    const container = document.createElement('div');
+    document.body.append(container);
+    const browser = new FakeBrowser({ ...SNAPSHOT, tabs: TABS.filter((t) => t.id !== TABS[3]!.id) });
+    browser.undoOffer = { tabs: [TABS[3]!], closedAt: 1, message: 'Closed 1 duplicate (tab menu)' };
+    app = mountApp(container, browser, { snapshot: null, ui: initialUi() });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(container.querySelector('.toast')?.textContent).toContain('Closed 1 duplicate (tab menu)');
+    (container.querySelector('[data-action="undo"]') as HTMLElement).click();
+    await new Promise((r) => setTimeout(r, 0));
+    expect((await browser.snapshot()).tabs.some((t) => t.id === TABS[3]!.id)).toBe(true);
   });
 });

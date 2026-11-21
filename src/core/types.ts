@@ -23,7 +23,6 @@ export interface Tab {
   lastAccessed: number;
 }
 
-/** Chrome's tab group colours. */
 export type GroupColor = 'grey' | 'blue' | 'red' | 'yellow' | 'green' | 'pink' | 'purple' | 'cyan' | 'orange';
 
 /** A native tab group: its tabs carry its id in `Tab.groupId`. */

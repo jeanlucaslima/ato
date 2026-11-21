@@ -6,7 +6,6 @@ import type { DuplicateCopy, DuplicateSet, ItemKey, Screen } from './model';
 
 type ReviewScreen = Extract<Screen, { kind: 'review' }>;
 
-/** How many tabs the current review would close. */
 export function closeCount(sets: readonly DuplicateSet[]): number {
   return sets.reduce((n, s) => n + s.toClose, 0);
 }

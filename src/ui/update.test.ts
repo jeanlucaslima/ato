@@ -40,7 +40,7 @@ describe('update', () => {
     expect(during.sets.every((set) => set.resolving)).toBe(true);
     const closedTabs = TABS.filter((t) => ids.includes(t.id));
     const [done] = run(again, [
-      { type: 'closed', tabs: closedTabs, message: 'Closed' },
+      { type: 'closed', tabs: closedTabs, requested: ids, noun: 'duplicate', kept: 0 },
       { type: 'snapshot', snapshot: { ...SNAPSHOT, tabs: TABS.filter((t) => !ids.includes(t.id)) } },
     ]);
     const after = deriveModel(done).screen;
@@ -248,14 +248,23 @@ describe('update', () => {
     const id = TABS[3]!.id;
     const [closing, effects] = run(start(), [{ type: 'closeTab', tabId: id }]);
     expect(closing.ui.closing.has(id)).toBe(true);
-    expect(effects).toContainEqual({ kind: 'close', tabIds: [id], message: 'Closed 1 tab' });
-    const [done] = run(closing, [{ type: 'closed', tabs: [TABS[3]!], message: 'Closed 1 tab' }]);
+    expect(effects).toContainEqual({ kind: 'close', tabIds: [id], noun: 'tab', skipped: 0, policy: null, cleanup: false });
+    const [done] = run(closing, [{ type: 'closed', tabs: [TABS[3]!], requested: [id], noun: 'tab', kept: 0 }]);
     expect(done.ui.closing.size).toBe(0);
     expect(done.ui.toast?.undo).toEqual([TABS[3]]);
     const [, undoFx] = run(done, [{ type: 'undo' }]);
     expect(undoFx).toContainEqual({ kind: 'restore', tabs: [TABS[3]] });
     const [back] = run(done, [{ type: 'undo' }, { type: 'restored', count: 40, fresh: 15 }]);
     expect(back.ui.toast?.message).toBe('Restored 40 tabs (15 without back history)');
+    expect(back.ui.toast?.undo).toBeUndefined();
+  });
+
+  it('an undo that brings back only some tabs says so and keeps undo for the rest', () => {
+    const [partial] = run(start(), [{ type: 'restored', count: 2, fresh: 1, failed: [TABS[5]!], closedAt: 1234 }]);
+    expect(partial.ui.toast).toMatchObject({ message: 'Restored 2 tabs (1 without back history) · couldn’t restore 1', undo: [TABS[5]], closedAt: 1234 });
+    expect(run(partial, [{ type: 'undo' }])[1]).toContainEqual({ kind: 'restore', tabs: [TABS[5]], closedAt: 1234 });
+    const [none] = run(start(), [{ type: 'restored', count: 0, failed: [TABS[5]!, TABS[6]!] }]);
+    expect(none.ui.toast?.message).toBe('Couldn’t restore 2 tabs');
   });
 
   it('skips protected tabs when closing a whole site', () => {
