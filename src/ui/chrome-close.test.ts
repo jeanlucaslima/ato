@@ -67,6 +67,9 @@ function fakeChrome(start: readonly Tab[]) {
   let entries: { sessionId: string; tab: Tab; index: number; lastModified: number }[] = [];
   const store = new Map<string, unknown>();
   const restored: string[] = [];
+  const created: string[] = [];
+  /** What Chrome refuses: session ids it won't restore, URLs it won't open. */
+  const refuse = { sessions: new Set<string>(), urls: new Set<string>() };
   vi.stubGlobal('chrome', {
     tabs: {
       query: async () => tabs.map((t) => ({ ...t })),
@@ -78,13 +81,18 @@ function fakeChrome(start: readonly Tab[]) {
           entries = [{ sessionId: `s${id}`, tab, index, lastModified: Math.floor(Date.now() / 1000) }, ...entries].slice(0, 25);
         }
       },
-      create: async () => ({ id: 9999, windowId: 1 }),
+      create: async (p: { url: string }) => {
+        if (refuse.urls.has(p.url)) throw new Error('Cannot open that URL');
+        created.push(p.url);
+        return { id: 9999, windowId: 1 };
+      },
       group: async () => undefined,
     },
     sessions: {
       MAX_SESSION_RESULTS: 25,
       getRecentlyClosed: async () => entries.map((e) => ({ lastModified: e.lastModified, tab: { sessionId: e.sessionId, url: e.tab.url, index: e.index, windowId: 0 } })),
       restore: async (id: string) => {
+        if (refuse.sessions.has(id)) throw new Error(`Invalid session id: "${id}".`);
         const e = entries.find((x) => x.sessionId === id)!;
         entries = entries.filter((x) => x !== e);
         tabs.push(e.tab);
@@ -99,7 +107,7 @@ function fakeChrome(start: readonly Tab[]) {
       },
     },
   });
-  return { restored, open: () => tabs };
+  return { restored, created, refuse, open: () => tabs, store };
 }
 
 const URLS = ['https://a.test/', 'https://a.test/x', 'https://b.test/', 'https://b.test/y'];
@@ -154,5 +162,38 @@ describe('undo for right-click closes', () => {
     expect(offer?.tabs.map((t) => t.id)).toEqual([TABS[5]!.id]);
     await undoClose(offer!.tabs, offer!.closedAt);
     expect(chromeState.restored).toEqual([`s${TABS[5]!.id}`]);
+  });
+});
+
+describe('undo record after a partial restore', () => {
+  const urlOf = (i: number) => TABS[i]!.url;
+  it('keeps exactly the tabs that couldn’t come back, offers them again, and clears once they do', async () => {
+    const chromeState = fakeChrome(TABS);
+    const ids = [TABS[3]!.id, TABS[5]!.id, TABS[8]!.id];
+    const { closed, closedAt } = await closeTabs(ids, null, menu);
+    // TABS[3]: whole. TABS[5]: Chrome refuses its session, reopened by URL. TABS[8]: refused and can't be reopened.
+    chromeState.refuse.sessions.add(`s${TABS[5]!.id}`).add(`s${TABS[8]!.id}`);
+    chromeState.refuse.urls.add(urlOf(8));
+    const first = await undoClose(closed, closedAt);
+    expect(first).toEqual({ count: 2, fresh: 1, failed: [closed.find((t) => t.id === TABS[8]!.id)] });
+    expect(chromeState.restored).toEqual([`s${TABS[3]!.id}`]);
+    expect(chromeState.created).toEqual([urlOf(5)]);
+    const offer = await pendingUndo();
+    expect(offer?.tabs.map((t) => t.id)).toEqual([TABS[8]!.id]);
+    expect(offer?.closedAt).toBe(closedAt);
+    // Chrome allows it again: the retry brings it back whole and the record goes.
+    chromeState.refuse.sessions.clear();
+    chromeState.refuse.urls.clear();
+    expect(await undoClose(offer!.tabs, offer!.closedAt)).toEqual({ count: 1, fresh: 0, failed: [] });
+    expect(chromeState.restored).toContain(`s${TABS[8]!.id}`);
+    expect(await pendingUndo()).toBeNull();
+  });
+
+  it('an undo of an older close leaves the newer record alone', async () => {
+    fakeChrome(TABS);
+    const older = await closeTabs([TABS[3]!.id], null, menu);
+    const newer = await closeTabs([TABS[5]!.id], null, menu);
+    await undoClose(older.closed, older.closedAt! - 1);
+    expect((await pendingUndo())?.closedAt).toBe(newer.closedAt);
   });
 });

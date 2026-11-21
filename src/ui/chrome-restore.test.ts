@@ -23,16 +23,30 @@ function chromeEntries(strip: readonly Tab[], closed: readonly Tab[], at = NOW):
   return entries.reverse().slice(0, 25);
 }
 
-function fakeChrome(entries: readonly ClosedEntry[]) {
+/** `refuse`: session ids Chrome won't restore; `unopenable`: URLs it won't open; `unlisted`: sessions can't be read. */
+interface Failures {
+  refuse?: ReadonlySet<string>;
+  unopenable?: ReadonlySet<string>;
+  unlisted?: boolean;
+}
+
+function fakeChrome(entries: readonly ClosedEntry[], fail: Failures = {}) {
   const calls = { restored: [] as string[], created: [] as string[], grouped: 0 };
   vi.stubGlobal('chrome', {
     sessions: {
       MAX_SESSION_RESULTS: 25,
-      getRecentlyClosed: async () => entries.map((e) => ({ lastModified: e.lastModified, tab: { sessionId: e.sessionId, url: e.url, index: e.index, windowId: e.windowId } })),
-      restore: async (id: string) => void calls.restored.push(id),
+      getRecentlyClosed: async () => {
+        if (fail.unlisted) throw new Error('sessions unavailable');
+        return entries.map((e) => ({ lastModified: e.lastModified, tab: { sessionId: e.sessionId, url: e.url, index: e.index, windowId: e.windowId } }));
+      },
+      restore: async (id: string) => {
+        if (fail.refuse?.has(id)) throw new Error(`Invalid session id: "${id}".`);
+        calls.restored.push(id);
+      },
     },
     tabs: {
       create: async (p: { url: string; windowId?: number }) => {
+        if (fail.unopenable?.has(p.url)) throw new Error('Cannot open that URL');
         calls.created.push(p.url);
         return { id: 1000 + calls.created.length, windowId: p.windowId ?? 1 };
       },
@@ -113,7 +127,61 @@ describe('restoreTabs', () => {
     const closed = Array.from({ length: 30 }, (_, i) => tab(i, `https://x.test/${i}`, 1, i, 7));
     const calls = fakeChrome(chromeEntries(closed, closed));
     const result = await restoreTabs(closed, NOW);
-    expect(result).toEqual({ count: 30, fresh: 5 });
+    expect(result).toEqual({ count: 30, fresh: 5, failed: [] });
     expect(calls.grouped).toBe(5);
+  });
+});
+
+describe('restore that fails part-way', () => {
+  const strip = [tab(1, 'https://a.test/'), tab(2, 'https://b.test/'), tab(3, 'https://a.test/'), tab(4, 'https://c.test/')];
+
+  it('a session that restores comes back whole', async () => {
+    const calls = fakeChrome(chromeEntries(strip, [strip[1]!]));
+    expect(await restoreTabs([strip[1]!], NOW)).toEqual({ count: 1, fresh: 0, failed: [] });
+    expect(calls).toMatchObject({ restored: ['s2'], created: [] });
+  });
+
+  it('a matched session Chrome refuses is reopened by URL', async () => {
+    const calls = fakeChrome(chromeEntries(strip, [strip[1]!]), { refuse: new Set(['s2']) });
+    expect(await restoreTabs([strip[1]!], NOW)).toEqual({ count: 1, fresh: 1, failed: [] });
+    expect(calls).toMatchObject({ restored: [], created: ['https://b.test/'] });
+  });
+
+  it('some whole, some by URL, one not at all: each counted once, the failure reported', async () => {
+    const closed = [strip[0]!, strip[1]!, strip[2]!, strip[3]!];
+    const calls = fakeChrome(chromeEntries(strip, closed), { refuse: new Set(['s1', 's4']), unopenable: new Set(['https://c.test/']) });
+    expect(await restoreTabs(closed, NOW)).toEqual({ count: 3, fresh: 1, failed: [strip[3]] });
+    expect(calls).toMatchObject({ restored: ['s3', 's2'], created: ['https://a.test/'] });
+  });
+
+  it('if Chrome can’t list its sessions, every tab is reopened by URL', async () => {
+    const calls = fakeChrome([], { unlisted: true });
+    expect(await restoreTabs([strip[0]!, strip[1]!], NOW)).toEqual({ count: 2, fresh: 2, failed: [] });
+    expect(calls.created).toEqual(['https://a.test/', 'https://b.test/']);
+  });
+
+  it('every tab ends exactly one way (whole, by URL, or failed) whatever Chrome refuses', async () => {
+    const urls = ['https://a.test/', 'https://b.test/', 'https://c.test/x'];
+    await fc.assert(
+      fc.asyncProperty(
+        scenario.chain(([strip, closed]) => fc.tuple(fc.constant(strip), fc.constant(closed), fc.subarray(closed.map((t) => `s${t.id}`)), fc.subarray(urls))),
+        async ([strip, closed, refused, unopenable]) => {
+          const entries = chromeEntries(strip, closed);
+          const calls = fakeChrome(entries, { refuse: new Set(refused), unopenable: new Set(unopenable) });
+          const { count, fresh, failed } = await restoreTabs(closed, NOW);
+          const whole = closed.filter((t) => entries.some((e) => e.sessionId === `s${t.id}`) && !refused.includes(`s${t.id}`));
+          const rest = closed.filter((t) => !whole.includes(t));
+          const expectFailed = rest.filter((t) => unopenable.includes(t.url));
+          return (
+            [...calls.restored].sort().join() === whole.map((t) => `s${t.id}`).sort().join() &&
+            [...calls.created].sort().join() === rest.filter((t) => !unopenable.includes(t.url)).map((t) => t.url).sort().join() &&
+            fresh === calls.created.length &&
+            count === whole.length + fresh &&
+            count + failed.length === closed.length &&
+            JSON.stringify(failed.map((t) => t.id)) === JSON.stringify(expectFailed.map((t) => t.id))
+          );
+        },
+      ),
+    );
   });
 });

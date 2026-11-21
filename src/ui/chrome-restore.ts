@@ -14,6 +14,8 @@ export interface Restored {
   count: number;
   /** Of those, reopened by URL: without their back/forward history. */
   fresh: number;
+  /** Tabs that couldn't come back either way (in the order they were closed). */
+  failed: Tab[];
 }
 
 /** Message the popup sends the worker; the reply is a `Restored`. */
@@ -70,17 +72,23 @@ export function matchEntries(tabs: readonly Tab[], entries: readonly ClosedEntry
   return byTab;
 }
 
+async function closedEntries(): Promise<ClosedEntry[]> {
+  return (await chrome.sessions.getRecentlyClosed({ maxResults: chrome.sessions.MAX_SESSION_RESULTS })).flatMap((s): ClosedEntry[] =>
+    s.tab?.sessionId && s.tab.url ? [{ sessionId: s.tab.sessionId, url: s.tab.url, index: s.tab.index, windowId: s.tab.windowId, lastModified: s.lastModified }] : [],
+  );
+}
+
 /**
  * Restore `tabs` (in the order they were closed) closed at `closedAt` (epoch ms,
  * just before the close). Without `closedAt` any entry may match.
  */
 export async function restoreTabs(tabs: readonly Tab[], closedAt?: number): Promise<Restored> {
-  const entries = (await chrome.sessions.getRecentlyClosed({ maxResults: chrome.sessions.MAX_SESSION_RESULTS })).flatMap((s): ClosedEntry[] =>
-    s.tab?.sessionId && s.tab.url ? [{ sessionId: s.tab.sessionId, url: s.tab.url, index: s.tab.index, windowId: s.tab.windowId, lastModified: s.lastModified }] : [],
-  );
+  // If Chrome can't list its sessions, every tab is reopened by URL.
+  const entries = await closedEntries().catch((): ClosedEntry[] => []);
   const own = matchEntries(tabs, entries, closedAt);
   let count = 0;
   let fresh = 0;
+  const byUrl = tabs.filter((t) => !own.has(t.id));
   // Whole ones last-closed first, as ⇧⌘T does: each goes back at the index it
   // closed from, so the strip ends up as it was.
   for (const tab of [...tabs].reverse()) {
@@ -90,20 +98,23 @@ export async function restoreTabs(tabs: readonly Tab[], closedAt?: number): Prom
       await chrome.sessions.restore(sessionId);
       count++;
     } catch {
-      // A tab that can't come back (its URL is no longer allowed, say) is skipped.
+      // Chrome wouldn't restore it whole: reopen it by URL with the rest.
+      byUrl.push(tab);
     }
   }
   // The rest by URL, in strip order, so positions (index) land where they were.
-  for (const tab of [...tabs].filter((t) => !own.has(t.id)).sort((a, b) => a.windowId - b.windowId || a.index - b.index)) {
+  const failed = new Set<number>();
+  for (const tab of byUrl.sort((a, b) => a.windowId - b.windowId || a.index - b.index)) {
     try {
       await reopen(tab);
       fresh++;
       count++;
     } catch {
-      // As above.
+      // A tab that can't come back (its URL is no longer allowed, say) is reported.
+      failed.add(tab.id);
     }
   }
-  return { count, fresh };
+  return { count, fresh, failed: tabs.filter((t) => failed.has(t.id)) };
 }
 
 async function reopen(tab: Tab): Promise<void> {

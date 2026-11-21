@@ -75,7 +75,8 @@ chrome.runtime.onMessage.addListener((message: unknown, sender, reply) => {
 chrome.runtime.onMessage.addListener((message: { type?: string; tabs?: Tab[]; closedAt?: number }, sender, reply) => {
   if (sender.id !== chrome.runtime.id || message?.type !== RESTORE_MESSAGE || !Array.isArray(message.tabs)) return false;
   const closedAt = typeof message.closedAt === 'number' ? message.closedAt : undefined;
-  void undoClose(message.tabs, closedAt).then(reply, () => reply({ count: 0, fresh: 0 }));
+  const tabs = message.tabs;
+  void undoClose(tabs, closedAt).then(reply, () => reply({ count: 0, fresh: 0, failed: tabs }));
   return true; // reply comes later
 });
 

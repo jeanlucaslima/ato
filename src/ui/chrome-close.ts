@@ -3,7 +3,7 @@
  * read Chrome's tabs fresh, check protection again (`stillClosable`), remove.
  * Runs in the service worker (the popup asks with `CLOSE_MESSAGE`), like undo.
  */
-import { undoOffer, type CloseRecord } from '../core/close-record';
+import { readCloseRecord, undoOffer, type CloseRecord } from '../core/close-record';
 import { DEFAULT_POLICY, stillClosable, type DuplicatePolicy } from '../core/duplicates';
 import { CHOICES } from '../core/settings';
 import type { Tab } from '../core/types';
@@ -76,12 +76,19 @@ export async function pendingUndo(now = Date.now()): Promise<CloseRecord | null>
 
 /**
  * Undo: restore `tabs` closed at `closedAt` (each from its own session entry,
- * see `restoreTabs`), then forget that close so nothing offers it again.
+ * see `restoreTabs`), then forget what came back: the record is cleared, or
+ * keeps only the tabs that couldn't.
  */
 export async function undoClose(tabs: readonly Tab[], closedAt?: number): Promise<Restored> {
+  const before = readCloseRecord(await lastClose().catch(() => undefined));
+  const record = closedAt !== undefined && before?.closedAt === closedAt ? before : null;
   const restored = await restoreTabs(tabs, closedAt);
-  const record = (await lastClose().catch(() => undefined)) as Partial<CloseRecord> | undefined;
-  if (closedAt !== undefined && record?.closedAt === closedAt) await chrome.storage.session.remove(RECORD_KEY).catch(() => undefined);
+  const after = readCloseRecord(await lastClose().catch(() => undefined));
+  if (record && after?.closedAt === record.closedAt) {
+    const failed = new Set(restored.failed.map((t) => t.id));
+    const left = after.tabs.filter((t) => failed.has(t.id));
+    await (left.length > 0 ? chrome.storage.session.set({ [RECORD_KEY]: { ...after, tabs: left } }) : chrome.storage.session.remove(RECORD_KEY)).catch(() => undefined);
+  }
   return restored;
 }
 

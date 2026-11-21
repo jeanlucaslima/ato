@@ -58,7 +58,8 @@ export type Action =
   /** The popup opened soon after a right-click close: offer its undo. */
   | { type: 'offerUndo'; tabs: readonly Tab[]; closedAt: number; message: string }
   | { type: 'undo' }
-  | { type: 'restored'; count: number; fresh?: number }
+  /** Undo ran: `failed` couldn't come back and keep their undo (closed at `closedAt`). */
+  | { type: 'restored'; count: number; fresh?: number; failed?: readonly Tab[]; closedAt?: number }
   | { type: 'dismissToast'; id: number }
   | { type: 'toggleSelectMode' }
   | { type: 'exitSelect' }

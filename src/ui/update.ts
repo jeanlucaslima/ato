@@ -380,8 +380,13 @@ function step(state: AppState, action: Action): Result {
       if (!tabs?.length) return [state, []];
       return [setUi(state, { toast: undefined }), [{ kind: 'restore', tabs, closedAt: ui.toast?.closedAt }]];
     }
-    case 'restored':
-      return withToast(state, `Restored ${plural(action.count, 'tab')}${action.fresh ? ` (${action.fresh} without back history)` : ''}`);
+    case 'restored': {
+      // Tabs that couldn't come back are said, and keep their undo to try again.
+      const failed = action.failed?.length ? action.failed : undefined;
+      const restored = `Restored ${plural(action.count, 'tab')}${action.fresh ? ` (${action.fresh} without back history)` : ''}`;
+      const message = !failed ? restored : action.count > 0 ? `${restored} · couldn’t restore ${failed.length}` : `Couldn’t restore ${plural(failed.length, 'tab')}`;
+      return withToast(state, message, failed, action.closedAt);
+    }
     case 'dismissToast':
       return ui.toast?.id === action.id ? [setUi(state, { toast: undefined }), []] : [state, []];
 

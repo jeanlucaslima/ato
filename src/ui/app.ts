@@ -153,7 +153,7 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
         return;
       case 'restore':
         browser.restore(effect.tabs, effect.closedAt).then(
-          ({ count, fresh }) => dispatch({ type: 'restored', count, fresh }),
+          ({ count, fresh, failed }) => dispatch({ type: 'restored', count, fresh, failed, closedAt: effect.closedAt }),
           () => dispatch({ type: 'effectFailed', message: 'Couldn’t restore tabs' }),
         );
         return;
