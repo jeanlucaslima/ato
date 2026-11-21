@@ -39,6 +39,28 @@ _Last updated 2026-11-21._ This is the hand-off note for the `v3` branch: what w
 
 The `dist/` dev build is in daily use (confirmed 2026-11-20): popup, settings, badge, right-click menu, moving and merging windows. One known limit stays until plan step 2: undo after closing many tabs can stop part-way if Chrome closes the popup while restoring.
 
+## 3.0.1 measurements
+
+Measured 2026-11-21 on Chrome 158 (macOS), the dev server's gallery in `?big=N` mode (one live popup over `perf.ts`'s generated tabs; unbundled dev modules, so a little slower than `dist/`), driven through the chrome-devtools MCP. "JS" is the synchronous handler (update, render, morph); "frame" adds the rendering work of the next frame (rAF to after paint). ↓: 60 presses (2 s held at ~30/s). Typing: `site1`, one key at a time.
+
+| | 2,000 tabs, 1× | 2,000 tabs, 4× CPU | 5,000 tabs, 4× CPU |
+| - | - | - | - |
+| ↓ JS, median / p95 / max (ms) | 3.4 / 4.5 / 6.3 | 15.3 / 19.6 / 29.6 | 38.6 / 46.2 / 82.8 |
+| ↓ frame, median / p95 / max (ms) | 7.6 / 11 / 21.4 | 67 / 83 / 88 | 92 / 110 / 144 |
+| typing JS, median / max (ms) | 21.4 / 30.3 | 83 / 144 | 171 / 300 |
+| typing frame, median / max (ms) | 28.4 / 39.3 | 116 / 196 | 182 / 349 |
+
+Unthrottled at 2,000 tabs ↓ stays inside a frame (p95 11 ms), but typing doesn't: 28 ms median, and every throttled case is over 16 ms. Per the 3.0.1 plan this is recorded with its hot path and a proposal, not changed in 3.0.1.
+
+Where a keystroke goes (typing `site` → `site1`, timed in the page with the app's own modules; ms, 1× / 4×): at 2,000 tabs update 7.6 / 32 (it derives twice: the query, then the state with the first result as cursor), renderPopup 2.9 / 12, morph 3.0 / 13, layout 1.9 / 8; at 5,000 update 17.9 / 80, the rest the same (search draws 150 rows). For ↓ the JS is small after memoization, but the tabs view at 2,000 tabs is 2,000 rows (~23,000 elements), and the next frame's style and paint cost 4 ms at 1× and ~50 ms at 4×.
+
+`npm run perf` (Node, pure paths, before → after memoizing `deriveModel` per state): ↓ cursor + model for render 5.47 → 1.79 ms at 2,000 tabs, 13.9 → 4.60 at 5,000; typing + model for render 10.8 → 5.78 and 22.7 → 14.5.
+
+Proposed for 3.1, in order of payoff (not done):
+1. **Cursor-only states share the model.** The model depends on the cursor only through its top-level `cursor` field, so a state that differs from a derived one only in `ui.cursor` can reuse that model with the cursor swapped. Typing then derives once, ↓ not at all.
+2. **Search derives only what it shows.** `deriveModel` builds a row for every tab and the whole duplicate plan on each keystroke, then search keeps 150; build rows only for the results drawn.
+3. **Draw only the visible part of long lists.** Search already stops at 150; the tabs, sites and windows lists draw every row (`content-visibility` skips layout and paint off screen, not style or DOM size). This is the "drawing only visible rows past 5,000 tabs" item, now with numbers showing it matters from 2,000 on a slow machine.
+
 ## Release status
 
 Done for 3.0 (each with tests; the closing rules also with fast-check properties and mutation checks):
