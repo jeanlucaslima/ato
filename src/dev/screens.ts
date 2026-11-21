@@ -10,6 +10,12 @@ import { applyTheme, THEME_INFO } from '../ui/theme';
 import { FakeBrowser } from './fake-browser';
 import { FIXTURES, type Fixture } from './fixtures';
 import { MemorySettings } from './memory-settings';
+import { makeSnapshot } from './perf';
+import { initialUi } from '../ui/state';
+
+/** `?big=2000`: only one popup, over that many generated tabs (timing in real Chrome). */
+const big = Number(new URLSearchParams(location.search).get('big')) || 0;
+const shown: Fixture[] = big > 0 ? [{ name: `${big} generated tabs (perf)`, state: { snapshot: makeSnapshot(big), ui: initialUi() } }] : FIXTURES;
 
 const startSettings: Settings = readSettings({ ...DEFAULT_SETTINGS, theme: new URLSearchParams(location.search).get('theme') ?? DEFAULT_SETTINGS.theme });
 /** One settings store for the whole gallery: its theme is the gallery's theme. */
@@ -35,10 +41,13 @@ themeButton.addEventListener('click', async () => {
 function onSettings(s: Settings): void {
   applyTheme(s.theme);
   themeButton.textContent = `Theme: ${THEME_INFO[s.theme].name} →`;
-  history.replaceState(null, '', s.theme === DEFAULT_SETTINGS.theme ? location.pathname : `?theme=${s.theme}`);
+  const params = new URLSearchParams(location.search);
+  if (s.theme === DEFAULT_SETTINGS.theme) params.delete('theme');
+  else params.set('theme', s.theme);
+  history.replaceState(null, '', params.size ? `?${params}` : location.pathname);
 }
 
-const figures = FIXTURES.map((fixture, i) => {
+const figures = shown.map((fixture, i) => {
   const slot = h('div', { class: 'slot' });
   let app = mountFixture(slot, fixture);
   const reset = h('button', { class: 'btn btn--ghost', type: 'button', title: 'Back to the starting state' }, 'Reset');
