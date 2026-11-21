@@ -1,9 +1,9 @@
 # Privacy Policy for ATO – Advanced Tab Organizer
 
-_Last updated: 2026-06-16_
+_Last updated: 2026-11-21_
 
 ATO (Advanced Tab Organizer) is a Chrome extension that helps you find and close
-duplicate tabs and search, group, and manage your open tabs from a popup.
+duplicate tabs and search, group, and manage your open tabs and windows from a popup.
 
 ## The short version
 
@@ -22,11 +22,13 @@ To do its job, ATO reads information about your open tabs entirely on your devic
   browser already has for that tab.
 - **Recently closed tabs** — used only to provide the "Undo" feature, via
   Chrome's `sessions` API.
+- **Tab groups** — group names and colours, shown in the Windows view and used
+  to keep grouped tabs protected and together.
 
 ## Settings storage
 
-Your preferences (theme, font, duplicate-matching mode, badge options, tab
-protection) are saved using Chrome's `storage.sync` API. If you have Chrome Sync
+Your preferences (theme, duplicate-matching mode, badge options, tab
+protection, starting view) are saved using Chrome's `storage.sync` API. If you have Chrome Sync
 enabled, these settings sync across your own signed-in browsers through your
 Google account. ATO itself never receives this data — it is handled by Chrome.
 
@@ -42,6 +44,8 @@ use data to determine creditworthiness or for lending purposes.
   duplicates, search, and group tabs.
 - `storage` — save your settings locally / via Chrome Sync.
 - `sessions` — restore recently closed tabs (Undo).
+- `tabGroups` — read tab group names/colours and move whole groups between windows.
+- `contextMenus` — add ATO's items to the tab right-click menu.
 
 ATO requests no host (site-access) permissions. Everything is processed locally.
 
