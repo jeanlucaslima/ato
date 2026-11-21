@@ -131,7 +131,7 @@ speedBar.addEventListener('click', (e) => {
 const spinning = [0.03, 0.07, 0.09].map((chamfer) => {
   const stage = icosahedron(72, chamfer);
   attachSpin(stage, false, rate);
-  return logoTile(`3D, corners cut ${Math.round(chamfer * 100)}%${chamfer === 0.07 ? ' (default)' : ''}`, stage);
+  return logoTile(`3D, corners cut ${Math.round(chamfer * 100)}%${chamfer === 0.09 ? ' (chosen)' : ''}`, stage);
 });
 const small = icosahedron(44);
 attachSpin(small, false, rate);
@@ -140,7 +140,9 @@ spinning.push(logoTile('3D, radius 44', small));
  * App icon angle picker: drag to turn (sideways: spin, up/down: pitch), the
  * slider leans the axis. Shows the angles to pick from, at every icon size.
  */
-const angle = { spin: 18, pitch: -6, lean: -20 };
+/** The chosen app icon pose (scripts/generate-logo.ts). */
+const ICON_POSE = { spin: 17, pitch: -18, lean: -41 };
+const angle = { ...ICON_POSE };
 const pickerArt = h('div', { class: 'angle-art', title: 'Drag to turn' });
 const pickerSizes = h('div', { class: 'angle-sizes' });
 const readout = h('code', { class: 'angle-readout' });
@@ -170,9 +172,9 @@ leanInput.addEventListener('input', () => {
   angle.lean = Number(leanInput.value);
   renderAngle();
 });
-const resetAngle = h('button', { class: 'theme-tab', type: 'button' }, 'Reset to current');
+const resetAngle = h('button', { class: 'theme-tab', type: 'button' }, 'Reset to chosen');
 resetAngle.addEventListener('click', () => {
-  Object.assign(angle, { spin: 18, pitch: -6, lean: -20 });
+  Object.assign(angle, ICON_POSE);
   leanInput.value = String(angle.lean);
   renderAngle();
 });
@@ -196,7 +198,7 @@ const logosSection = h(
     { class: 'logo-row' },
     logoTile('Popup brand mark, 28px', staticLogo(logoSvg({ size: 28, spin: 100, pitch: -18, background: null, color: 'currentColor', weight: 2.4, dashes: 3, hiddenOpacity: 0.5 }))),
     logoTile('Toolbar badge preview, 18px', staticLogo(logoSvg({ size: 18, spin: 100, pitch: -18, background: null, color: 'currentColor', weight: 2.6, dashes: 2, hiddenOpacity: 0.5 }))),
-    ...[128, 48, 32, 16].map((size) => logoTile(`App icon, ${size}px`, staticLogo(logoSvg({ size })))),
+    ...[128, 48, 32, 16].map((size) => logoTile(`App icon, ${size}px`, staticLogo(logoSvg({ size, ...ICON_POSE })))),
   ),
 );
 
