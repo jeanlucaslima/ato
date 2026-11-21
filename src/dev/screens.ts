@@ -12,6 +12,7 @@ import { FIXTURES, type Fixture } from './fixtures';
 import { MemorySettings } from './memory-settings';
 import { makeSnapshot } from './perf';
 import { initialUi } from '../ui/state';
+import manifest from '../manifest.json';
 
 /** `?big=2000`: only one popup, over that many generated tabs (timing in real Chrome). */
 const big = Number(new URLSearchParams(location.search).get('big')) || 0;
@@ -82,7 +83,7 @@ document.body.replaceChildren(
   ),
 );
 
-void mountSettings(settingsFrame, settings, { version: '3.0.1-dev', onChange: onSettings }).then((page) => {
+void mountSettings(settingsFrame, settings, { version: `${manifest.version}-dev`, onChange: onSettings }).then((page) => {
   page.setPinned(pinned);
   pinButton.addEventListener('click', () => {
     pinned = !pinned;

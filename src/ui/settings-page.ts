@@ -257,7 +257,7 @@ export function renderSettings({ settings: s, version, saved, pinned = null, the
       'header',
       { class: 'settings-head' },
       icosahedron(72),
-      h('h1', null, 'ATO'),
+      h('div', { class: 'settings-title' }, h('h1', null, 'ATO'), h('span', { class: 'version', title: 'Installed version' }, `v${version}`)),
       h('p', null, 'Advanced Tab Organizer · Settings'),
       h('span', { class: cls('saved', saved && 'is-saved'), role: 'status' }, saved ? 'Saved' : 'Changes save automatically'),
     ),

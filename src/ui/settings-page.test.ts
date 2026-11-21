@@ -47,6 +47,11 @@ describe('settings page', () => {
     expect(example().querySelector('.match-verdict')!.textContent).toContain('Same page');
   });
 
+  it('shows the installed version beside the name', () => {
+    const page = renderSettings({ settings: DEFAULT_SETTINGS, version: '3.1.0', saved: false });
+    expect(page.querySelector('.settings-title .version')!.textContent).toBe('v3.1.0');
+  });
+
   it('offers every theme, each card previewed in its own colours', () => {
     const page = renderSettings({ settings: DEFAULT_SETTINGS, version: '3', saved: false });
     const cards = page.querySelectorAll('.theme-card');
