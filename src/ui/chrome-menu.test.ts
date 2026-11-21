@@ -1,4 +1,4 @@
-import { afterEach, describe, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import fc from 'fast-check';
 import { protection } from '../core/duplicates';
 import { DEFAULT_SETTINGS, policyOf } from '../core/settings';
@@ -96,5 +96,29 @@ describe('right-click menu close', () => {
         );
       }),
     );
+  });
+});
+
+describe('"Close duplicates of this tab" when the clicked tab closes first', () => {
+  it('leaves one copy open on Chrome’s current state; "Close other tabs from this site" still closes them all', async () => {
+    const t = (id: number, url: string, index: number): Tab => ({ id, windowId: 1, index, url, title: url, active: index === 0, pinned: false, audible: false, discarded: false, groupId: -1, lastAccessed: id });
+    for (const [item, left] of [[MENU.duplicates.id, 1], [MENU.site.id, 0]] as const) {
+      let tabs = [t(1, 'https://h.test/', 0), t(2, 'https://a.test/', 1), t(3, 'https://a.test/', 2), t(4, 'https://a.test/', 3)];
+      let reads = 0;
+      vi.stubGlobal('chrome', {
+        tabs: {
+          query: async () => {
+            // The menu reads, then the clicked tab (2) is closed before the close path reads again.
+            if (++reads === 2) tabs = tabs.filter((x) => x.id !== 2);
+            return tabs.map((x) => ({ ...x }));
+          },
+          remove: async (ids: number[]) => void (tabs = tabs.filter((x) => !ids.includes(x.id))),
+        },
+        sessions: { MAX_SESSION_RESULTS: 25, getRecentlyClosed: async () => [] },
+        storage: { session: { set: async () => undefined } },
+      });
+      await closeFromMenu(item, 2, async () => DEFAULT_SETTINGS);
+      expect([item, tabs.filter((x) => x.url === 'https://a.test/').length]).toEqual([item, left]);
+    }
   });
 });

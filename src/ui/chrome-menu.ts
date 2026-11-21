@@ -12,8 +12,8 @@ import { fromChromeTab } from './chrome-tab';
 import { plural } from './format';
 
 export const MENU = {
-  duplicates: { id: 'ato-close-duplicates', title: 'Close duplicates of this tab', pick: duplicatesOf, said: (n: number, _site: string) => `Closed ${plural(n, 'duplicate')} (tab menu)` },
-  site: { id: 'ato-close-site', title: 'Close other tabs from this site', pick: othersFromSite, said: (n: number, site: string) => `Closed ${plural(n, 'tab')} from ${site} (tab menu)` },
+  duplicates: { id: 'ato-close-duplicates', title: 'Close duplicates of this tab', pick: duplicatesOf, cleanup: true, said: (n: number, _site: string) => `Closed ${plural(n, 'duplicate')} (tab menu)` },
+  site: { id: 'ato-close-site', title: 'Close other tabs from this site', pick: othersFromSite, cleanup: false, said: (n: number, site: string) => `Closed ${plural(n, 'tab')} from ${site} (tab menu)` },
 } as const;
 
 /** Run menu item `menuItemId` on the right-clicked tab `clickedId`, under `load()`'s settings. */
@@ -28,5 +28,5 @@ export async function closeFromMenu(menuItemId: string | number, clickedId: numb
   const policy = policyOf(settings);
   const closing = item.pick(clicked, tabs, policy).map((t) => t.id);
   const site = domainOf(clicked.url);
-  if (closing.length > 0) await closeTabs(closing, policy, { source: 'menu', message: (n) => item.said(n, site) });
+  if (closing.length > 0) await closeTabs(closing, policy, { source: 'menu', message: (n) => item.said(n, site) }, item.cleanup);
 }

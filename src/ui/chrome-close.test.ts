@@ -12,7 +12,13 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe('readCloseRequest', () => {
   it('accepts a well-formed request; anything else is refused', () => {
-    expect(readCloseRequest({ type: CLOSE_MESSAGE, tabIds: [1, 2], policy: null })).toEqual({ tabIds: [1, 2], policy: null });
+    expect(readCloseRequest({ type: CLOSE_MESSAGE, tabIds: [1, 2], policy: null })).toEqual({ tabIds: [1, 2], policy: null, cleanup: false });
+    expect(readCloseRequest({ type: CLOSE_MESSAGE, tabIds: [1], policy: { match: 'ignoreQuery', keep: 'newest' }, cleanup: true })).toEqual({
+      tabIds: [1],
+      policy: { ...DEFAULT_POLICY, match: 'ignoreQuery', keep: 'newest' },
+      cleanup: true,
+    });
+    expect(readCloseRequest({ type: CLOSE_MESSAGE, tabIds: [1], policy: { match: 'fuzzy', keep: 1 }, cleanup: 'yes' })).toEqual({ tabIds: [1], policy: DEFAULT_POLICY, cleanup: false });
     expect(readCloseRequest({ type: 'other', tabIds: [1], policy: null })).toBeNull();
     expect(readCloseRequest({ type: CLOSE_MESSAGE, tabIds: ['1'], policy: null })).toBeNull();
     expect(readCloseRequest({ type: CLOSE_MESSAGE, tabIds: [1] })).toBeNull();
@@ -46,7 +52,7 @@ describe('one close path', () => {
     const sendMessage = vi.fn(async () => ({ ok: true, closed: [TABS[3]], kept: [] }));
     vi.stubGlobal('chrome', { runtime: { sendMessage } });
     await expect(new ChromeBrowser().close([TABS[3]!.id], DEFAULT_POLICY)).resolves.toEqual({ closed: [TABS[3]], kept: [] });
-    expect(sendMessage).toHaveBeenCalledWith({ type: CLOSE_MESSAGE, tabIds: [TABS[3]!.id], policy: DEFAULT_POLICY });
+    expect(sendMessage).toHaveBeenCalledWith({ type: CLOSE_MESSAGE, tabIds: [TABS[3]!.id], policy: DEFAULT_POLICY, cleanup: false });
     sendMessage.mockResolvedValueOnce({ ok: false, error: 'Tabs cannot be edited right now' } as never);
     await expect(new ChromeBrowser().close([TABS[3]!.id], DEFAULT_POLICY)).rejects.toThrow('Tabs cannot be edited right now');
   });

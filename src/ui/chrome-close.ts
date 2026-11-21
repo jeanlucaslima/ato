@@ -5,6 +5,7 @@
  */
 import { undoOffer, type CloseRecord } from '../core/close-record';
 import { DEFAULT_POLICY, stillClosable, type DuplicatePolicy } from '../core/duplicates';
+import { CHOICES } from '../core/settings';
 import type { Tab } from '../core/types';
 import type { CloseResult } from './browser';
 import { restoreTabs, type Restored } from './chrome-restore';
@@ -13,7 +14,7 @@ import { fromChromeTab } from './chrome-tab';
 /** Where the last close is kept: session storage outlives the worker, not the browser. */
 export const RECORD_KEY = 'ato:lastClose';
 
-/** Message the popup sends the worker: `{ type, tabIds, policy }`; the reply is a `CloseReply`. */
+/** Message the popup sends the worker: `{ type, tabIds, policy, cleanup }`; the reply is a `CloseReply`. */
 export const CLOSE_MESSAGE = 'ato:close';
 
 export type CloseReply = ({ ok: true } & CloseResult) | { ok: false; error: string };
@@ -35,11 +36,12 @@ async function readTabs(): Promise<Tab[]> {
  * Close `tabIds` and remember them as the last close (replacing the one before).
  * With a `policy` (bulk and menu closes) protection is checked on Chrome's current
  * state, so a tab that became current, started playing or joined a split view
- * since the decision stays; `null` closes what the user picked. If Chrome refuses
- * part-way, the tabs already gone are still remembered, then the error goes on.
+ * since the decision stays; `null` closes what the user picked. `cleanup` (duplicate
+ * cleanup) also leaves one copy of every page open, on Chrome's current state. If
+ * Chrome refuses part-way, the tabs already gone are still remembered, then the error goes on.
  */
-export async function closeTabs(tabIds: readonly number[], policy: DuplicatePolicy | null, by: CloseSource = POPUP): Promise<CloseResult> {
-  const { closable, kept } = stillClosable(await readTabs(), tabIds, policy);
+export async function closeTabs(tabIds: readonly number[], policy: DuplicatePolicy | null, by: CloseSource = POPUP, cleanup = false): Promise<CloseResult> {
+  const { closable, kept } = stillClosable(await readTabs(), tabIds, policy, cleanup);
   if (closable.length === 0) return { closed: [], kept };
   const closedAt = Date.now();
   try {
@@ -84,17 +86,20 @@ export async function undoClose(tabs: readonly Tab[], closedAt?: number): Promis
 }
 
 /** A close request from one of ATO's pages, checked field by field; `null` if malformed. */
-export function readCloseRequest(message: unknown): { tabIds: number[]; policy: DuplicatePolicy | null } | null {
-  const m = message as { type?: unknown; tabIds?: unknown; policy?: unknown } | null;
+export function readCloseRequest(message: unknown): { tabIds: number[]; policy: DuplicatePolicy | null; cleanup: boolean } | null {
+  const m = message as { type?: unknown; tabIds?: unknown; policy?: unknown; cleanup?: unknown } | null;
   if (m?.type !== CLOSE_MESSAGE || !Array.isArray(m.tabIds) || !m.tabIds.every((id) => Number.isInteger(id))) return null;
-  if (m.policy === null) return { tabIds: m.tabIds as number[], policy: null };
+  if (m.policy === null) return { tabIds: m.tabIds as number[], policy: null, cleanup: false };
   if (typeof m.policy !== 'object' || m.policy === undefined) return null;
-  // Missing or odd fields fall back to the safe defaults (protect pinned and grouped).
+  // Missing or odd fields fall back to the safe defaults (protect pinned and grouped;
+  // exact matching, the one that finds fewest copies to close).
   const p = m.policy as Partial<DuplicatePolicy>;
   const policy: DuplicatePolicy = {
     ...DEFAULT_POLICY,
     ...(typeof p.protectPinned === 'boolean' ? { protectPinned: p.protectPinned } : {}),
     ...(typeof p.protectGroups === 'boolean' ? { protectGroups: p.protectGroups } : {}),
+    ...(CHOICES.match.includes(p.match as never) ? { match: p.match } : {}),
+    ...(CHOICES.keep.includes(p.keep as never) ? { keep: p.keep } : {}),
   };
-  return { tabIds: m.tabIds as number[], policy };
+  return { tabIds: m.tabIds as number[], policy, cleanup: m.cleanup === true };
 }

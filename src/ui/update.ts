@@ -81,9 +81,10 @@ function setUi(state: AppState, patch: Partial<UiState>): AppState {
 
 /**
  * Start closing `tabs`: they animate out, then the runtime closes them.
- * Bulk closes skip protected tabs; an explicit single close does not.
+ * Bulk closes skip protected tabs; an explicit single close does not. `cleanup`
+ * (duplicate cleanup) has the close keep a copy of every page, whatever changed.
  */
-function startClose(state: AppState, tabs: readonly Tab[], noun: string, bulk: boolean): Result {
+function startClose(state: AppState, tabs: readonly Tab[], noun: string, bulk: boolean, cleanup = false): Result {
   const eligible = bulk ? tabs.filter((t) => protection(t, state.ui.policy) === null) : [...tabs];
   const skipped = tabs.length - eligible.length;
   if (eligible.length === 0) return withToast(state, skipped ? `Nothing to close — ${plural(skipped, 'tab')} protected` : 'Nothing to close');
@@ -91,7 +92,7 @@ function startClose(state: AppState, tabs: readonly Tab[], noun: string, bulk: b
   const order = navOrder(deriveModel(state));
   const closing = new Set([...state.ui.closing, ...ids]);
   const ui: UiState = { ...state.ui, closing, cursor: cursorAfter(order, ids, state.ui.cursor) };
-  return [{ ...state, ui }, [{ kind: 'close', tabIds: [...ids], noun, skipped, policy: bulk ? state.ui.policy : null }]];
+  return [{ ...state, ui }, [{ kind: 'close', tabIds: [...ids], noun, skipped, policy: bulk ? state.ui.policy : null, cleanup: bulk && cleanup }]];
 }
 
 /**
@@ -305,7 +306,7 @@ function step(state: AppState, action: Action): Result {
       // The set folds away: hand the cursor to the next set (or the one before).
       const heads = navOrder(deriveModel(state)).filter((k) => k.startsWith('set:'));
       const at = heads.indexOf(`set:${action.key}`);
-      const [s, effects] = startClose(state, tabs, 'duplicate', true);
+      const [s, effects] = startClose(state, tabs, 'duplicate', true, true);
       return [setUi(s, { cursor: heads[at + 1] ?? heads[at - 1] }), effects];
     }
     case 'flip': {
@@ -323,13 +324,13 @@ function step(state: AppState, action: Action): Result {
       // ending on "No duplicates left". Copies already on their way out aren't closed twice.
       const tabs = tabsToClose(duplicatePlan(state.snapshot, ui)).filter((t) => !ui.closing.has(t.id));
       if (tabs.length === 0) return [state, []];
-      return startClose(state, tabs, 'duplicate', true);
+      return startClose(state, tabs, 'duplicate', true, true);
     }
 
     case 'closeDuplicates': {
       if (!state.snapshot) return [state, []];
       const tabs = tabsToClose(duplicatePlan(state.snapshot, setUi(state, { overrides: new Map() }).ui)).filter((t) => !ui.closing.has(t.id));
-      return startClose(state, tabs, 'duplicate', true);
+      return startClose(state, tabs, 'duplicate', true, true);
     }
     case 'activate': {
       const tab = tabsById(state, [action.tabId])[0];
@@ -347,7 +348,7 @@ function step(state: AppState, action: Action): Result {
       return [setUi(state, { showAllResults: true }), []];
     case 'closeResults':
       // dupe: results close only the extra copies: every page keeps one tab.
-      if (parseQuery(ui.query).field === 'dupe') return state.snapshot ? startClose(state, extraCopies(state.snapshot, ui, resultTabs(state)), 'duplicate', true) : [state, []];
+      if (parseQuery(ui.query).field === 'dupe') return state.snapshot ? startClose(state, extraCopies(state.snapshot, ui, resultTabs(state)), 'duplicate', true, true) : [state, []];
       return startClose(state, resultTabs(state), 'tab', true);
     case 'unloadResults':
       return startUnload(state, resultTabs(state));

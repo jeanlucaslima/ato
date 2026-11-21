@@ -86,9 +86,10 @@ export type Effect =
   /**
    * Close after the animation. `policy` (bulk closes) has protection checked again
    * on the fresh state; `null` closes what the user picked. `skipped`: protected
-   * tabs already left out when deciding, for the message.
+   * tabs already left out when deciding, for the message. `cleanup`: duplicate
+   * cleanup, which also keeps a copy of every page on the fresh state.
    */
-  | { kind: 'close'; tabIds: number[]; noun: string; skipped: number; policy: DuplicatePolicy | null }
+  | { kind: 'close'; tabIds: number[]; noun: string; skipped: number; policy: DuplicatePolicy | null; cleanup: boolean }
   | { kind: 'restore'; tabs: readonly Tab[]; closedAt?: number }
   | { kind: 'activate'; tabId: number }
   | { kind: 'discard'; tabIds: number[] }

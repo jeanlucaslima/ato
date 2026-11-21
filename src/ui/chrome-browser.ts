@@ -63,16 +63,16 @@ export class ChromeBrowser implements BrowserPort {
    * Closing runs in the service worker, the same path as the right-click menu
    * (recheck, remove, record); here only if the worker can't be reached.
    */
-  async close(tabIds: number[], policy: DuplicatePolicy | null): Promise<CloseResult> {
+  async close(tabIds: number[], policy: DuplicatePolicy | null, cleanup = false): Promise<CloseResult> {
     let reply: CloseReply | undefined;
     try {
-      reply = (await chrome.runtime.sendMessage({ type: CLOSE_MESSAGE, tabIds, policy })) as CloseReply | undefined;
+      reply = (await chrome.runtime.sendMessage({ type: CLOSE_MESSAGE, tabIds, policy, cleanup })) as CloseReply | undefined;
     } catch {
       // No worker listening: close from here.
     }
     if (reply?.ok) return { closed: reply.closed, kept: reply.kept, closedAt: reply.closedAt };
     if (reply && !reply.ok) throw new Error(reply.error);
-    return closeTabs(tabIds, policy);
+    return closeTabs(tabIds, policy, undefined, cleanup);
   }
 
   /** Undo runs in the service worker so it finishes even if the popup closes; here only if the worker can't be reached. */

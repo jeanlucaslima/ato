@@ -22,8 +22,8 @@ export class FakeBrowser implements BrowserPort {
     return () => this.listeners.delete(listener);
   }
 
-  async close(tabIds: number[], policy: DuplicatePolicy | null): Promise<CloseResult> {
-    const { closable, kept } = stillClosable(this.state.tabs, tabIds, policy);
+  async close(tabIds: number[], policy: DuplicatePolicy | null, cleanup = false): Promise<CloseResult> {
+    const { closable, kept } = stillClosable(this.state.tabs, tabIds, policy, cleanup);
     const ids = new Set(closable.map((t) => t.id));
     this.commit(this.state.tabs.filter((t) => !ids.has(t.id)));
     return { closed: closable, kept };

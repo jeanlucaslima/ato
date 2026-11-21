@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import fc from 'fast-check';
-import { protection } from '../core/duplicates';
+import { planDuplicates, protection } from '../core/duplicates';
+import { duplicateKey } from '../core/tabs';
 import type { Tab } from '../core/types';
 import { FakeBrowser } from '../dev/fake-browser';
 import { SNAPSHOT, TABS } from '../dev/fixtures';
@@ -46,7 +47,7 @@ describe('bulk close rechecks protection on the fresh state', () => {
         const browser = new FakeBrowser(SNAPSHOT);
         for (const [id, flip] of flips) browser.change((t) => (t.id === id ? flipTab(t, flip) : t));
         const fresh = (await browser.snapshot()).tabs;
-        const { closed, kept } = await browser.close(effect.tabIds, effect.policy);
+        const { closed, kept } = await browser.close(effect.tabIds, effect.policy, effect.cleanup);
         const freshById = new Map(fresh.map((t) => [t.id, t]));
         const [after] = update(deciding, { type: 'closed', tabs: closed, requested: effect.tabIds, noun: effect.noun, kept: effect.skipped + kept.length });
         const undo = (after.ui.toast?.undo ?? []).map((t) => t.id).sort();
@@ -66,7 +67,7 @@ describe('bulk close rechecks protection on the fresh state', () => {
     expect(effect.policy).toBeNull();
     const browser = new FakeBrowser(SNAPSHOT);
     browser.change((t) => (t.id === id ? { ...t, active: true } : t));
-    const { closed } = await browser.close(effect.tabIds, effect.policy);
+    const { closed } = await browser.close(effect.tabIds, effect.policy, effect.cleanup);
     expect(closed.map((t) => t.id)).toEqual([id]);
   });
 
@@ -100,7 +101,7 @@ describe('ChromeBrowser.close', () => {
           tabGroups: { query: async () => [] },
           windows: { getLastFocused: async () => ({ id: 1 }) },
         });
-        const { closed } = await new ChromeBrowser().close(effect.tabIds, effect.policy);
+        const { closed } = await new ChromeBrowser().close(effect.tabIds, effect.policy, effect.cleanup);
         const byId = new Map(fresh.map((t) => [t.id, t]));
         return (
           removed.every((id) => protection(byId.get(id)!, policy) === null) &&
@@ -148,5 +149,62 @@ describe('a failed close', () => {
         return effect.tabIds.every((id) => !after.ui.closing.has(id)) && JSON.stringify(undo) === JSON.stringify(gone.map((t) => t.id).sort()) && /try again/.test(after.ui.toast?.message ?? '');
       }),
     );
+  });
+});
+
+describe('duplicate cleanup when copies close or change during the animation', () => {
+  type How = 'all' | 'review' | 'dupe' | 'set';
+  const steps = (how: How, state: AppState): Action[] => {
+    if (how === 'all') return [{ type: 'closeDuplicates' }];
+    if (how === 'review') return [{ type: 'openReview' }, { type: 'confirmReview' }];
+    if (how === 'dupe') return [{ type: 'query', text: 'dupe:' }, { type: 'closeResults' }];
+    const key = planDuplicates(state.snapshot!.tabs, state.ui.policy)[0]?.key ?? '';
+    return [{ type: 'openReview' }, { type: 'closeSet', key }];
+  };
+  const urls = [...new Set(TABS.map((t) => t.url))];
+  const meddling = fc.record({
+    gone: fc.subarray(TABS.map((t) => t.id)),
+    moves: fc.array(fc.tuple(fc.constantFrom(...TABS.map((t) => t.id)), fc.constantFrom(...urls, 'https://elsewhere.test/')), { maxLength: 4 }),
+    match: fc.constantFrom('exact' as const, 'ignoreHash' as const, 'ignoreQuery' as const, 'ignoreBoth' as const),
+    keep: fc.constantFrom('oldest' as const, 'newest' as const),
+  });
+
+  it('every page it closes keeps a copy on the state the close runs on (survivor closed, copies navigated)', async () => {
+    await fc.assert(
+      fc.asyncProperty(fc.constantFrom<How>('all', 'review', 'dupe', 'set'), meddling, async (how, { gone, moves, match, keep }) => {
+        const policy = { ...initialUi().policy, match, keep };
+        let state: AppState = { snapshot: SNAPSHOT, ui: initialUi({ policy }) };
+        let fx: Effect[] = [];
+        for (const step of steps(how, state)) [state, fx] = update(state, step);
+        const effect = closeEffect(fx);
+        if (!effect) return true;
+        if (!effect.cleanup || effect.policy === null) return false;
+        const browser = new FakeBrowser(SNAPSHOT);
+        await browser.close(gone, null); // the user closes tabs (planned survivors too)
+        for (const [id, url] of moves) browser.change((t) => (t.id === id ? { ...t, url } : t));
+        const fresh = (await browser.snapshot()).tabs;
+        const { closed } = await browser.close(effect.tabIds, effect.policy, effect.cleanup);
+        const left = (await browser.snapshot()).tabs;
+        return closed.every((t) => {
+          const key = duplicateKey(t, effect.policy!.match);
+          return key !== null && left.some((o) => duplicateKey(o, effect.policy!.match) === key) && fresh.some((o) => o.id === t.id);
+        });
+      }),
+    );
+  });
+
+  it('a site, window or selection close still closes every copy asked for: no survivor is added', async () => {
+    const page = TABS.find((t) => TABS.filter((o) => o.url === t.url && !o.active && !o.pinned && o.groupId === -1).length >= 2)!;
+    const copies = TABS.filter((t) => t.url === page.url && protection(t, initialUi().policy) === null);
+    let state: AppState = { snapshot: SNAPSHOT, ui: initialUi() };
+    [state] = update(state, { type: 'toggleSelectMode' });
+    for (const t of copies) [state] = update(state, { type: 'toggleSelected', tabId: t.id });
+    const [, fx] = update(state, { type: 'closeSelected' });
+    const effect = closeEffect(fx)!;
+    expect(effect.cleanup).toBe(false);
+    const browser = new FakeBrowser(SNAPSHOT);
+    const { closed } = await browser.close(effect.tabIds, effect.policy, effect.cleanup);
+    expect(closed.map((t) => t.id).sort()).toEqual(copies.map((t) => t.id).sort());
+    for (const action of bulkActions.filter((a) => a.type !== 'closeDuplicates')) expect(closeEffect(update({ snapshot: SNAPSHOT, ui: initialUi() }, action)[1])?.cleanup ?? false).toBe(false);
   });
 });

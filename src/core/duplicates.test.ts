@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
-import { applyOverrides, planDuplicates, protection, tabsToClose, type DuplicatePolicy } from './duplicates';
+import { applyOverrides, planDuplicates, protection, stillClosable, tabsToClose, type DuplicatePolicy } from './duplicates';
 import { duplicateKey } from './tabs';
 import type { Tab } from './types';
 
@@ -138,5 +138,73 @@ describe('planDuplicates', () => {
     const plan = planDuplicates([tab(1), tab(2)], policy);
     const [set] = applyOverrides(plan, new Map([[1, 'close']]), policy);
     expect(set?.copies.map((c) => c.decision.action)).toEqual(['keep', 'close']);
+  });
+});
+
+/**
+ * The close runs on a fresh read of Chrome, after the 180 ms animation: by then
+ * the planned survivor may be gone, or any copy may show another page.
+ */
+const recheckArb = fc.tuple(tabsArb, policyArb, fc.boolean()).chain(([tabs, policy, cleanup]) =>
+  fc.record({
+    policy: fc.constant(policy),
+    cleanup: fc.constant(cleanup),
+    asked: fc.constant(tabsToClose(planDuplicates(tabs, policy)).map((t) => t.id)),
+    // Some tabs close (survivors included), some navigate, before the close runs.
+    fresh: fc.tuple(fc.subarray(tabs.map((t) => t.id)), fc.array(fc.tuple(fc.constantFrom(0, ...tabs.map((t) => t.id)), fc.constantFrom(...URLS)), { maxLength: 6 })).map(([gone, moves]) =>
+      tabs.filter((t) => !gone.includes(t.id)).map((t) => moves.reduce((x, [id, url]) => (id === x.id ? { ...x, url } : x), t)),
+    ),
+  }),
+);
+
+describe('the last check before a duplicate cleanup (stillClosable with cleanup)', () => {
+  it('every page a cleanup closes still has a copy open afterwards, whatever closed or navigated since', () => {
+    fc.assert(
+      fc.property(recheckArb, ({ policy, asked, fresh }) => {
+        const { closable } = stillClosable(fresh, asked, policy, true);
+        const closing = new Set(closable.map((t) => t.id));
+        return closable.every((t) => {
+          const key = duplicateKey(t, policy.match);
+          return key !== null && fresh.some((o) => !closing.has(o.id) && duplicateKey(o, policy.match) === key);
+        });
+      }),
+    );
+  });
+
+  it('keeps no more than it must: one copy of a page left without any, nothing where a copy stays', () => {
+    fc.assert(
+      fc.property(recheckArb, ({ policy, asked, fresh }) => {
+        const before = stillClosable(fresh, asked, policy, false);
+        const after = stillClosable(fresh, asked, policy, true);
+        const closing = new Set(after.closable.map((t) => t.id));
+        const spared = before.closable.filter((t) => !closing.has(t.id));
+        const keys = spared.map((t) => duplicateKey(t, policy.match)).filter((k) => k !== null);
+        return (
+          after.closable.every((t) => before.closable.includes(t)) &&
+          after.kept.length === before.kept.length + spared.length &&
+          new Set(keys).size === keys.length &&
+          spared.every((t) => {
+            const key = duplicateKey(t, policy.match);
+            return key === null || !fresh.some((o) => !before.closable.includes(o) && duplicateKey(o, policy.match) === key);
+          })
+        );
+      }),
+    );
+  });
+
+  it('the copy left is the one policy.keep picks among those asked', () => {
+    const t = (id: number): Tab => ({ id, windowId: 1, index: id, title: '', url: 'https://a.test/', active: false, pinned: false, audible: false, discarded: false, groupId: -1, lastAccessed: 0 });
+    const base: DuplicatePolicy = { keep: 'oldest', protectPinned: true, protectGroups: true, match: 'exact' };
+    expect(stillClosable([t(2), t(3), t(4)], [2, 3, 4], base, true).kept.map((x) => x.id)).toEqual([2]);
+    expect(stillClosable([t(2), t(3), t(4)], [2, 3, 4], { ...base, keep: 'newest' }, true).kept.map((x) => x.id)).toEqual([4]);
+  });
+
+  it('without cleanup (closing a site, a window, a selection) nothing extra is kept', () => {
+    fc.assert(
+      fc.property(recheckArb, ({ policy, asked, fresh }) => {
+        const { closable, kept } = stillClosable(fresh, asked, policy, false);
+        return kept.every((t) => protection(t, policy) !== null) && closable.length + kept.length === fresh.filter((t) => asked.includes(t.id)).length;
+      }),
+    );
   });
 });

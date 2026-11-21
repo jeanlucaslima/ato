@@ -248,7 +248,7 @@ describe('update', () => {
     const id = TABS[3]!.id;
     const [closing, effects] = run(start(), [{ type: 'closeTab', tabId: id }]);
     expect(closing.ui.closing.has(id)).toBe(true);
-    expect(effects).toContainEqual({ kind: 'close', tabIds: [id], noun: 'tab', skipped: 0, policy: null });
+    expect(effects).toContainEqual({ kind: 'close', tabIds: [id], noun: 'tab', skipped: 0, policy: null, cleanup: false });
     const [done] = run(closing, [{ type: 'closed', tabs: [TABS[3]!], requested: [id], noun: 'tab', kept: 0 }]);
     expect(done.ui.closing.size).toBe(0);
     expect(done.ui.toast?.undo).toEqual([TABS[3]]);

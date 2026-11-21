@@ -27,10 +27,11 @@ export interface BrowserPort {
   subscribe(listener: () => void): () => void;
   /**
    * Close tabs. With a `policy` (bulk closes) protection is checked again on the
-   * browser's current state first, and tabs protected by then are `kept`.
-   * Resolves with the tabs really closed.
+   * browser's current state first, and tabs protected by then are `kept`; with
+   * `cleanup` (duplicate cleanup) so is a copy of every page that would have none
+   * left. Resolves with the tabs really closed.
    */
-  close(tabIds: number[], policy: DuplicatePolicy | null): Promise<CloseResult>;
+  close(tabIds: number[], policy: DuplicatePolicy | null, cleanup?: boolean): Promise<CloseResult>;
   /** Reopens closed tabs, any number; resolves with how many came back (and how many without history). */
   restore(tabs: readonly Tab[], closedAt?: number): Promise<Restored>;
   /** A recent right-click close to offer undo for when the popup opens, or `null`. */
