@@ -1,6 +1,6 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { CHOICES, DEFAULT_SETTINGS, policyOf, readSettings, type Settings } from './settings';
+import { CHOICES, DEFAULT_SETTINGS, fromLegacy, hasLegacy, policyOf, readSettings, type Settings } from './settings';
 
 const validSettings: fc.Arbitrary<Settings> = fc.record({
   keep: fc.constantFrom(...CHOICES.keep),
@@ -62,5 +62,27 @@ describe('policyOf', () => {
         return p.keep === s.keep && p.protectPinned === s.protectPinned && p.protectGroups === s.protectGroups;
       }),
     );
+  });
+});
+
+describe('fromLegacy (settings saved by 2.x)', () => {
+  it('carries over what 2.x users chose', () => {
+    const s = fromLegacy({ theme: 'ivory', matchMode: 'ignoreQueryAndHash', keepTab: 'newest', protectPinned: false, protectGroups: true, showBadge: true, badgeMode: 'allTabs', badgeColor: '#DC2626', currentWindowOnly: true, defaultBrowseView: 'domains', fontFamily: 'inter', debugLogging: true });
+    expect(s).toEqual({ ...DEFAULT_SETTINGS, theme: 'paper', match: 'ignoreBoth', keep: 'newest', protectPinned: false, protectGroups: true, badge: 'all', badgeColor: '#dc2626', scope: 'current', view: 'sites' });
+    expect(fromLegacy({ showBadge: false, badgeMode: 'duplicates' }).badge).toBe('off');
+  });
+
+  it('always yields valid settings, whatever was stored', () => {
+    fc.assert(
+      fc.property(fc.dictionary(fc.constantFrom('theme', 'matchMode', 'keepTab', 'protectPinned', 'showBadge', 'badgeMode', 'badgeColor', 'currentWindowOnly', 'defaultBrowseView'), fc.anything()), (raw) => {
+        const s = fromLegacy(raw);
+        return Object.entries(CHOICES).every(([k, allowed]) => (allowed as readonly unknown[]).includes(s[k as keyof Settings]));
+      }),
+    );
+  });
+
+  it('only kicks in when 2.x keys are there', () => {
+    expect(hasLegacy({})).toBe(false);
+    expect(hasLegacy({ keepTab: 'oldest' })).toBe(true);
   });
 });

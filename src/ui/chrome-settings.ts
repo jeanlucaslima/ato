@@ -1,4 +1,4 @@
-import { readSettings, type Settings } from '../core/settings';
+import { fromLegacy, hasLegacy, LEGACY_KEYS, readSettings, type Settings } from '../core/settings';
 import type { SettingsStore } from './settings-store';
 
 /** All v3 settings live under one key, apart from the flat keys 2.x used. */
@@ -7,8 +7,13 @@ const KEY = 'settings';
 /** Settings in `chrome.storage.sync`, so they follow the user across machines. */
 export class ChromeSettings implements SettingsStore {
   async load(): Promise<Settings> {
-    const stored = await chrome.storage.sync.get(KEY);
-    return readSettings(stored[KEY]);
+    const stored = await chrome.storage.sync.get([KEY, ...LEGACY_KEYS]);
+    if (stored[KEY] !== undefined || !hasLegacy(stored)) return readSettings(stored[KEY]);
+    // First run after updating from 2.x: carry its settings over, once. The old
+    // keys stay, so going back to 2.x still finds them.
+    const settings = fromLegacy(stored);
+    await this.save(settings).catch(() => undefined);
+    return settings;
   }
 
   async save(settings: Settings): Promise<void> {

@@ -76,6 +76,39 @@ export function readSettings(raw: unknown): Settings {
   return out as unknown as Settings;
 }
 
+/** Flat keys ATO 2.x stored in `chrome.storage.sync` (v3 keeps everything under `settings`). */
+export const LEGACY_KEYS = ['theme', 'matchMode', 'keepTab', 'protectPinned', 'protectGroups', 'showBadge', 'badgeMode', 'badgeColor', 'currentWindowOnly', 'defaultBrowseView'] as const;
+
+const LEGACY_THEME: Record<string, ThemeId> = { paper: 'paper', ivory: 'paper', graphite: 'graphite', obsidian: 'graphite', dark: 'graphite', light: 'paper' };
+const LEGACY_MATCH: Record<string, Settings['match']> = { exact: 'exact', ignoreHash: 'ignoreHash', ignoreQuery: 'ignoreQuery', ignoreQueryAndHash: 'ignoreBoth' };
+const LEGACY_VIEW: Record<string, Settings['view']> = { tabs: 'tabs', domains: 'sites' };
+
+/** Whether stored data holds 2.x settings. */
+export function hasLegacy(raw: Record<string, unknown>): boolean {
+  return LEGACY_KEYS.some((k) => raw[k] !== undefined);
+}
+
+/**
+ * Settings carried over from 2.x's flat keys. Anything 2.x had no equivalent
+ * for (fonts, search mode, debug logging) is dropped; unknown values fall back
+ * to v3's defaults.
+ */
+export function fromLegacy(raw: Record<string, unknown>): Settings {
+  const pick = <T,>(table: Record<string, T>, value: unknown): T | undefined => (typeof value === 'string' ? table[value] : undefined);
+  const badge = raw.showBadge === false || raw.badgeMode === 'off' ? 'off' : raw.badgeMode === 'allTabs' ? 'all' : raw.badgeMode === 'duplicates' ? 'duplicates' : undefined;
+  return readSettings({
+    keep: raw.keepTab,
+    match: pick(LEGACY_MATCH, raw.matchMode),
+    protectPinned: raw.protectPinned,
+    protectGroups: raw.protectGroups,
+    theme: pick(LEGACY_THEME, raw.theme),
+    badge,
+    badgeColor: typeof raw.badgeColor === 'string' ? raw.badgeColor.toLowerCase() : undefined,
+    scope: raw.currentWindowOnly === true ? 'current' : raw.currentWindowOnly === false ? 'all' : undefined,
+    view: pick(LEGACY_VIEW, raw.defaultBrowseView),
+  });
+}
+
 /** The duplicate cleanup rules these settings ask for. */
 export function policyOf(settings: Settings): DuplicatePolicy {
   return { keep: settings.keep, protectPinned: settings.protectPinned, protectGroups: settings.protectGroups, match: settings.match };
