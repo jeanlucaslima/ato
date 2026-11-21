@@ -2,7 +2,9 @@
 .settings { max-width: 640px; margin: 0 auto; padding: 36px 24px 48px; }
 
 .settings-head { display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: 32px; }
-.settings-head h1 { margin: 18px 0 0; font-size: 26px; letter-spacing: 0.12em; }
+.settings-title { display: flex; align-items: center; gap: 8px; margin-top: 18px; }
+.settings-head h1 { margin: 0; font-size: 26px; letter-spacing: 0.12em; }
+.version { padding: 2px 7px; border-radius: 999px; background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink-2); font-family: var(--mono); font-size: 11.5px; }
 .settings-head p { margin: 4px 0 0; font-size: 13px; color: var(--ink-3); }
 .saved { margin-top: 10px; font-size: 12px; color: var(--ink-3); }
 
@@ -51,8 +53,9 @@
 .setting--stack .choice { align-self: flex-start; }
 .match-example { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; padding: 10px 12px; background: var(--canvas); border: 1px dashed var(--line); border-radius: 8px; }
 .match-urls { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.match-urls code { font-family: var(--mono); font-size: 12px; color: var(--ink); overflow-wrap: anywhere; }
-.match-ignored { color: var(--ink-3); text-decoration: line-through; text-decoration-color: var(--line); }
+.match-urls code { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--ink); overflow-wrap: anywhere; }
+/* The part the rule ignores: lighter, struck through and on a grey tint, so it reads as set aside in every theme. */
+.match-ignored { margin-left: 1px; padding: 0 3px; border-radius: 3px; background: color-mix(in srgb, var(--ink) 7%, transparent); color: var(--ink-3); font-weight: 400; text-decoration: line-through; text-decoration-color: var(--ink-3); text-decoration-thickness: 1.5px; }
 .match-verdict { margin: 0 0 0 auto; font-size: 12.5px; color: var(--ink-2); }
 .match-verdict.is-same { color: var(--ok); }
 .choice-opt input:focus-visible + span { outline: 2px solid var(--focus); outline-offset: 1px; }
