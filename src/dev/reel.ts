@@ -1,5 +1,5 @@
 /**
- * Stages for Instagram videos: open one in Chrome at a 9:16 viewport and record it.
+ * Stages for Instagram videos, recorded by scripts/reel/ (see its README).
  * - Default: a single live popup, centred on a bare stage.
  * - `?scene=logo`: only the backdrop and the 3D logo, centred in the lower half;
  *   `window.drawLogo(deg)` draws it at an angle, so a recorder can step frame by frame.
