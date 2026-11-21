@@ -1,25 +1,25 @@
 # Chrome Web Store Listing
 
-Source of truth for ATO's Chrome Web Store listing. Update this when the listing
-changes, then copy fields into the Developer Dashboard. This is the **v3** listing:
-v3 replaces 2.x under the same store item.
+The text for ATO's Chrome Web Store listing. Edit it here first, then paste each field into the Developer Dashboard.
 
-## Name (max 75 chars)
+The name and the short summary are not dashboard fields: the store reads them from `name` and `description` in `src/manifest.json`, so they change only with a new build. Keep the two blocks below identical to the manifest.
 
-```
-ATO – Advanced Tab Organizer
-```
-
-## Short summary (max 132 chars — shown in search results)
+## Name (max 75 chars; from the manifest's `name`)
 
 ```
-Close duplicate tabs safely, see every window at a glance, and find any tab fast. Keyboard-first. No data leaves your browser.
+ATO - Advanced Tab Organizer
+```
+
+## Short summary (max 132 chars; from the manifest's `description`; shown in search results)
+
+```
+Close duplicate tabs safely, see every window at a glance, and find any tab fast. Keyboard-first. No tracking, nothing collected.
 ```
 
 ## Detailed description
 
 ```
-Too many tabs? ATO finds the duplicates and closes them safely, shows every window at a glance, and finds any tab as you type, all from a fast, keyboard-first popup. Nothing leaves your browser.
+Too many tabs? ATO finds the duplicates and closes them safely, shows every window at a glance, and finds any tab as you type, all from a fast, keyboard-first popup. No tracking, nothing collected.
 
 Open it with Cmd+U (Mac) or Ctrl+U (Windows/Linux), or click the toolbar icon. The badge shows how many duplicates you have.
 
@@ -27,8 +27,8 @@ Open it with Cmd+U (Mac) or Ctrl+U (Windows/Linux), or click the toolbar icon. T
 DUPLICATES, SAFELY
 ━━━━━━━━━━━━━━━━━━━━
 
-• One bar tells you how many extra copies are open. "Close" closes them; "Review" shows each page with its copies, which one stays, and why.
-• Never closed: the tab you're on, tabs playing sound, tabs in a split view, pinned tabs, and (if you like) tabs in a group.
+• One bar tells you how many extra copies are open. "Close N" closes them; "Review" shows each page with its copies, which one stays, and why.
+• Never closed by cleanup: the tab you're on in each window, tabs playing sound, and tabs in a split view. Pinned tabs and tabs in a group are protected too, unless you turn that off in settings.
 • Flip any copy between keep and close, close one page's copies, or all of them at once.
 • Match the whole URL, or ignore the #hash, the ?query, or both.
 • Undo brings back everything you closed, however many tabs.
@@ -48,43 +48,52 @@ SEE AND MOVE YOUR TABS
 KEYBOARD FIRST
 ━━━━━━━━━━━━━━━━━━━━
 
-Start typing to search titles and URLs across every window. Arrow keys and Enter to jump, Delete to close (Cmd+Delete while you're still typing), D to review duplicates, S to switch views, X to select several tabs, Cmd+Z to undo. Press ? in the popup for every shortcut.
+The popup opens with search focused. Type to search titles and URLs across every window, then use the arrow keys and Enter to jump to a tab.
+
+While you're typing, letter keys type, so two shortcuts use Cmd (Ctrl on Windows and Linux): Cmd+D reviews duplicates, and Cmd+Delete (Ctrl+Backspace) closes the highlighted tab, or every result once you've typed a search.
+
+With the search field empty, the down arrow steps into the list, where single keys work: Delete closes, U unloads, S switches views, X selects several tabs, and Cmd+Z undoes the last close. Press ? there for every shortcut.
 
 ━━━━━━━━━━━━━━━━━━━━
 MAKE IT YOURS
 ━━━━━━━━━━━━━━━━━━━━
 
-Thirteen themes, light, dark and true black: Graphite, Daylight, Paper, Onyx, Cyber, Neon, Poster, Riso, Nebula, Ember, Lagoon, Sakura and Dune. Or leave it on System, the default, which is Daylight by day and Graphite by night.
+Thirteen themes, light, dark and true black: Graphite, Daylight, Paper, Onyx, Cyber, Neon, Poster, Riso, Nebula, Ember, Lagoon, Sakura and Dune. Or leave it on System, the default, which follows your OS: Daylight in light mode, Graphite in dark.
 
-Choose which copy to keep, what counts as the same page, what's protected, the view the popup opens on, and what the badge shows. Settings saved by ATO 2 carry over.
+Choose which copy to keep, what counts as the same page, what's protected, the view the popup opens on, and what the badge shows. Settings from earlier versions of ATO carry over.
 
 ━━━━━━━━━━━━━━━━━━━━
 PRIVATE BY DESIGN
 ━━━━━━━━━━━━━━━━━━━━
 
-ATO runs entirely in your browser. ATO has no analytics, tracking or backend. Your tabs never leave your browser. Favicons are shown from the addresses Chrome provides, so your browser may load them as it would on the tab strip. It never collects, transmits or sells your data. Settings sync only through your own Chrome account, if sync is on.
+ATO has no analytics, no tracking and no backend. It reads your tabs inside your browser and never collects, sends or sells your data. Favicons are shown from the addresses Chrome provides, so your browser may load them as it does for the tab strip. Settings sync through your own Chrome account, if sync is on. The last close is remembered for Undo in session storage, which Chrome clears when the browser closes.
 
 Open source: https://github.com/jeanlucaslima/ato
 
 Requires Chrome 157 or newer. Change the shortcut at chrome://extensions/shortcuts.
 ```
 
-## What's new in 3.1
+## New in ATO 3
 
-The store has no field for this. Paste it into the detailed description, above
-"Open source:", and take it out at the next release.
+The store has no field for this, and it is the first store release of ATO 3: the people reading it are on 1.9.1. Paste it into the detailed description, above "Open source:". Take it out once most users have updated, a release or two later.
 
 ```
 ━━━━━━━━━━━━━━━━━━━━
-NEW IN 3.1
+NEW IN ATO 3
 ━━━━━━━━━━━━━━━━━━━━
 
-• Four new themes. Daylight: neutral light where the current tab, copies, audio and keep or close are each a clear mark. Onyx: true black for OLED. Poster: black type, signal red, hard shadows. Riso: two fluorescent inks a touch off register.
-• System is the default for new installs: Daylight by day, Graphite by night. A theme you already chose stays.
-• Settings: "Same page when" shows two example URLs and whether they count as the same page.
-• Keyboard: from an empty search field the arrows step into the list, so Delete closes the row. Cmd+Delete closes from the search field. The footer always shows the key that works right now.
-• Big counts read properly (1,102 duplicates), and light themes show the selected view clearly.
-• Now playing no longer slows the popup down with thousands of tabs open.
+ATO 3 is a ground-up rewrite of ATO 1.9.
+
+• Review before you close: each page with its copies, which one stays, and why. Flip any copy between keep and close.
+• Sites and Windows views: close, unload or move a whole site; merge, focus or close a window.
+• Undo brings back any number of closed tabs.
+• Unload tabs to free memory without closing them.
+• A key for everything, and search across every window as you type.
+• Right-click a tab to close its duplicates, or the other tabs from its site.
+• Thirteen themes, plus System, the default, which follows your OS.
+• Your settings carry over. Tabs in a group are now protected by default; you can change that in settings.
+
+One new permission: when ATO updates, Chrome turns it off until you approve "View and manage your tab groups". ATO uses it to show your tab groups in the Windows view and to keep a group together when you merge windows.
 ```
 
 ## Screenshot captions
@@ -120,7 +129,7 @@ Alt text for the repo's own shots in `docs/screenshots/`:
 ### Single purpose (required)
 
 ```
-ATO helps users find and close duplicate and excess browser tabs, and search, group, and manage their open tabs and windows, from a single popup.
+ATO helps users find and close duplicate browser tabs, and search, sort and manage their open tabs and windows, from one popup.
 ```
 
 ### Remote code use (required)
@@ -131,12 +140,14 @@ package; nothing is fetched or evaluated at runtime. Favicons loaded from
 
 ### Permission justifications
 
+`tabGroups` and `contextMenus` are new since 1.9.1, so the dashboard will ask for these two for the first time.
+
 | Permission | Justification |
 | --- | --- |
-| `tabs` | Read tab titles and URLs (including local `file://` pages) to detect duplicates, search and group tabs; close, move, mute and unload tabs on request. |
-| `storage` | Save the user's settings (theme, matching, badge options, protections). |
-| `sessions` | Restore recently closed tabs for Undo. |
-| `tabGroups` | Show tab group names and colours in the Windows view, keep grouped tabs protected, and move whole groups when merging windows. |
+| `tabs` | Read tab titles and URLs (including local `file://` pages) to detect duplicates, search tabs and list them by site and window; close, move, mute and unload tabs on request. |
+| `storage` | Save the user's settings (theme, matching, badge options, protections) in sync storage. Keep a record of the last close (the closed tabs' URLs and titles) in session storage, so Undo still works after the popup closes. Chrome clears that record when the browser closes. |
+| `sessions` | Restore closed tabs for Undo. |
+| `tabGroups` | Read tab group names, colours and collapsed state to draw groups in the Windows view, and move a whole group when the user merges one window into another. ATO does not create, rename or recolour groups. |
 | `contextMenus` | Add "Close duplicates of this tab" and "Close other tabs from this site" to the tab right-click menu. |
 
 No host permissions are requested: the `tabs` permission alone exposes tab URLs,
@@ -149,7 +160,7 @@ Select **"This item does not collect or use user data."** Then certify:
 - Does **not** use or transfer data for purposes unrelated to the item's single purpose.
 - Does **not** use or transfer data to determine creditworthiness or for lending.
 
-All true: ATO has no analytics, tracking or backend, and tab data never leaves the browser (favicons are loaded by the browser from the addresses Chrome provides, as on the tab strip).
+All true: ATO has no analytics, tracking or backend, and it sends tab data nowhere. Favicons are loaded by the browser from the addresses Chrome provides, as on the tab strip. Settings are synced by Chrome through the user's own account, if sync is on.
 
 ### Privacy policy URL
 
@@ -171,7 +182,14 @@ in the store form.
 
 ## Assets checklist
 
+For 3.1.1, the first store release of ATO 3 (the store has 1.9.1).
+
 - [x] Icon: 128×128 (`src/assets/icons/icon128.png`)
-- [x] Screenshots, 1280×800, for 3.1: `docs/screenshots/store/screenshot-1-1280x800.png` to `-5-`, in the order of [Screenshot captions](#screenshot-captions), each with its caption set into the image
+- [ ] Manifest: `name`, `description` and `action.default_title` match this file; version 3.1.1 in `src/manifest.json` and `package.json`
+- [ ] Screenshots, 1280×800: `docs/screenshots/store/screenshot-1-1280x800.png` to `-5-`, in the order of [Screenshot captions](#screenshot-captions), each with its caption set into the image
 - [ ] Small promo tile 440×280 (optional)
-- [ ] Package: `npm run zip` → `ato-v3.1.0.zip`
+- [ ] Package: `npm run zip` → `ato-v3.1.1.zip`
+- [ ] Detailed description pasted with the [New in ATO 3](#new-in-ato-3) block above "Open source:"
+- [ ] Justifications entered for `tabGroups` and `contextMenus`, and the `storage` one updated
+- [ ] Privacy policy at the URL above matches `PRIVACY.md`
+- [ ] Permission note: `tabGroups` adds the warning "View and manage your tab groups", so Chrome turns ATO off on update until each user approves it. The New in ATO 3 block says so; expect questions about it.

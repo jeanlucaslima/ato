@@ -48,7 +48,7 @@ Also: a toolbar badge with the duplicate count (or all tabs) in your colour, and
   <img src="docs/screenshots/themes.png" alt="The settings page's theme picker: System, Graphite, Daylight, Paper, Onyx, Cyber (selected, glowing), Neon, Poster, Riso, Nebula, Ember, Lagoon, Sakura and Dune, each as a miniature popup in its own colours" width="480">
 </p>
 
-Graphite, Daylight and Paper are the quiet ones, and **System**, the default, switches between Daylight and Graphite with your OS. **Daylight** is neutral light that makes every signal (current, copies, audio, asleep, keep or close) a clear mark, with a little motion. **Onyx** is true black, for OLED screens. Neon, Nebula, Ember, Lagoon, Sakura and Dune each have their own palette, and the picker previews every theme as a tiny popup in its own colours.
+Graphite, Daylight and Paper are the quiet ones, and **System**, the default, switches between Daylight and Graphite with your OS. **Daylight** is neutral light that makes every signal (current, copies, audio, unloaded, keep or close) a clear mark, with a little motion. **Onyx** is true black, for OLED screens. Neon, Nebula, Ember, Lagoon, Sakura and Dune each have their own palette, and the picker previews every theme as a tiny popup in its own colours.
 
 **Cyber** goes further than a palette: neon on near-black over a faint grid, glowing edges, text and focus rings, scanlines across the popup, and a pulsing dot on the duplicates bar. All of that is plain CSS scoped to the theme, and it respects reduced motion.
 
