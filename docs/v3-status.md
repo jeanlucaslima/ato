@@ -75,9 +75,21 @@ Where a keystroke goes (typing `site` → `site1`, timed in the page with the ap
 
 `npm run perf` (Node, pure paths, before → after memoizing `deriveModel` per state): ↓ cursor + model for render 5.47 → 1.79 ms at 2,000 tabs, 13.9 → 4.60 at 5,000; typing + model for render 10.8 → 5.78 and 22.7 → 14.5.
 
+**Chrome traces** (performance traces recorded through the chrome-devtools MCP at 4× CPU, ↓ held for 2 s at ~30/s and typing `site1` 150 ms apart; main-thread work per keystroke = the task that handled the key plus the style, layout, paint and commit work before the next key; ms):
+
+| | keys | JS median / p95 / max | frame work median / p95 / max | longest task median |
+| - | - | - | - | - |
+| ↓, 2,000 tabs | 16 | 26 / 442 / 442 | 138 / 508 / 508 | 63 |
+| typing, 2,000 tabs | 5 | 123 / 586 / 586 | 211 / 725 / 725 | 131 |
+| ↓, 5,000 tabs | 10 | 44 / 974 / 974 | 230 / 1,086 / 1,086 | 125 |
+| typing, 5,000 tabs | 5 | 182 / 1,383 / 1,383 | 255 / 1,493 / 1,493 | 182 |
+
+Throttled, the main thread falls behind ↓'s key repeat (16 and 10 keys handled in 2 s, not 60). The max is the first key (a full render). **Hot path** (CPU profile self time inside the key tasks): `set innerHTML` comes first in all four traces (272 / 374 / 634 / 735 ms). It is `ui/icons.ts:67`: every icon of every row drawn parses its SVG markup again. Then `URL` parsing (74 to 217 ms, from `domainOf` on every tab in every derive), `removeChild`/`appendChild` and morph's `syncChildren`/`syncAttributes` (search swapping its 150 rows), and `scrollIntoView`. On ↓, `IntersectionObserverController::computeIntersections` (5–6.5 s across each trace, the `content-visibility: auto` bookkeeping for 2,000–5,000 rows) and paint dominate the frame side. The trace files are local only (`.perf-traces/`, excluded from git).
+
 Proposed for 3.1, in order of payoff (not done):
+0. **Parse each icon once.** Keep one parsed `<svg>` per icon and `cloneNode(true)` it, instead of setting `innerHTML` for every icon of every row on every render: the largest single cost in every trace.
 1. **Cursor-only states share the model.** The model depends on the cursor only through its top-level `cursor` field, so a state that differs from a derived one only in `ui.cursor` can reuse that model with the cursor swapped. Typing then derives once, ↓ not at all.
-2. **Search derives only what it shows.** `deriveModel` builds a row for every tab and the whole duplicate plan on each keystroke, then search keeps 150; build rows only for the results drawn.
+2. **Search derives only what it shows.** `deriveModel` builds a row for every tab and the whole duplicate plan on each keystroke, then search keeps 150; build rows only for the results drawn, and cache `domainOf` per URL (`URL` parsing is second in the traces).
 3. **Draw only the visible part of long lists.** Search already stops at 150; the tabs, sites and windows lists draw every row (`content-visibility` skips layout and paint off screen, not style or DOM size). This is the "drawing only visible rows past 5,000 tabs" item, now with numbers showing it matters from 2,000 on a slow machine.
 
 ## Release status
