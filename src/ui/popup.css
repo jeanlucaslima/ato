@@ -47,8 +47,8 @@
 .strip--clean strong { color: var(--ok); }
 .strip--idle { border-color: var(--line); background: var(--surface); }
 .strip--idle .dot { background: var(--ink-3); }
-/* Cursor on the bar: the list's cursor marks (focus border, left bar) plus a ring, so it reads in every theme. */
-.strip.is-cursor { border-color: var(--focus); box-shadow: 0 0 0 1.5px var(--focus), inset 4px 0 var(--focus); }
+/* Cursor on a boxed item (the bar, Now playing): an even ring all round, no left bar. */
+.strip.is-cursor { border-color: var(--focus); box-shadow: 0 0 0 1.5px var(--focus); }
 
 /* Now playing: audible tabs from any window */
 .playing { flex: none; margin: 0 12px 10px; padding: 3px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
@@ -62,7 +62,7 @@
 .play-mute { color: var(--ok); }
 .is-muted .play-mute { color: var(--ink-3); }
 .is-muted .play-title { color: var(--ink-2); }
-.play-row.is-cursor { border-radius: 7px; background: var(--focus-fill); box-shadow: inset 3px 0 var(--focus), 0 0 0 1px var(--focus); }
+.play-row.is-cursor { border-radius: 7px; background: var(--focus-fill); box-shadow: 0 0 0 1px var(--focus); }
 .play-more { margin: 0; padding: 2px 8px 5px 34px; font-size: 11px; color: var(--ink-3); }
 .eq { flex: none; display: flex; align-items: flex-end; gap: 2px; width: 16px; height: 14px; color: var(--ok); }
 .eq i { flex: 1; height: 40%; border-radius: 1px; background: currentColor; animation: eq 820ms ease-in-out infinite alternate; }
@@ -255,7 +255,7 @@ button.verdict:disabled { cursor: default; opacity: 1; }
 .help-section dd { margin: 0; font-size: 12.5px; color: var(--ink-2); }
 
 /* Bottom: hints, selection bar, toast */
-.foot { height: 34px; flex: none; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 14px; padding: 0 14px; font-size: 11px; color: var(--ink-3); white-space: nowrap; }
+.foot { height: 34px; flex: none; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 10px; padding: 0 12px; font-size: 11px; color: var(--ink-3); white-space: nowrap; }
 .foot-help { margin-left: auto; height: 26px; padding: 0 6px; border: 0; border-radius: 6px; background: transparent; color: var(--ink-3); font-size: 11px; }
 .foot-help:hover { background: var(--surface); color: var(--ink); }
 .actionbar { flex: none; display: flex; align-items: center; gap: 6px; height: 52px; padding: 0 12px 0 14px; border-top: 1px solid var(--focus); background: var(--surface); }
