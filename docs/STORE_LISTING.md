@@ -54,7 +54,7 @@ Start typing to search titles and URLs across every window. Arrow keys and Enter
 MAKE IT YOURS
 ━━━━━━━━━━━━━━━━━━━━
 
-Nine themes, light and dark, or follow your system. Choose which copy to keep, what counts as the same page, what's protected, the view the popup opens on, and what the badge shows. Settings saved by ATO 2 carry over.
+Ten themes, light, dark and true black, or follow your system (the default). Choose which copy to keep, what counts as the same page, what's protected, the view the popup opens on, and what the badge shows. Settings saved by ATO 2 carry over.
 
 ━━━━━━━━━━━━━━━━━━━━
 PRIVATE BY DESIGN
