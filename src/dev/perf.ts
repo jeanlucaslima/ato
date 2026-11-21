@@ -119,6 +119,10 @@ export function runPerf({ sizes = [500, 1000, 2000, 5000], runs = 15, render }: 
     add('navOrder · sites (all open)', FRAME, () => navOrder(deriveModel(at({ view: 'sites', expanded: new Set(snapshot.tabs.map((t) => t.url.split('/')[2]!)) }))));
     add('update · type a key', FRAME, step(at({ query: 'page' }), { type: 'query', text: 'page 1' }));
     add('update · ↓ cursor', FRAME, step(at({ cursor: firstTab }), { type: 'moveCursor', delta: 1 }));
+    // What a keystroke costs before drawing: the update, then the model the render needs.
+    const cycle = (state: AppState, action: Action) => () => deriveModel(update(state, action)[0]);
+    add('↓ cursor + model for render', FRAME, cycle(at({ cursor: firstTab }), { type: 'moveCursor', delta: 1 }));
+    add('type a key + model for render', FRAME, cycle(at({ query: 'page' }), { type: 'query', text: 'page 1' }));
     add('update · pointer over row', FRAME, step(at({}), { type: 'setCursor', key: firstTab }));
     add('update · new snapshot', FRAME, step(at({ cursor: firstTab }), { type: 'snapshot', snapshot }));
     add('update · open a site', FRAME, step(at({ view: 'sites' }), { type: 'toggleSite', domain: bigSite }));

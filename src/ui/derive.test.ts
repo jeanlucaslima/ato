@@ -4,6 +4,13 @@ import { deriveModel, displayUrl } from './derive';
 import { initialUi } from './state';
 
 describe('deriveModel', () => {
+  it('derives each state once: the same state gives the same model, a new state a new one', () => {
+    const state = { snapshot: SNAPSHOT, ui: initialUi() };
+    expect(deriveModel(state)).toBe(deriveModel(state));
+    expect(deriveModel({ ...state })).not.toBe(deriveModel(state));
+    expect(deriveModel({ ...state })).toEqual(deriveModel(state));
+  });
+
   it('shows a loading screen before the first snapshot', () => {
     expect(deriveModel({ snapshot: null, ui: initialUi() }).screen.kind).toBe('loading');
   });
