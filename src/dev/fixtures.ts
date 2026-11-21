@@ -1,6 +1,7 @@
 /** Sample browser state + starting UI states for the screen gallery. */
 import type { Snapshot, Tab } from '../core/types';
 import { initialUi, type AppState, type UiState } from '../ui/state';
+import { makeSnapshot } from './perf';
 
 const NOW = Date.UTC(2026, 10, 13, 12, 0);
 const MIN = 60_000;
@@ -122,6 +123,9 @@ export interface Fixture {
   state: AppState;
 }
 
+/** Thousands of duplicates: what the counts and Close buttons do at that size. */
+const HUGE = makeSnapshot(6000, 7);
+
 const at = (ui: Partial<UiState>, snapshot: Snapshot | null = SNAPSHOT): AppState => ({ snapshot, ui: initialUi(ui) });
 
 export const FIXTURES: Fixture[] = [
@@ -143,6 +147,8 @@ export const FIXTURES: Fixture[] = [
     name: 'Duplicate review · 19 copies, opened',
     state: at({ reviewOpen: true, searchFocused: false, setOpen: new Map([[HN, true]]), cursor: 'copy:803' }, MANY_COPIES),
   },
+  { name: 'Duplicate review · thousands of duplicates (6,000 tabs)', state: at({ reviewOpen: true, searchFocused: false }, HUGE) },
+  { name: 'Tabs · thousands of duplicates (6,000 tabs)', state: at({ searchFocused: false, cursor: 'dupes' }, HUGE) },
   { name: 'Duplicate review · a copy is in a split view', state: at({ reviewOpen: true, searchFocused: false }, SPLIT_DUPLICATE) },
   { name: 'Duplicate review · a copy is playing', state: at({ reviewOpen: true, searchFocused: false }, PLAYING_DUPLICATE) },
   {
