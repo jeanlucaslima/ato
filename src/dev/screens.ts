@@ -12,7 +12,8 @@ import { FIXTURES, type Fixture } from './fixtures';
 import { MemorySettings } from './memory-settings';
 import { makeSnapshot } from './perf';
 import { initialUi } from '../ui/state';
-import manifest from '../manifest.json';
+// Not src/manifest.json: the dev server serves that path as the raw file, so importing it fails.
+import pkg from '../../package.json';
 
 /** `?big=2000`: only one popup, over that many generated tabs (timing in real Chrome). */
 const big = Number(new URLSearchParams(location.search).get('big')) || 0;
@@ -83,7 +84,7 @@ document.body.replaceChildren(
   ),
 );
 
-void mountSettings(settingsFrame, settings, { version: `${manifest.version}-dev`, onChange: onSettings }).then((page) => {
+void mountSettings(settingsFrame, settings, { version: `${pkg.version}-dev`, onChange: onSettings }).then((page) => {
   page.setPinned(pinned);
   pinButton.addEventListener('click', () => {
     pinned = !pinned;
