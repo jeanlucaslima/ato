@@ -19,7 +19,7 @@ One interaction: DOM event → `Action` → `update` → new state, plus `Effect
 
 One path closes tabs, for the popup and the right-click menu alike: `closeTabs` in `ui/chrome-close.ts`, run in the worker (the popup asks with a message and runs it itself only if no worker answers).
 
-1. **Recheck.** Chrome's tabs are read fresh and `stillClosable` (`core/duplicates.ts`) applies protection again, so a tab that became current, started playing or joined a split view since the decision (the popup's 180 ms row animation, or the menu's click) stays open. Duplicate cleanup also keeps one copy of any page that would otherwise have none left (its planned survivor was closed or navigated away meanwhile). Closing a site, window, selection or a single tab closes everything asked.
+1. **Recheck.** Chrome's tabs (and, for a close other than cleanup, the focused window) are read fresh and `stillClosable` (`core/duplicates.ts`) applies protection again, so a tab that became current, started playing or joined a split view since the decision (the popup's 180 ms row animation, or the menu's click) stays open. Duplicate cleanup also keeps one copy of any page that would otherwise have none left (its planned survivor was closed or navigated away meanwhile). Closing a site, window, selection or a single tab closes everything asked.
 2. **Remove**, and report what really closed; the popup's toast and undo list exactly those.
 3. **Remember** the close as the last close record `{ tabs, closedAt, message, source, sessions }` in `chrome.storage.session` (key `ato:lastClose`): it survives the worker being stopped, not a browser restart. Each close replaces the one before. `sessions` maps each tab to its `chrome.sessions` entry, read right after the removal while those entries are still the newest.
 
@@ -31,7 +31,7 @@ One path closes tabs, for the popup and the right-click menu alike: `closeTabs` 
 
 Checked as fast-check properties (`core/duplicates.test.ts`, `core/tab-menu.test.ts`, `core/close-record.test.ts`, `ui/update.test.ts`, `ui/close-recheck.test.ts`, `ui/chrome-menu.test.ts`, `ui/chrome-close.test.ts`, `ui/chrome-restore.test.ts`), each with a mutation check (remove the guard, watch the property fail):
 
-1. The active tab of any window is never closed by cleanup.
+1. The active tab of any window is never closed by cleanup. Other bulk closes (search results, a site, a selection, a window) never close the tab being looked at, the active tab of the focused window; the active tabs of other windows close like any tab.
 2. A tab playing audio is never closed.
 3. A tab in a split view is never closed; moving one half moves both.
 4. Every duplicate set keeps at least one tab: whatever the user flips in review, and on Chrome's state when the close runs.

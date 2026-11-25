@@ -225,7 +225,8 @@ class FailingBrowser extends FakeBrowser {
 
 describe('a close that fails', () => {
   const settle = () => new Promise((r) => setTimeout(r, CLOSE_ANIMATION_MS + 50));
-  const windowTwo = TABS.filter((t) => t.windowId === 2 && !t.active).map((t) => t.id);
+  // Window 2 isn't focused: its current tab isn't the one being looked at, so it closes too.
+  const windowTwo = TABS.filter((t) => t.windowId === 2).map((t) => t.id);
 
   function mountFailing(closesFirst: number) {
     const container = document.createElement('div');
@@ -264,10 +265,10 @@ describe('Windows view Close button', () => {
     document.body.append(container);
     app = mountApp(container, new FakeBrowser(PROTECTED_WINDOW), { snapshot: PROTECTED_WINDOW, ui: initialUi({ view: 'windows' }) });
     const button = (w: number) => container.querySelector<HTMLButtonElement>(`[data-action="close-window"][data-window="${w}"]`);
-    // Window 2: 8 tabs; the current one and three in groups stay.
-    expect(button(2)?.textContent).toBe('Close 4');
-    expect(button(2)?.getAttribute('aria-label')).toBe('Close 4 tabs; 4 protected stay (⌫)');
-    // Window 3: current, pinned and playing only.
+    // Window 2: 8 tabs; three in groups stay. Its current tab closes: window 3 is the focused one.
+    expect(button(2)?.textContent).toBe('Close 5');
+    expect(button(2)?.getAttribute('aria-label')).toBe('Close 5 tabs; 3 protected stay (⌫)');
+    // Window 3 (focused): current, pinned and playing only.
     expect(button(3)).toBeNull();
   });
 });

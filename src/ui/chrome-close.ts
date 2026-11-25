@@ -37,11 +37,14 @@ async function readTabs(): Promise<Tab[]> {
  * With a `policy` (bulk and menu closes) protection is checked on Chrome's current
  * state, so a tab that became current, started playing or joined a split view
  * since the decision stays; `null` closes what the user picked. `cleanup` (duplicate
- * cleanup) also leaves one copy of every page open, on Chrome's current state. If
+ * cleanup) also leaves one copy of every page open, on Chrome's current state.
+ * `focusedOnly` protects only the focused window's current tab, not every window's
+ * (the focused window read now; if Chrome can't say, every window's stays). If
  * Chrome refuses part-way, the tabs already gone are still remembered, then the error goes on.
  */
-export async function closeTabs(tabIds: readonly number[], policy: DuplicatePolicy | null, by: CloseSource = POPUP, cleanup = false): Promise<CloseResult> {
-  const { closable, kept } = stillClosable(await readTabs(), tabIds, policy, cleanup);
+export async function closeTabs(tabIds: readonly number[], policy: DuplicatePolicy | null, by: CloseSource = POPUP, cleanup = false, focusedOnly = false): Promise<CloseResult> {
+  const focused = focusedOnly ? await focusedWindowId() : undefined;
+  const { closable, kept } = stillClosable(await readTabs(), tabIds, policy, cleanup, focused);
   if (closable.length === 0) return { closed: [], kept };
   const closedAt = Date.now();
   try {
@@ -54,6 +57,14 @@ export async function closeTabs(tabIds: readonly number[], policy: DuplicatePoli
   }
   await remember({ tabs: closable, closedAt, message: by.message(closable.length), source: by.source, sessions: await sessionsOf(closable, closedAt) });
   return { closed: closable, kept, closedAt };
+}
+
+async function focusedWindowId(): Promise<number | undefined> {
+  try {
+    return (await chrome.windows.getLastFocused({ windowTypes: ['normal'] })).id;
+  } catch {
+    return undefined;
+  }
 }
 
 async function remember(record: CloseRecord): Promise<void> {
@@ -93,10 +104,10 @@ export async function undoClose(tabs: readonly Tab[], closedAt?: number): Promis
 }
 
 /** A close request from one of ATO's pages, checked field by field; `null` if malformed. */
-export function readCloseRequest(message: unknown): { tabIds: number[]; policy: DuplicatePolicy | null; cleanup: boolean } | null {
-  const m = message as { type?: unknown; tabIds?: unknown; policy?: unknown; cleanup?: unknown } | null;
+export function readCloseRequest(message: unknown): { tabIds: number[]; policy: DuplicatePolicy | null; cleanup: boolean; focusedOnly: boolean } | null {
+  const m = message as { type?: unknown; tabIds?: unknown; policy?: unknown; cleanup?: unknown; focusedOnly?: unknown } | null;
   if (m?.type !== CLOSE_MESSAGE || !Array.isArray(m.tabIds) || !m.tabIds.every((id) => Number.isInteger(id))) return null;
-  if (m.policy === null) return { tabIds: m.tabIds as number[], policy: null, cleanup: false };
+  if (m.policy === null) return { tabIds: m.tabIds as number[], policy: null, cleanup: false, focusedOnly: false };
   if (typeof m.policy !== 'object' || m.policy === undefined) return null;
   // Missing or odd fields fall back to the safe defaults (protect pinned and grouped;
   // exact matching, the one that finds fewest copies to close).
@@ -108,5 +119,7 @@ export function readCloseRequest(message: unknown): { tabIds: number[]; policy: 
     ...(CHOICES.match.includes(p.match as never) ? { match: p.match } : {}),
     ...(CHOICES.keep.includes(p.keep as never) ? { keep: p.keep } : {}),
   };
-  return { tabIds: m.tabIds as number[], policy, cleanup: m.cleanup === true };
+  const cleanup = m.cleanup === true;
+  // Cleanup always protects every window's current tab.
+  return { tabIds: m.tabIds as number[], policy, cleanup, focusedOnly: !cleanup && m.focusedOnly === true };
 }

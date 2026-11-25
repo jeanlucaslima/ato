@@ -37,9 +37,14 @@ export interface DuplicateSet {
   copies: PlannedCopy[];
 }
 
-/** Why a tab may not be closed by cleanup, or `null` if it may. */
-export function protection(tab: Tab, policy: DuplicatePolicy): 'current' | 'playing' | 'split' | 'pinned' | 'grouped' | null {
-  if (tab.active) return 'current';
+/**
+ * Why a tab may not be closed by a bulk close, or `null` if it may. Without
+ * `focusedWindowId` (duplicate cleanup, the tab menu) the current tab of every
+ * window is protected; with it (closing search results, a site, a selection or a
+ * window) only the tab the user is looking at: the current tab of that window.
+ */
+export function protection(tab: Tab, policy: DuplicatePolicy, focusedWindowId?: number): 'current' | 'playing' | 'split' | 'pinned' | 'grouped' | null {
+  if (tab.active && (focusedWindowId === undefined || tab.windowId === focusedWindowId)) return 'current';
   // Audible covers muted tabs too (Chrome reports sound it produced, heard or not).
   if (tab.audible) return 'playing';
   if (isSplit(tab)) return 'split';
@@ -116,19 +121,20 @@ export function applyOverrides(
  * in `fresh` and still unprotected under `policy`. A tab that became current,
  * started playing or joined a split view since the decision is `kept`. With no
  * policy (a single close the user picked) only tabs that are gone drop out.
+ * `focusedWindowId`: as in `protection`, read fresh by the caller.
  *
  * `cleanup` (duplicate cleanup, rule 2): every page keeps a copy in `fresh`. A
  * closable tab with no copy staying open (the planned survivor was closed or
  * navigated away, or the tab itself now shows another page) leaves one copy of
  * its page open, chosen by `policy.keep`. Other closes close all they're asked to.
  */
-export function stillClosable(fresh: readonly Tab[], ids: Iterable<number>, policy: DuplicatePolicy | null, cleanup = false): { closable: Tab[]; kept: Tab[] } {
+export function stillClosable(fresh: readonly Tab[], ids: Iterable<number>, policy: DuplicatePolicy | null, cleanup = false, focusedWindowId?: number): { closable: Tab[]; kept: Tab[] } {
   const wanted = new Set(ids);
   let closable: Tab[] = [];
   const kept: Tab[] = [];
   for (const tab of fresh) {
     if (!wanted.has(tab.id)) continue;
-    if (policy && protection(tab, policy) !== null) kept.push(tab);
+    if (policy && protection(tab, policy, focusedWindowId) !== null) kept.push(tab);
     else closable.push(tab);
   }
   if (cleanup && policy) {

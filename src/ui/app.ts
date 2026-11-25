@@ -133,7 +133,7 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
     const asked = state.snapshot?.tabs.filter((t) => effect.tabIds.includes(t.id)) ?? [];
     const at = Date.now();
     try {
-      const { closed, kept, closedAt } = await port.close(effect.tabIds, effect.policy, effect.cleanup);
+      const { closed, kept, closedAt } = await port.close(effect.tabIds, effect.policy, effect.cleanup, effect.focusedOnly);
       dispatch({ type: 'closed', tabs: closed, requested: effect.tabIds, noun: effect.noun, kept: effect.skipped + kept.length, at: closedAt ?? at });
     } catch {
       // tabs.remove can reject after closing some: those still get their undo.

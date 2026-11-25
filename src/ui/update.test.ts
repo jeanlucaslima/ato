@@ -205,7 +205,10 @@ describe('update', () => {
     const [, closeFx] = run(back, [{ type: 'cursorKey', key: 'delete' }]);
     const closing = closeEffects(closeFx);
     expect(closing.every((id) => w2.includes(id))).toBe(true);
-    expect(closing.some((id) => GROUPED.tabs.find((t) => t.id === id)!.active)).toBe(false);
+    // Window 2 isn't focused: its current tab isn't the one being looked at, so it goes too.
+    expect(closing).toContain(GROUPED.tabs.find((t) => t.windowId === 2 && t.active)!.id);
+    const [, ownFx] = run(setCursor(s0, 'win:1'), [{ type: 'cursorKey', key: 'delete' }]);
+    expect(closeEffects(ownFx)).not.toContain(GROUPED.tabs.find((t) => t.windowId === 1 && t.active)!.id);
   });
 
   it('S cycles Tabs → Sites → Windows → Tabs', () => {
@@ -253,7 +256,7 @@ describe('update', () => {
     const id = TABS[3]!.id;
     const [closing, effects] = run(start(), [{ type: 'closeTab', tabId: id }]);
     expect(closing.ui.closing.has(id)).toBe(true);
-    expect(effects).toContainEqual({ kind: 'close', tabIds: [id], noun: 'tab', skipped: 0, policy: null, cleanup: false });
+    expect(effects).toContainEqual({ kind: 'close', tabIds: [id], noun: 'tab', skipped: 0, policy: null, cleanup: false, focusedOnly: false });
     const [done] = run(closing, [{ type: 'closed', tabs: [TABS[3]!], requested: [id], noun: 'tab', kept: 0 }]);
     expect(done.ui.closing.size).toBe(0);
     expect(done.ui.toast?.undo).toEqual([TABS[3]]);

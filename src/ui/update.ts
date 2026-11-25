@@ -82,17 +82,21 @@ function setUi(state: AppState, patch: Partial<UiState>): AppState {
 /**
  * Start closing `tabs`: they animate out, then the runtime closes them.
  * Bulk closes skip protected tabs; an explicit single close does not. `cleanup`
- * (duplicate cleanup) has the close keep a copy of every page, whatever changed.
+ * (duplicate cleanup) has the close keep a copy of every page, whatever changed,
+ * and keeps the current tab of every window; other bulk closes keep only the one
+ * the user is looking at (the focused window's).
  */
 function startClose(state: AppState, tabs: readonly Tab[], noun: string, bulk: boolean, cleanup = false): Result {
-  const eligible = bulk ? tabs.filter((t) => protection(t, state.ui.policy) === null) : [...tabs];
+  const focusedOnly = bulk && !cleanup;
+  const focused = focusedOnly ? state.snapshot?.focusedWindowId : undefined;
+  const eligible = bulk ? tabs.filter((t) => protection(t, state.ui.policy, focused) === null) : [...tabs];
   const skipped = tabs.length - eligible.length;
   if (eligible.length === 0) return withToast(state, skipped ? `Nothing to close — ${plural(skipped, 'tab')} protected` : 'Nothing to close');
   const ids = new Set(eligible.map((t) => t.id));
   const order = navOrder(deriveModel(state));
   const closing = new Set([...state.ui.closing, ...ids]);
   const ui: UiState = { ...state.ui, closing, cursor: cursorAfter(order, ids, state.ui.cursor) };
-  return [{ ...state, ui }, [{ kind: 'close', tabIds: [...ids], noun, skipped, policy: bulk ? state.ui.policy : null, cleanup: bulk && cleanup }]];
+  return [{ ...state, ui }, [{ kind: 'close', tabIds: [...ids], noun, skipped, policy: bulk ? state.ui.policy : null, cleanup: bulk && cleanup, focusedOnly }]];
 }
 
 /**

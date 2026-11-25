@@ -63,7 +63,7 @@ settings.subscribe(scheduleRefresh);
 chrome.runtime.onMessage.addListener((message: unknown, sender, reply) => {
   const request = sender.id === chrome.runtime.id ? readCloseRequest(message) : null;
   if (!request) return false;
-  void closeTabs(request.tabIds, request.policy, undefined, request.cleanup).then(
+  void closeTabs(request.tabIds, request.policy, undefined, request.cleanup, request.focusedOnly).then(
     (result) => reply({ ok: true, ...result }),
     (error: unknown) => reply({ ok: false, error: String(error) }),
   );

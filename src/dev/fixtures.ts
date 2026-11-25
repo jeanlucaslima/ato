@@ -130,9 +130,10 @@ export const GROUPED: Snapshot = (() => {
   };
 })();
 
-/** A third window holding only protected tabs (current, pinned, playing): its Close is hidden. */
+/** A third window, the focused one, holding only protected tabs (current, pinned, playing): its Close is hidden. */
 export const PROTECTED_WINDOW: Snapshot = {
   ...GROUPED,
+  focusedWindowId: 3,
   tabs: [
     ...GROUPED.tabs.filter((t) => t.windowId !== 3),
     { ...TABS[0]!, id: 950, windowId: 3, index: 0 },

@@ -47,17 +47,34 @@ describe('bulk close rechecks protection on the fresh state', () => {
         const browser = new FakeBrowser(SNAPSHOT);
         for (const [id, flip] of flips) browser.change((t) => (t.id === id ? flipTab(t, flip) : t));
         const fresh = (await browser.snapshot()).tabs;
-        const { closed, kept } = await browser.close(effect.tabIds, effect.policy, effect.cleanup);
+        const { closed, kept } = await browser.close(effect.tabIds, effect.policy, effect.cleanup, effect.focusedOnly);
         const freshById = new Map(fresh.map((t) => [t.id, t]));
+        // Explicit closes protect only the focused window's current tab; cleanup, every window's.
+        const focused = effect.focusedOnly ? SNAPSHOT.focusedWindowId : undefined;
         const [after] = update(deciding, { type: 'closed', tabs: closed, requested: effect.tabIds, noun: effect.noun, kept: effect.skipped + kept.length });
         const undo = (after.ui.toast?.undo ?? []).map((t) => t.id).sort();
         return (
-          closed.every((t) => effect.tabIds.includes(t.id) && protection(freshById.get(t.id)!, policy) === null) &&
+          closed.every((t) => effect.tabIds.includes(t.id) && protection(freshById.get(t.id)!, policy, focused) === null) &&
+          closed.every((t) => !(freshById.get(t.id)!.active && freshById.get(t.id)!.windowId === SNAPSHOT.focusedWindowId)) &&
+          (!effect.cleanup || closed.every((t) => !freshById.get(t.id)!.active)) &&
           effect.tabIds.every((id) => !after.ui.closing.has(id)) &&
           JSON.stringify(undo) === JSON.stringify(closed.map((t) => t.id).sort())
         );
       }),
     );
+  });
+
+  it('closing search results closes the current tab of other windows, not the one being looked at', async () => {
+    // Each match is the current tab of its own window (the report: "Nothing to close — 7 tabs protected").
+    const tabs = [1, 2, 3].map((w): Tab => ({ ...TABS[3]!, id: 900 + w, windowId: w, index: 0, url: `https://www.youtube.com/watch?v=${w}`, title: 'YouTube', active: true }));
+    const snapshot = { ...SNAPSHOT, tabs: [...TABS.filter((t) => !t.url.includes('youtube')), ...tabs], focusedWindowId: 1 };
+    const [deciding] = update({ snapshot, ui: initialUi() }, { type: 'query', text: 'url:youtube' });
+    const [, closeFx] = update(deciding, { type: 'closeResults' });
+    const effect = closeEffect(closeFx)!;
+    expect(effect).toMatchObject({ tabIds: [902, 903], skipped: 1, focusedOnly: true });
+    const { closed, kept } = await new FakeBrowser(snapshot).close(effect.tabIds, effect.policy, effect.cleanup, effect.focusedOnly);
+    expect(closed.map((t) => t.id).sort()).toEqual([902, 903]);
+    expect(kept).toEqual([]);
   });
 
   it('a single close the user picked still closes it, even if it became current', async () => {
@@ -101,10 +118,11 @@ describe('ChromeBrowser.close', () => {
           tabGroups: { query: async () => [] },
           windows: { getLastFocused: async () => ({ id: 1 }) },
         });
-        const { closed } = await new ChromeBrowser().close(effect.tabIds, effect.policy, effect.cleanup);
+        const { closed } = await new ChromeBrowser().close(effect.tabIds, effect.policy, effect.cleanup, effect.focusedOnly);
         const byId = new Map(fresh.map((t) => [t.id, t]));
         return (
-          removed.every((id) => protection(byId.get(id)!, policy) === null) &&
+          removed.every((id) => protection(byId.get(id)!, policy, effect.focusedOnly ? 1 : undefined) === null) &&
+          removed.every((id) => !(byId.get(id)!.active && byId.get(id)!.windowId === 1)) &&
           JSON.stringify(removed.sort()) === JSON.stringify(closed.map((t) => t.id).sort())
         );
       }),

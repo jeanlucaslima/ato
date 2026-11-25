@@ -12,13 +12,17 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe('readCloseRequest', () => {
   it('accepts a well-formed request; anything else is refused', () => {
-    expect(readCloseRequest({ type: CLOSE_MESSAGE, tabIds: [1, 2], policy: null })).toEqual({ tabIds: [1, 2], policy: null, cleanup: false });
+    expect(readCloseRequest({ type: CLOSE_MESSAGE, tabIds: [1, 2], policy: null })).toEqual({ tabIds: [1, 2], policy: null, cleanup: false, focusedOnly: false });
     expect(readCloseRequest({ type: CLOSE_MESSAGE, tabIds: [1], policy: { match: 'ignoreQuery', keep: 'newest' }, cleanup: true })).toEqual({
       tabIds: [1],
       policy: { ...DEFAULT_POLICY, match: 'ignoreQuery', keep: 'newest' },
       cleanup: true,
+      focusedOnly: false,
     });
-    expect(readCloseRequest({ type: CLOSE_MESSAGE, tabIds: [1], policy: { match: 'fuzzy', keep: 1 }, cleanup: 'yes' })).toEqual({ tabIds: [1], policy: DEFAULT_POLICY, cleanup: false });
+    expect(readCloseRequest({ type: CLOSE_MESSAGE, tabIds: [1], policy: {}, focusedOnly: true })).toMatchObject({ cleanup: false, focusedOnly: true });
+    // Cleanup keeps every window's current tab, whatever the message says.
+    expect(readCloseRequest({ type: CLOSE_MESSAGE, tabIds: [1], policy: {}, cleanup: true, focusedOnly: true })).toMatchObject({ cleanup: true, focusedOnly: false });
+    expect(readCloseRequest({ type: CLOSE_MESSAGE, tabIds: [1], policy: { match: 'fuzzy', keep: 1 }, cleanup: 'yes' })).toEqual({ tabIds: [1], policy: DEFAULT_POLICY, cleanup: false, focusedOnly: false });
     expect(readCloseRequest({ type: 'other', tabIds: [1], policy: null })).toBeNull();
     expect(readCloseRequest({ type: CLOSE_MESSAGE, tabIds: ['1'], policy: null })).toBeNull();
     expect(readCloseRequest({ type: CLOSE_MESSAGE, tabIds: [1] })).toBeNull();
@@ -48,11 +52,28 @@ describe('one close path', () => {
     );
   });
 
+  it('focusedOnly: removes other windows\' current tabs, never the focused window\'s (read now), and every window\'s if Chrome can\'t say', async () => {
+    await fc.assert(
+      fc.asyncProperty(fc.subarray(TABS.map((t) => t.id)), fc.subarray(TABS.map((t) => t.id)), fc.constantFrom(1, 2, undefined), async (ids, nowActive, focused) => {
+        const fresh = TABS.map((t) => (nowActive.includes(t.id) ? { ...t, active: true } : t));
+        const removed: number[] = [];
+        vi.stubGlobal('chrome', {
+          tabs: { query: async () => fresh, remove: async (r: number[]) => void removed.push(...r) },
+          windows: { getLastFocused: async () => (focused === undefined ? Promise.reject(new Error('none')) : { id: focused }) },
+        });
+        await closeTabs(ids, DEFAULT_POLICY, undefined, false, true);
+        const byId = new Map(fresh.map((t) => [t.id, t]));
+        const expected = ids.filter((id) => byId.has(id) && protection(byId.get(id)!, DEFAULT_POLICY, focused) === null);
+        return removed.every((id) => !byId.get(id)!.active || (focused !== undefined && byId.get(id)!.windowId !== focused)) && JSON.stringify([...removed].sort()) === JSON.stringify([...expected].sort());
+      }),
+    );
+  });
+
   it('the popup closes through the worker and reports its failure', async () => {
     const sendMessage = vi.fn(async () => ({ ok: true, closed: [TABS[3]], kept: [] }));
     vi.stubGlobal('chrome', { runtime: { sendMessage } });
     await expect(new ChromeBrowser().close([TABS[3]!.id], DEFAULT_POLICY)).resolves.toEqual({ closed: [TABS[3]], kept: [] });
-    expect(sendMessage).toHaveBeenCalledWith({ type: CLOSE_MESSAGE, tabIds: [TABS[3]!.id], policy: DEFAULT_POLICY, cleanup: false });
+    expect(sendMessage).toHaveBeenCalledWith({ type: CLOSE_MESSAGE, tabIds: [TABS[3]!.id], policy: DEFAULT_POLICY, cleanup: false, focusedOnly: false });
     sendMessage.mockResolvedValueOnce({ ok: false, error: 'Tabs cannot be edited right now' } as never);
     await expect(new ChromeBrowser().close([TABS[3]!.id], DEFAULT_POLICY)).rejects.toThrow('Tabs cannot be edited right now');
   });
