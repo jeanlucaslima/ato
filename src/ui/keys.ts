@@ -60,9 +60,10 @@ export function resolveKey(e: KeyLike, ctx: KeyContext): KeyCommand | null {
       // Search sits above the list: ↑ from the top goes up into it rather than wrapping to the bottom.
       // (Review has no search field, so it wraps as before.)
       if (delta < 0 && ctx.atTop && !ctx.typing && !ctx.reviewOpen) return { kind: 'focusSearch', fromList: true };
-      // From an empty search field the arrows step down into the list, focus and all, so ⌫ and the
-      // letter keys act on the row. With a query, focus stays to keep typing (⌘⌫ closes the results).
-      if (ctx.typing && !ctx.hasQuery) return { kind: 'action', action: { type: 'moveCursor', delta }, leaveSearch: true };
+      // From the search field the arrows step down into the list, focus and all, so ⌫, Delete and the
+      // letter keys act on the row; typing a letter goes back to search with it. (⌘⌫ from the field
+      // still closes every result.)
+      if (ctx.typing) return { kind: 'action', action: { type: 'moveCursor', delta }, leaveSearch: true };
       return act({ type: 'moveCursor', delta });
     }
     case 'PageDown':

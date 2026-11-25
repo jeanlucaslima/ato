@@ -104,7 +104,7 @@ Details, including how closing and undo work: [docs/architecture.md](docs/archit
 
 ## Keyboard
 
-The popup opens with search focused. With the field empty, ↓ steps into the list; with a query, the arrows move through the results and typing carries on.
+The popup opens with search focused. ↓ steps from search into the list or the results, where ⌫ and Delete close the row under the cursor; typing a letter goes back to search with it.
 
 | Key | Does |
 | --- | --- |

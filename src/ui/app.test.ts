@@ -99,7 +99,7 @@ describe('mountApp keyboard + a11y', () => {
     expect(await open()).not.toContain(second);
   });
 
-  it('keeps focus in search while there is a query, and ⌘⌫ (not ⌫) closes from there', async () => {
+  it('keeps focus in an empty search field when pointing, and ⌘⌫ (not ⌫) closes from there', async () => {
     const browser = new FakeBrowser(SNAPSHOT);
     const container = document.createElement('div');
     document.body.append(container);
@@ -116,12 +116,38 @@ describe('mountApp keyboard + a11y', () => {
     key('Backspace', true);
     await new Promise((r) => setTimeout(r, CLOSE_ANIMATION_MS + 50));
     expect((await browser.snapshot()).tabs.map((t) => t.id)).not.toContain(id);
-    // With a query the arrows keep focus in the field.
-    input.value = 'chrome';
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-    key('ArrowDown');
-    expect(document.activeElement).toBe(input);
   });
+
+  it.each([['a query', 'chrome'], ['a url: chip', 'url:c']])(
+    'steps from search with %s into the results with ↓, where ⌫ and Delete close the row',
+    async (_name, typed) => {
+      const browser = new FakeBrowser(SNAPSHOT);
+      const container = document.createElement('div');
+      document.body.append(container);
+      app = mountApp(container, browser, { snapshot: SNAPSHOT, ui: initialUi() }, { autofocus: true });
+      const input = container.querySelector<HTMLInputElement>('input[name="q"]')!;
+      const key = (k: string) => (document.activeElement ?? input).dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
+      const cursorTab = () => Number(container.querySelector<HTMLElement>('.row.is-cursor')?.dataset.key?.replace('tab:', ''));
+      const open = async () => (await browser.snapshot()).tabs.map((t) => t.id);
+      const settle = () => new Promise((r) => setTimeout(r, CLOSE_ANIMATION_MS + 50));
+      input.value = typed;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      key('ArrowDown');
+      for (let i = 0; i < 10 && !container.querySelector('.row.is-cursor'); i++) key('ArrowDown');
+      expect(container.querySelector('.row.is-cursor')).toBeTruthy();
+      expect(document.activeElement).toBe(container.querySelector('.popup'));
+      const first = cursorTab();
+      expect(first).toBeTruthy();
+      key('Backspace');
+      await settle();
+      expect(await open()).not.toContain(first);
+      const second = cursorTab();
+      expect(second).toBeTruthy();
+      key('Delete');
+      await settle();
+      expect(await open()).not.toContain(second);
+    },
+  );
 
   it.each([
     ['with duplicates (the bar is the first stop)', SNAPSHOT],
