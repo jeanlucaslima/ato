@@ -2,6 +2,7 @@
 @import './theme-daylight.css';
 @import './theme-riso.css';
 @import './theme-poster.css';
+@import './theme-missing-link.css';
 
 /* Themes with personality. Each block is a complete palette over the tokens
    in tokens.css (Graphite and Paper live there). Order of keys matches tokens.css. */

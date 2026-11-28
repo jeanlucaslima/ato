@@ -4,6 +4,10 @@ export interface ThemeInfo {
   name: string;
   /** One line of personality for the picker. */
   tagline: string;
+  /** New in this release: listed first in the picker, with a badge. */
+  isNew?: boolean;
+  /** Follows the OS between a day and a night look of its own: its picker card shows both. */
+  dayNight?: boolean;
 }
 
 export const THEME_INFO: Record<Settings['theme'], ThemeInfo> = {
@@ -21,11 +25,17 @@ export const THEME_INFO: Record<Settings['theme'], ThemeInfo> = {
   lagoon: { name: 'Lagoon', tagline: 'Shallow water at noon' },
   sakura: { name: 'Sakura', tagline: 'Blossom and plum' },
   dune: { name: 'Dune', tagline: 'Sand, sun and terracotta' },
+  'missing-link': { name: 'Missing Link', tagline: 'Fields by day, dungeons by night', isNew: true, dayNight: true },
 };
 
 /** The theme a setting stands for right now (`system` follows the OS). */
 export function resolveTheme(theme: Settings['theme'], prefersLight = matchMedia('(prefers-color-scheme: light)').matches): ThemeId {
   return theme === 'system' ? (prefersLight ? 'daylight' : 'graphite') : theme;
+}
+
+/** The picker's order: what's new first, then the rest as listed. */
+export function pickerOrder(themes: readonly Settings['theme'][]): Settings['theme'][] {
+  return [...themes.filter((t) => THEME_INFO[t].isNew), ...themes.filter((t) => !THEME_INFO[t].isNew)];
 }
 
 export function applyTheme(theme: Settings['theme'], root: HTMLElement = document.documentElement): void {

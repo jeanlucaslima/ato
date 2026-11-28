@@ -55,7 +55,13 @@ describe('settings page', () => {
   it('offers every theme, each card previewed in its own colours', () => {
     const page = renderSettings({ settings: DEFAULT_SETTINGS, version: '3', saved: false });
     const cards = page.querySelectorAll('.theme-card');
-    expect(cards).toHaveLength(14);
+    expect(cards).toHaveLength(15);
+    // What's new comes first, badged, and a day-and-night theme previews both looks.
+    const first = cards[0]!;
+    expect(first.querySelector('input')!.value).toBe('missing-link');
+    expect(first.querySelector('.theme-new')?.textContent).toBe('New');
+    expect([...first.querySelectorAll('.mini')].map((m) => (m as HTMLElement).dataset.variant)).toEqual(['day', 'night']);
+    expect(page.querySelectorAll('.theme-new')).toHaveLength(1);
     expect(page.querySelector('.theme-card input[value="ember"]')!.closest('.theme-card')!.querySelector('[data-theme="ember"]')).not.toBeNull();
   });
 

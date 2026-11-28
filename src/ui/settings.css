@@ -79,6 +79,8 @@
 .theme-name { margin-top: 8px; padding: 0 2px; font-size: 13.5px; font-weight: 700; }
 .theme-card:has(input:checked) .theme-name::after { content: ' ✓'; color: var(--focus); }
 .theme-tag { padding: 0 2px; font-size: 11.5px; color: var(--ink-3); }
+/* New in this release: a small badge after the name (the card is listed first). */
+.theme-new { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 999px; background: var(--focus); color: var(--canvas); font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; vertical-align: 2px; }
 
 .theme-preview { position: relative; display: block; height: 96px; border-radius: 7px; overflow: hidden; }
 .theme-preview--split .mini { position: absolute; inset: 0; }

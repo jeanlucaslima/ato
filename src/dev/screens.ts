@@ -3,7 +3,6 @@ import '../ui/popup.css';
 import '../ui/settings.css';
 import './screens.css';
 import './proto-themes.css';
-import './proto-quest.css';
 import { CHOICES, DEFAULT_SETTINGS, readSettings, type Settings } from '../core/settings';
 import { mountApp, type App } from '../ui/app';
 import { h } from '../ui/dom';
@@ -38,54 +37,14 @@ function mountFixture(slot: HTMLElement, fixture: Fixture): App {
 
 
 /** Prototype themes (gallery only, see proto-themes.css): `?proto=holo` wears one over every screen. */
-const PROTOS = { holo: 'Holo', blueprint: 'Blueprint', glacier: 'Glacier', quest: 'Quest', 'quest-day': 'Quest · day', 'quest-night': 'Quest · night' } as const;
+const PROTOS = { holo: 'Holo', blueprint: 'Blueprint', glacier: 'Glacier', 'missing-link-day': 'Missing Link · day', 'missing-link-night': 'Missing Link · night' } as const;
+/** Gallery tabs that force a day-and-night theme into one look (its data-variant). */
+const VARIANT_OF: Partial<Record<string, { theme: string; variant: 'day' | 'night' }>> = {
+  'missing-link-day': { theme: 'missing-link', variant: 'day' },
+  'missing-link-night': { theme: 'missing-link', variant: 'night' },
+};
 
-/**
- * Quest: entering or leaving Review is going through a door. The current screen closes
- * into a dot and the new one opens (proto-quest.css), on a view transition named for
- * that popup alone. The click or key is replayed inside the transition, so the app
- * updates at once and only the two pictures animate; anything that doesn't change the
- * screen skips it. Gallery only, and not with reduced motion.
- */
-let replaying = false;
-function questDoor(event: Event): void {
-  if (replaying || !/^quest/.test(document.documentElement.dataset.theme ?? '')) return;
-  if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const target = event.target as HTMLElement;
-  const popup = target.closest<HTMLElement>('.popup');
-  if (!popup) return;
-  if (event instanceof MouseEvent) {
-    const action = target.closest<HTMLElement>('[data-action]')?.dataset.action;
-    if (action !== 'open-review' && action !== 'close-review') return;
-  } else if (event instanceof KeyboardEvent) {
-    // Keys that can open or leave Review without typing: Esc, ⌘D, and outside the search field D, ↵, ← and →.
-    const mod = event.metaKey || event.ctrlKey;
-    const typing = target.matches('input, textarea');
-    const key = event.key;
-    if (!(key === 'Escape' || (mod && key.toLowerCase() === 'd') || (!typing && !mod && ['d', 'D', 'Enter', 'ArrowLeft', 'ArrowRight'].includes(key)))) return;
-  } else return;
-  event.stopImmediatePropagation();
-  event.preventDefault();
-  const before = popup.dataset.screen;
-  const replay = event instanceof KeyboardEvent ? new KeyboardEvent(event.type, event) : new MouseEvent(event.type, event as MouseEvent);
-  // On the gallery's slot around the popup: a render syncs the popup's own attributes and would drop it.
-  const slot = popup.parentElement!;
-  slot.style.viewTransitionName = 'q-screen';
-  const transition = document.startViewTransition(() => {
-    replaying = true;
-    try {
-      target.dispatchEvent(replay);
-    } finally {
-      replaying = false;
-    }
-  });
-  void transition.updateCallbackDone.then(() => {
-    if (popup.dataset.screen === before) transition.skipTransition();
-  });
-  void transition.finished.finally(() => slot.style.removeProperty('view-transition-name'));
-}
-document.addEventListener('click', questDoor, true);
-document.addEventListener('keydown', questDoor, true);type Proto = keyof typeof PROTOS;
+type Proto = keyof typeof PROTOS;
 const isProto = (v: string | null): v is Proto => v !== null && v in PROTOS;
 const fromUrl = new URLSearchParams(location.search).get('proto');
 let proto: Proto | null = isProto(fromUrl) ? fromUrl : null;
@@ -117,12 +76,21 @@ themeTabs.addEventListener('click', async (e) => {
 themeTabs.addEventListener('mouseover', (e) => {
   const value = tabValue(e.target);
   if (!value) return;
-  document.documentElement.dataset.theme = value.startsWith('proto:') ? value.slice(6) : resolveTheme(value as Settings['theme']);
+  const forced = value.startsWith('proto:') ? VARIANT_OF[value.slice(6)] : undefined;
+  document.documentElement.dataset.theme = forced ? forced.theme : value.startsWith('proto:') ? value.slice(6) : resolveTheme(value as Settings['theme']);
+  if (forced) document.documentElement.dataset.variant = forced.variant;
+  else delete document.documentElement.dataset.variant;
 });
 themeTabs.addEventListener('mouseleave', () => applyProto());
 function applyProto(): void {
   applyTheme(currentTheme);
-  if (proto) document.documentElement.dataset.theme = proto;
+  const root = document.documentElement;
+  delete root.dataset.variant;
+  const forced = proto ? VARIANT_OF[proto] : undefined;
+  if (forced) {
+    root.dataset.theme = forced.theme;
+    root.dataset.variant = forced.variant;
+  } else if (proto) root.dataset.theme = proto;
   const active = proto ? `proto:${proto}` : currentTheme;
   for (const tab of themeTabs.querySelectorAll<HTMLElement>('[data-theme-tab]')) tab.setAttribute('aria-pressed', String(tab.dataset.themeTab === active));
   const params = new URLSearchParams(location.search);

@@ -5,7 +5,7 @@
  */
 import { BADGE_COLORS, CHOICES, readSettings, type BadgeColor, type ChoiceKey, type Settings, type ThemeId, type ToggleKey } from '../core/settings';
 import { logoSvg } from './logo-svg';
-import { THEME_INFO } from './theme';
+import { pickerOrder, THEME_INFO } from './theme';
 import { cls, h } from './dom';
 import { icon } from './icons';
 import { attachSpin, icosahedron } from './icosahedron';
@@ -95,12 +95,12 @@ function section(title: string, note: string | null, ...rows: HTMLElement[]): HT
 // --- Theme picker -------------------------------------------------------------
 
 /** A tiny popup drawn in a theme's own colours: the card wears that theme. */
-function miniPopup(theme: ThemeId): HTMLElement {
+function miniPopup(theme: ThemeId, variant?: 'day' | 'night'): HTMLElement {
   const row = (variant: string, cursor = false) =>
     h('span', { class: cls('mini-row', cursor && 'is-cursor') }, h('span', { class: `mini-fav mini-fav--${variant}` }), h('span', { class: `mini-line mini-line--${variant}` }));
   return h(
     'span',
-    { class: 'mini', 'data-theme': theme },
+    { class: 'mini', 'data-theme': theme, 'data-variant': variant },
     h('span', { class: 'mini-search' }, h('span', { class: 'mini-caret' })),
     h('span', { class: 'mini-strip' }, h('span', { class: 'mini-dot' }), h('span', { class: 'mini-strip-line' })),
     row('a', true),
@@ -109,14 +109,21 @@ function miniPopup(theme: ThemeId): HTMLElement {
   );
 }
 
+/** System shows both themes it switches between; a day-and-night theme shows its two looks. */
+function preview(value: Settings['theme']): HTMLElement | HTMLElement[] {
+  if (value === 'system') return [miniPopup('graphite'), miniPopup('daylight')];
+  if (THEME_INFO[value].dayNight) return [miniPopup(value, 'day'), miniPopup(value, 'night')];
+  return miniPopup(value);
+}
+
 function themeCard(s: Settings, value: Settings['theme']): HTMLElement {
   const info = THEME_INFO[value];
   return h(
     'label',
     { class: 'theme-card' },
     h('input', { type: 'radio', name: 'theme', value, checked: s.theme === value }),
-    h('span', { class: cls('theme-preview', value === 'system' && 'theme-preview--split'), 'aria-hidden': 'true' }, value === 'system' ? [miniPopup('graphite'), miniPopup('daylight')] : miniPopup(value)),
-    h('span', { class: 'theme-name' }, info.name),
+    h('span', { class: cls('theme-preview', (value === 'system' || info.dayNight) && 'theme-preview--split'), 'aria-hidden': 'true' }, preview(value)),
+    h('span', { class: 'theme-name' }, info.name, info.isNew && h('span', { class: 'theme-new' }, 'New')),
     h('span', { class: 'theme-tag' }, info.tagline),
   );
 }
@@ -130,7 +137,8 @@ const FOLDED_CARDS = 6;
  */
 function themePicker(s: Settings, open: boolean): HTMLElement {
   const current = THEME_INFO[s.theme].name;
-  const hiddenCurrent = !open && CHOICES.theme.indexOf(s.theme) >= FOLDED_CARDS;
+  const order = pickerOrder(CHOICES.theme);
+  const hiddenCurrent = !open && order.indexOf(s.theme) >= FOLDED_CARDS;
   return h(
     'section',
     null,
@@ -141,7 +149,7 @@ function themePicker(s: Settings, open: boolean): HTMLElement {
       h(
         'div',
         { class: 'theme-grid', role: 'radiogroup', 'aria-labelledby': 'theme-title' },
-        CHOICES.theme.map((t, i) => {
+        order.map((t, i) => {
           const card = themeCard(s, t);
           if (!open && i >= FOLDED_CARDS) card.setAttribute('inert', '');
           return card;

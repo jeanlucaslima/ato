@@ -131,9 +131,20 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
 
   function dispatch(action: Action): void {
     const [next, effects] = update(state, action);
+    const door = next.ui.reviewOpen !== state.ui.reviewOpen && wantsDoor();
     state = next;
-    render();
+    // Entering or leaving Review is going through a door in a theme that sets --screen-door:
+    // the state is already updated; only the paint waits for the browser's snapshot of the old screen.
+    if (door) document.startViewTransition!(() => render());
+    else render();
     for (const effect of effects) run(effect);
+  }
+
+  /** The theme asks for a door transition between screens, the browser can do one, and motion is welcome. */
+  function wantsDoor(): boolean {
+    if (typeof document.startViewTransition !== 'function' || matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
+    const popup = container.querySelector('.popup');
+    return popup !== null && getComputedStyle(popup).getPropertyValue('--screen-door').trim() === 'iris';
   }
 
   /** Browser work that can fail: a rejection becomes a toast, never a stuck state. */
