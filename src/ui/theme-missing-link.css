@@ -172,6 +172,13 @@
 [data-theme='missing-link'] .win-row.is-cursor + .win-map { background: var(--q-lajo) 0 0 / 8px 8px, var(--focus-fill); box-shadow: inset 2px 0 var(--focus), inset -2px 0 var(--focus), inset 0 -2px var(--focus); }
 [data-theme='missing-link'] .site .row.is-cursor::before { background: transparent; }
 
+/* ---- Now playing ---- */
+/* Rows reach the box's edges; hovering doesn't tint just the "go" part (the cursor, which
+   the pointer brings, already marks the row); the bars start after the pointer's room. */
+[data-theme='missing-link'] .playing { padding: 0; }
+[data-theme='missing-link'] .play-go:hover { background: transparent; }
+[data-theme='missing-link'] .play-go { padding-left: 16px; }
+
 /* ---- Items that do a job ---- */
 /* Duplicates: a chest (it hops when the bar is hovered); all clear: a heart */
 /* The chest opens when you reach the bar, by pointer or keyboard, in three frames;
