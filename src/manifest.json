@@ -3,7 +3,7 @@
   "name": "ATO - Advanced Tab Organizer",
   "short_name": "ATO",
   "description": "Close duplicate tabs safely, see every window at a glance, and find any tab fast. Keyboard-first. No tracking, nothing collected.",
-  "version": "3.2.0",
+  "version": "3.3.0",
   "minimum_chrome_version": "157",
   "author": "Jean Lucas Lima <github.com/jeanlucaslima>",
   "options_page": "options/index.html",
