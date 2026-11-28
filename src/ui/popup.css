@@ -2,7 +2,8 @@
    (a viewport-relative root collapses the toolbar bubble — see 2.0.1). */
 .popup:focus { outline: none; }
 /* 600px is the tallest popup Chrome allows; width has room to spare (max 800). */
-.popup { width: 440px; height: 600px; display: flex; flex-direction: column; overflow: hidden; position: relative; background: var(--canvas); }
+/* Rows, counts and labels are controls, not text to copy: a double-click shouldn't select them. (The search field keeps its own selection.) */
+.popup { width: 440px; height: 600px; display: flex; flex-direction: column; overflow: hidden; position: relative; background: var(--canvas); user-select: none; -webkit-user-select: none; }
 
 .k { font-family: var(--mono); font-size: 11px; color: var(--key); }
 /* A key, drawn as a soft keycap: tinted, no border, the same in every theme. */
