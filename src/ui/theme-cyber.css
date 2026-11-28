@@ -33,13 +33,14 @@
   /* Glow recipes */
   --glow: 0 0 6px color-mix(in srgb, var(--focus) 75%, transparent), 0 0 18px color-mix(in srgb, var(--focus) 35%, transparent);
   --glow-text: 0 0 6px color-mix(in srgb, currentColor 70%, transparent), 0 0 14px color-mix(in srgb, currentColor 35%, transparent);
-  /* Backdrop: minor + major grid lines, a cyan sky glow above, magenta and green
+  /* Backdrop: minor + major grid lines (a major line lies on a minor one, so it shows
+     at about 14%: twice a minor line, not so loud it competes with the panels), a cyan sky glow above, magenta and green
      light pooling in the lower corners, and a vignette to pull focus inward. */
   --grid:
     linear-gradient(rgb(0 240 255 / 0.07) 1px, transparent 1px) 0 0 / 22px 22px,
     linear-gradient(90deg, rgb(0 240 255 / 0.07) 1px, transparent 1px) 0 0 / 22px 22px,
-    linear-gradient(rgb(0 240 255 / 0.13) 1px, transparent 1px) 0 0 / 110px 110px,
-    linear-gradient(90deg, rgb(0 240 255 / 0.13) 1px, transparent 1px) 0 0 / 110px 110px;
+    linear-gradient(rgb(0 240 255 / 0.08) 1px, transparent 1px) 0 0 / 110px 110px,
+    linear-gradient(90deg, rgb(0 240 255 / 0.08) 1px, transparent 1px) 0 0 / 110px 110px;
   --glows:
     radial-gradient(ellipse 90% 45% at 50% -8%, rgb(0 240 255 / 0.22), transparent 70%),
     radial-gradient(ellipse 65% 45% at 105% 108%, rgb(255 42 109 / 0.22), transparent 70%),
