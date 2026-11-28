@@ -39,6 +39,23 @@ Decorative only: the app's state never waits on it, and `prefers-reduced-motion`
 
 ---
 
+## How a theme is promoted (as Missing Link was)
+
+1. Prototype in the gallery first: `src/dev/` CSS, a gallery tab (`PROTOS` in `src/dev/screens.ts`), nothing in settings.
+2. Move it to `src/ui/theme-<id>.css` and import it from `src/ui/themes.css`. Scope everything to `[data-theme='<id>']`.
+3. Add the id to `THEMES` (`src/core/settings.ts`) and an entry to `THEME_INFO` (`src/ui/theme.ts`): `isNew: true` lists it first in the picker with a badge (remove the flag the release after); `dayNight: true` for a theme with its own light and dark looks, which then follows the OS through `@media (prefers-color-scheme)` and takes `data-variant="day" | "night"` to force one (the picker card shows both; the gallery's forced tabs live in `VARIANT_OF`).
+4. Give its picker card (`.mini[data-theme]`) the theme's signature, at that size.
+5. Screen transitions: setting `--screen-door: iris` makes the app run a view transition into and out of Review (`app.ts`), and the settings page when the theme is picked (`options/main.ts`); the theme's CSS animates `::view-transition-old/new(ato-screen)`. Without it, nothing changes.
+6. An 8-bit logo: `--ico-pixels: <grid>` on `.brand-logo` or `.settings-head .ico` draws `pixelIcosahedron` instead of the vector logo, in `--ico-px-1…3` and `--ico-px-edge`, turning in `--ico-px-step` degree frames.
+7. Tests: the picker count and order (`settings-page.test.ts`, `theme.test.ts`). Store listing, README and the theme count. A gallery pass against this checklist in every variant, and a check in the real extension.
+
+## Missing Link: what's next
+
+- **The small logo.** At 14 pixels the popup's relic reads as a smooth gold gem: the silhouette and three shades are clean, but the triangles are lost. Next: try the inner edges in a darker gold (shade 3, not the outline colour) so the facets show without the harsh lines; or a bespoke hand-drawn 14×14 sprite for a few angles (a sprite sheet, with the turn picking the nearest frame), which is how small game sprites are really made. Compare at 1×, 2× and 6× in the gallery before choosing.
+- **The settings title relic** (44 pixels) is good; check it at other spin angles, the outline can thicken where two edges meet.
+- **The toolbar icon** stays the real PNG; no theme changes it.
+- No characters, names, catchphrases or logos from any game (the Triforce, a fairy that says "Hey, listen!"): the store risk was weighed and declined. The genre's vocabulary (pixels, dungeons, chests, hearts, keys, iris doors, text boxes) is fine.
+
 ## Blueprint: promotion
 
 Blueprint is a prototype (`src/dev/proto-themes.css`); its promotion notes are there (the selected tab zooms like a game menu; light and dark following the OS, dark being the Prussian-blue sheet). Give it the same pass Missing Link got:
@@ -48,7 +65,8 @@ Blueprint is a prototype (`src/dev/proto-themes.css`); its promotion notes are t
 - Crop marks as the cursor: visible on every kind of row, including the duplicates bar and Now playing.
 - Its ruler and dimension lines: never under text, never shifting layout.
 - Its own icons where they help (a drafting tool for settings?), drawn in the theme's linework.
-- A preview card that shows both light and dark, like System's.
+- A preview card that shows both light and dark, like System's: `dayNight: true` and `data-variant`, as above.
+- Concretely: move the `BLUEPRINT` block out of `src/dev/proto-themes.css` into `src/ui/theme-blueprint.css`; write the dark sheet (Prussian blue, white and pale-cyan lines, a faint white grid) as the night variant; build the zoom as a transform on the cursor row (`scale: 1.03` with `transform-origin` at its left edge, so text under the pointer moves least), off with reduced motion, and check it at 2,000 tabs (`npm run perf` and scrolling in the real popup).
 
 ## Cyber: review
 
