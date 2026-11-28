@@ -287,3 +287,25 @@ describe('undo offered when the popup opens', () => {
     expect((await browser.snapshot()).tabs.some((t) => t.id === TABS[3]!.id)).toBe(true);
   });
 });
+
+describe('keyboard shortcuts panel', () => {
+  it('takes focus when it opens, and closes by Esc, by its button, or by a click outside it', () => {
+    const { container, press } = mount();
+    const panel = () => container.querySelector<HTMLElement>('.help-panel');
+    (container.querySelector('[data-action="toggle-help"]') as HTMLElement).click();
+    expect(document.activeElement).toBe(panel());
+
+    panel()!.querySelector('h2')!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(panel()).not.toBeNull();
+    container.querySelector('.help')!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(panel()).toBeNull();
+
+    (container.querySelector('[data-action="toggle-help"]') as HTMLElement).click();
+    press('Escape', panel()!);
+    expect(panel()).toBeNull();
+
+    (container.querySelector('[data-action="toggle-help"]') as HTMLElement).click();
+    (container.querySelector('.help-close') as HTMLElement).click();
+    expect(panel()).toBeNull();
+  });
+});

@@ -93,8 +93,10 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
     // keep focus in the popup, or keys stop reaching it.
     const active = document.activeElement;
     if (!active || active === document.body || !active.isConnected) root.focus();
-    // The shortcuts panel takes the keyboard: move focus off the search field behind it.
-    if (state.ui.helpOpen && root.contains(document.activeElement) && document.activeElement !== root) root.focus();
+    // The shortcuts panel takes the keyboard: focus moves into it (off the search field
+    // behind it), so the arrows and Page keys scroll it.
+    const help = state.ui.helpOpen ? root.querySelector<HTMLElement>('.help-panel') : null;
+    if (help && !help.contains(document.activeElement)) help.focus({ preventScroll: true });
     const cursor = state.ui.cursor ? root.querySelector<HTMLElement>(`[data-key="${CSS.escape(state.ui.cursor)}"]`) : null;
     if (cursor) cursor.scrollIntoView({ block: 'nearest' });
     linkActiveDescendant(root, cursor);
@@ -298,6 +300,8 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
   };
 
   const onClick = (event: MouseEvent) => {
+    // A click on the dimmed backdrop around the shortcuts panel closes it.
+    if ((event.target as HTMLElement).classList.contains('help')) return dispatch({ type: 'toggleHelp' });
     const el = (event.target as HTMLElement).closest<HTMLElement>('[data-action]');
     if (!el || !container.contains(el)) return;
     const action = actionFor(el, event);

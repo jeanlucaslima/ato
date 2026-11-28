@@ -191,6 +191,7 @@ export const FIXTURES: Fixture[] = [
   },
   { name: 'Closed, some kept (the toast says why)', state: at({ toast: { id: 1, message: 'Closed 5 tabs · kept the current tab, 1 playing, 2 pinned', undo: [] } }) },
   { name: 'A close failed (Chrome refused, and why)', state: at({ toast: { id: 1, message: 'Couldn’t close tabs: finish dragging the tab, then try again' } }) },
+  { name: 'Keyboard shortcuts (?): Esc, ?, × or a click outside closes it', state: at({ helpOpen: true }) },
   { name: 'Search, no matches', state: at({ query: 'kubernetes' }) },
   { name: 'Search · url: chip', state: at({ query: 'url:github', cursor: `tab:${idOf('Issues · ato')}` }) },
   { name: 'url: just typed (chip, no text yet)', state: at({ query: 'url:' }) },
