@@ -33,7 +33,9 @@
 /* Cursor: inverted */
 [data-theme='poster'] :is(.row, .site-row, .win-row).is-cursor { background: var(--ink); box-shadow: inset 6px 0 var(--focus); }
 [data-theme='poster'] :is(.row, .site-row, .win-row).is-cursor :is(.row-title, .name, .win-name, .row-x, .caret) { color: #fff; }
-[data-theme='poster'] :is(.row, .site-row, .win-row).is-cursor :is(.row-sub, .meta, .count) { color: #cfcfcf; }
+[data-theme='poster'] :is(.row, .site-row, .win-row).is-cursor :is(.row-sub, .meta, .count, .win-sub, .set-sub) { color: #cfcfcf; }
+/* An open set's header (Review) has its own opaque cursor fill, as it sticks while scrolling; it inverts too. */
+[data-theme='poster'] .set.is-open > .set-row.is-cursor { background: var(--ink); }
 /* Buttons on the inverted row: a transparent black-on-black button vanished until hovered, so they sit on white, as they look on hover. */
 [data-theme='poster'] :is(.row, .site-row, .win-row).is-cursor .btn { background: #fff; }
 [data-theme='poster'] .row-title { font-weight: 700; }
@@ -47,6 +49,10 @@
 [data-theme='poster'] .toast { border: 2px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); }
 [data-theme='poster'] .play-row.is-cursor { background: var(--ink); color: #fff; box-shadow: inset 6px 0 var(--focus); }
 [data-theme='poster'] .play-row.is-cursor .play-sub { color: #cfcfcf; }
+/* Now playing: rows reach the box's edges and are square, so the inverted cursor row has no white rim; hovering it stays black (the light hover put white text on light grey). */
+[data-theme='poster'] .playing { padding: 0; }
+[data-theme='poster'] :is(.play-row, .play-row.is-cursor, .play-go) { border-radius: 0; }
+[data-theme='poster'] .play-row.is-cursor .play-go:hover { background: transparent; }
 /* Picker preview card */
 .mini[data-theme='poster'] .mini-search { border: 1.5px solid var(--ink); border-radius: 0; box-shadow: 2px 2px 0 var(--ink); }
 .mini[data-theme='poster'] .mini-row.is-cursor { background: var(--ink); box-shadow: inset 2px 0 var(--focus); }
