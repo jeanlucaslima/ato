@@ -38,7 +38,54 @@ function mountFixture(slot: HTMLElement, fixture: Fixture): App {
 
 
 /** Prototype themes (gallery only, see proto-themes.css): `?proto=holo` wears one over every screen. */
-const PROTOS = { holo: 'Holo', blueprint: 'Blueprint', glacier: 'Glacier', quest: 'Quest', 'quest-day': 'Quest · day', 'quest-night': 'Quest · night' } as const;type Proto = keyof typeof PROTOS;
+const PROTOS = { holo: 'Holo', blueprint: 'Blueprint', glacier: 'Glacier', quest: 'Quest', 'quest-day': 'Quest · day', 'quest-night': 'Quest · night' } as const;
+
+/**
+ * Quest: entering or leaving Review is going through a door. The current screen closes
+ * into a dot and the new one opens (proto-quest.css), on a view transition named for
+ * that popup alone. The click or key is replayed inside the transition, so the app
+ * updates at once and only the two pictures animate; anything that doesn't change the
+ * screen skips it. Gallery only, and not with reduced motion.
+ */
+let replaying = false;
+function questDoor(event: Event): void {
+  if (replaying || !/^quest/.test(document.documentElement.dataset.theme ?? '')) return;
+  if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const target = event.target as HTMLElement;
+  const popup = target.closest<HTMLElement>('.popup');
+  if (!popup) return;
+  if (event instanceof MouseEvent) {
+    const action = target.closest<HTMLElement>('[data-action]')?.dataset.action;
+    if (action !== 'open-review' && action !== 'close-review') return;
+  } else if (event instanceof KeyboardEvent) {
+    // Keys that can open or leave Review without typing: Esc, ⌘D, and outside the search field D, ↵, ← and →.
+    const mod = event.metaKey || event.ctrlKey;
+    const typing = target.matches('input, textarea');
+    const key = event.key;
+    if (!(key === 'Escape' || (mod && key.toLowerCase() === 'd') || (!typing && !mod && ['d', 'D', 'Enter', 'ArrowLeft', 'ArrowRight'].includes(key)))) return;
+  } else return;
+  event.stopImmediatePropagation();
+  event.preventDefault();
+  const before = popup.dataset.screen;
+  const replay = event instanceof KeyboardEvent ? new KeyboardEvent(event.type, event) : new MouseEvent(event.type, event as MouseEvent);
+  // On the gallery's slot around the popup: a render syncs the popup's own attributes and would drop it.
+  const slot = popup.parentElement!;
+  slot.style.viewTransitionName = 'q-screen';
+  const transition = document.startViewTransition(() => {
+    replaying = true;
+    try {
+      target.dispatchEvent(replay);
+    } finally {
+      replaying = false;
+    }
+  });
+  void transition.updateCallbackDone.then(() => {
+    if (popup.dataset.screen === before) transition.skipTransition();
+  });
+  void transition.finished.finally(() => slot.style.removeProperty('view-transition-name'));
+}
+document.addEventListener('click', questDoor, true);
+document.addEventListener('keydown', questDoor, true);type Proto = keyof typeof PROTOS;
 const isProto = (v: string | null): v is Proto => v !== null && v in PROTOS;
 const fromUrl = new URLSearchParams(location.search).get('proto');
 let proto: Proto | null = isProto(fromUrl) ? fromUrl : null;
