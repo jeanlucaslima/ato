@@ -407,11 +407,16 @@
 [data-theme='missing-link'] .settings .choice-opt span { font-family: var(--ml-font); font-size: 17px; }
 [data-theme='missing-link'] .settings .choice-opt input:checked + span { background: var(--raised); color: var(--ml-gold); font-weight: 400; box-shadow: inset 0 0 0 2px var(--ml-gold); }
 /* Switches: a square pixel toggle */
-/* Switches: a square pixel toggle */
-[data-theme='missing-link'] .settings .switch { border: 0; background: var(--canvas); box-shadow: inset 0 0 0 2px var(--line); }
-[data-theme='missing-link'] .settings .switch::before { background: var(--ink-3); }
+/* Switches: a pixel toggle. A square, bevelled knob that moves in steps; off it's grey on
+   dark, on it's gold on green. */
+[data-theme='missing-link'] .settings .switch { width: 40px; height: 22px; border: 0; background: var(--canvas); box-shadow: inset 0 0 0 2px var(--line); transition: none; }
+[data-theme='missing-link'] .settings .switch::before {
+  top: 4px; left: 4px; width: 14px; height: 14px; background: var(--ink-3);
+  box-shadow: inset -2px -2px 0 rgb(0 0 0 / 0.35), inset 2px 2px 0 rgb(255 255 255 / 0.35);
+  transition: translate 0.15s steps(3);
+}
 [data-theme='missing-link'] .settings .switch:checked { background: var(--ok-fill); box-shadow: inset 0 0 0 2px var(--ok); }
-[data-theme='missing-link'] .settings .switch:checked::before { background: var(--ml-gold); }
+[data-theme='missing-link'] .settings .switch:checked::before { translate: 18px 0; background: var(--ml-gold); }
 /* Theme cards: item slots. Pointing at one (mouse or keyboard) doesn't lift or lighten it:
    a selection cursor of corner brackets blinks around it, like choosing an item. The
    chosen one has the gold frame and the pointer. */
