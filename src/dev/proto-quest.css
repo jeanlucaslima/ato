@@ -171,11 +171,15 @@
 :is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) .done h2, :is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) .done strong, :is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) .done-title { font-family: var(--mono); letter-spacing: 0.02em; }
 
 /* ---- Stepped motion, like frames ---- */
-/* A new screen (the list is rebuilt when the view changes) slides in from the side */
-:is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) .list { animation: q-screen 0.3s steps(6); }
+/* A new screen (the list is rebuilt when the view changes) scrolls in from the side,
+   smoothly, like a screen scroll: stepped, a whole-width move jumped ~70px a frame and
+   read as flashing. Rows skip their own fade-in here, so the scroll is the one motion. */
+:is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) .list { animation: q-screen 0.28s cubic-bezier(0.2, 0.7, 0.2, 1); }
+:is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) .row { transition: none; }
+:is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) :is(.site-row .count, .site.is-open .site-actions) { animation: none; }
 /* Review's header and policy note slide in with its list, as one screen (the app's own
    smooth slide on them, beside the stepped list, came apart). */
-:is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) :is([data-screen='review'] .list, .head--review, .policy) { animation: q-screen 0.3s steps(6); }
+:is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) :is([data-screen='review'] .list, .head--review, .policy) { animation: q-screen 0.28s cubic-bezier(0.2, 0.7, 0.2, 1); }
 @keyframes q-screen { from { translate: 100% 0; } }
 :is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) .toast { transition-timing-function: steps(4); }
 :is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) .help-panel { transition-timing-function: steps(5); }
