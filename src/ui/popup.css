@@ -250,15 +250,19 @@ button.verdict:disabled { cursor: default; opacity: 1; }
 
 /* Shortcuts panel */
 .help { position: absolute; inset: 0; z-index: 5; display: flex; align-items: flex-end; background: rgb(0 0 0 / 0.45); }
-.help-panel { width: 100%; max-height: 92%; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--line) transparent; padding: 4px 16px 16px; background: var(--surface); border-top: 1px solid var(--line); border-radius: 14px 14px 0 0; box-shadow: var(--shadow); }
-.help-head { display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--surface); padding: 10px 0 6px; }
+.help-panel { width: 100%; max-height: 92%; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--line) transparent; padding: 0 16px 16px; background: var(--surface); border-top: 1px solid var(--line); border-radius: 14px 14px 0 0; box-shadow: var(--shadow); }
+/* Sticky with no padding above it, so nothing scrolled shows over the title. */
+.help-head { display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 1; background: var(--surface); padding: 14px 0 6px; }
 .help-panel:focus { outline: none; }
 .help-head h2 { margin: 0; font-size: 14px; }
 .help-close { height: 28px; padding: 0 6px; gap: 6px; color: var(--ink-2); }
-.help-section h3 { margin: 12px 0 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
-.help-section dl { display: grid; grid-template-columns: 104px 1fr; gap: 6px 14px; margin: 0; align-items: center; }
-.help-section dt { display: flex; gap: 4px; }
-.help-section dd { margin: 0; font-size: 12.5px; color: var(--ink-2); }
+/* Headings start where the descriptions do: keys make a gutter, text one column. */
+.help-section h3 { margin: 14px 0 6px 104px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
+/* Keys right-aligned against their description, so the eye doesn't cross a gap on every row;
+   one key column width for every section, so they all line up. Each key sits on its text's first line. */
+.help-section dl { display: grid; grid-template-columns: 92px 1fr; gap: 9px 12px; margin: 0; align-items: start; }
+.help-section dt { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 4px; }
+.help-section dd { margin: 0; padding-top: 1px; font-size: 12.5px; line-height: 1.4; color: var(--ink-2); }
 
 /* Bottom: hints, selection bar, toast */
 .foot { height: 34px; flex: none; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 10px; padding: 0 12px; font-size: 11px; color: var(--ink-3); white-space: nowrap; }
