@@ -87,12 +87,11 @@
 
 /* View bar */
 .bar { display: flex; align-items: center; gap: 4px; padding: 0 12px 8px; border-bottom: 1px solid var(--line); }
-.seg { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); padding: 2px; background: var(--surface); border-radius: 8px; }
-.seg button { position: relative; height: 28px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; color: var(--ink-2); font-size: 12px; }
-.seg button[aria-pressed='true'] { color: var(--ink); font-weight: 600; }
-.seg-thumb { position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc((100% - 4px) / 3); border-radius: 6px; background: var(--raised); }
-.seg--at-sites .seg-thumb { transform: translateX(100%); }
-.seg--at-windows .seg-thumb { transform: translateX(200%); }
+/* Each view as wide as its label. The thumb is anchored to the pressed button, so it covers exactly that one whatever the widths (a third of the bar didn't, once "Windows 20" outgrew its third). */
+.seg { position: relative; display: grid; grid-template-columns: repeat(3, auto); padding: 2px; background: var(--surface); border-radius: 8px; anchor-scope: --seg-on; }
+.seg button { position: relative; white-space: nowrap; height: 28px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; color: var(--ink-2); font-size: 12px; }
+.seg button[aria-pressed='true'] { color: var(--ink); font-weight: 600; anchor-name: --seg-on; }
+.seg-thumb { position: absolute; position-anchor: --seg-on; top: anchor(top); bottom: anchor(bottom); left: anchor(left); right: anchor(right); border-radius: 6px; background: var(--raised); }
 /* Light themes: on a white track a darker thumb barely shows, so the track takes the
    tint and the thumb is a raised white key. The search ring is softer, too: a
    2px dark outline reads heavy on a light page, and search is focused on open. */
@@ -275,7 +274,7 @@ button.verdict:disabled { cursor: default; opacity: 1; }
 /* Hover / cursor / state colors */
 .row, .site-row, .copy, .btn, .menu-btn, .icon-btn, .row-x, .strip { transition: background-color var(--t-fast), border-color var(--t), color var(--t-fast); }
 .seg button { transition: color var(--t); }
-.seg-thumb { transition: transform var(--t) var(--ease); }
+.seg-thumb { transition: left var(--t) var(--ease), right var(--t) var(--ease); }
 
 /* Site expand/collapse: grid row 0fr <-> 1fr, caret rotates, tabs fade */
 .site-body, .win-body { transition: grid-template-rows var(--t-slow) var(--ease); }
