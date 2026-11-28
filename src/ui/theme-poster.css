@@ -15,7 +15,7 @@
   --r: 0px;
 }
 /* Hard edges everywhere: no corner in this theme is rounded, whatever a component sets. */
-[data-theme='poster'] :where(*, *::before, *::after) { border-radius: 0 !important; }
+[data-theme='poster'] *, [data-theme='poster'] *::before, [data-theme='poster'] *::after { border-radius: 0 !important; }
 /* One rhythm: 10px from both sides of the popup (a box's 4px shadow counts, so boxes
    sit 14px from the right) and 6px of white between one box's shadow and the next. */
 [data-theme='poster'] .brand { padding: 10px 2px 2px 9px; }
