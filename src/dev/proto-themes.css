@@ -51,7 +51,17 @@
 
 /* ================================================================ BLUEPRINT */
 /* Drafting table: white graph paper, technical-pen blue; the cursor is crop
-   marks, counts are dimensions, a ruler runs down the list, red pencil for alerts. */
+   marks, counts are dimensions, a ruler runs down the list, red pencil for alerts.
+
+   Notes for promoting it to a real theme (2026-11-28):
+   - The selected tab zooms: as the cursor lands on a row it scales up a touch
+     (about 1.03) and the row it left eases back, like a game menu picking an
+     item. Decorative only: state never waits on it, and reduced motion turns
+     it off (the crop marks still show the cursor).
+   - Light and dark, following the OS like Quest does. Light is this drafting
+     table (white graph paper, blue ink). Dark is the classic blueprint sheet:
+     deep Prussian-blue paper with white and pale-cyan linework, the grid in
+     faint white. Same crop marks, dimensions and ruler in both. */
 [data-theme='blueprint'] {
   color-scheme: light;
   --canvas: #fbfcfe; --surface: #ffffff; --raised: #e8eef7; --line: #cbd9ea; --line-soft: #e3eaf4;
