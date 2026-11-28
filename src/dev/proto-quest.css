@@ -179,12 +179,23 @@
 :is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) :is(.site-row .count, .site.is-open .site-actions) { animation: none; }
 /* Review's header and policy note slide in with its list, as one screen (the app's own
    smooth slide on them, beside the stepped list, came apart). */
-:is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) :is([data-screen='review'] .list, .head--review, .policy) { animation: q-screen 0.28s cubic-bezier(0.2, 0.7, 0.2, 1); }
+/* Going through a door: Review (the chest room) opens from a black dot, an iris wipe,
+   as the classic top-down games did for doors. It is the only motion there, so the
+   review parts don't scroll. */
+:is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) :is([data-screen='review'] .list, .head--review, .policy) { animation: none; }
+@property --q-iris { syntax: '<length>'; inherits: false; initial-value: 420px; }
+:is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']).popup[data-screen='review']::after, :is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) .popup[data-screen='review']::after {
+  content: ''; position: absolute; inset: 0; z-index: 6; pointer-events: none;
+  background: #000;
+  mask: radial-gradient(circle var(--q-iris) at 50% 50%, transparent 99.5%, #000 100%);
+  animation: q-iris 0.55s cubic-bezier(0.5, 0, 0.75, 0) both;
+}
+@keyframes q-iris { from { --q-iris: 0px; } to { --q-iris: 420px; } }
 @keyframes q-screen { from { translate: 100% 0; } }
 :is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) .toast { transition-timing-function: steps(4); }
 :is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) .help-panel { transition-timing-function: steps(5); }
 :is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) :is(.list, .help-panel) { scrollbar-color: var(--q-frame) transparent; }
 
 @media (prefers-reduced-motion: reduce) {
-  :is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) .brand::before, :is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) .brand::after, :is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) .list, :is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) .head--review, :is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) .policy, :is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) .done-mark::before, :is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) .done-mark::after, :is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) .brand-logo:hover, :is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) .brand-logo:hover::after { animation: none; }
+  :is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) .popup::after, :is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) .brand::before, :is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) .brand::after, :is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) .list, :is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) .head--review, :is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) .policy, :is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) .done-mark::before, :is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) .done-mark::after, :is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) .brand-logo:hover, :is([data-theme='quest'], [data-theme='quest-day'], [data-theme='quest-night']) .brand-logo:hover::after { animation: none; }
 }
