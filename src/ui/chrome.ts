@@ -2,6 +2,7 @@
 import { cls, h } from './dom';
 import { num, plural, shortNum } from './format';
 import { icon } from './icons';
+import { paintPixels } from './icosahedron';
 import { logoFrame, logoSvg } from './logo-svg';
 import { PLAYING_ROWS, type ItemKey, type PopupModel, type Scope, type SearchField, type SearchMode, type SiteSort, type TabRow, type TabSort } from './model';
 
@@ -17,8 +18,25 @@ const MARK = logoSvg({ ...MARK_OPTIONS, spin: MARK_START });
 /** Held while it turns, so it keeps its resting size and place. */
 const MARK_FRAME = logoFrame({ ...MARK_OPTIONS, spin: MARK_START });
 
-/** Paint the header logo at `spinDeg` (it turns while the pointer is over it: `attachHoverSpin`). */
+/**
+ * Paint the header logo at `spinDeg` (it turns while the pointer is over it: `attachHoverSpin`).
+ * A theme that sets --ico-pixels on it gets the 8-bit drawing, turning in frames.
+ */
 export function drawBrandMark(el: HTMLElement, spinDeg: number): void {
+  const style = getComputedStyle(el);
+  const grid = parseInt(style.getPropertyValue('--ico-pixels'), 10);
+  if (grid > 0) {
+    let canvas = el.querySelector<HTMLCanvasElement>('canvas.ico-px');
+    if (!canvas) {
+      canvas = document.createElement('canvas');
+      canvas.className = 'ico-px';
+      el.replaceChildren(canvas);
+    }
+    const c = (k: string) => style.getPropertyValue(k);
+    const step = parseFloat(c('--ico-px-step')) || 12;
+    paintPixels(canvas, grid, Math.round(spinDeg / step) * step, [c('--ico-px-1'), c('--ico-px-2'), c('--ico-px-3'), c('--ico-px-edge')]);
+    return;
+  }
   el.innerHTML = logoSvg({ ...MARK_OPTIONS, spin: spinDeg, frame: MARK_FRAME });
 }
 

@@ -242,7 +242,7 @@ export function pixelIcosahedron(n: number, spinDeg: number, radius = 72): Uint8
  * Paint `pixelIcosahedron` into a canvas, in the colours the theme gives the stage
  * (--ico-px-1…3 for the faces, --ico-px-edge for the outline).
  */
-function paintPixels(canvas: HTMLCanvasElement, n: number, spinDeg: number, colours: string[]): void {
+export function paintPixels(canvas: HTMLCanvasElement, n: number, spinDeg: number, colours: string[]): void {
   if (canvas.width !== n) canvas.width = canvas.height = n;
   const ctx = canvas.getContext('2d');
   if (!ctx) return;

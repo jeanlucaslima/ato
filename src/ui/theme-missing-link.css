@@ -202,6 +202,10 @@
 [data-theme='missing-link'] .brand-logo { position: relative; }
 /* Crisp, unsmoothed lines: a hint of pixels. (A true pixel-grid logo needs code: see the note on promotion.) */
 [data-theme='missing-link'] .brand-logo svg :is(line, path) { shape-rendering: crispEdges; }
+/* The logo in pixels, the gold relic of the settings title at header size */
+[data-theme='missing-link'] :is(.brand-logo, .settings-head .ico) { --ico-px-step: 12; --ico-px-1: #ffe27a; --ico-px-2: #e3a93a; --ico-px-3: #a8701a; --ico-px-edge: #3a2208; }
+/* 14 pixels in the 28px box: each one exactly 2px. */
+[data-theme='missing-link'] .brand-logo { --ico-pixels: 14; filter: drop-shadow(2px 2px 0 rgb(0 0 0 / 0.2)); }
 [data-theme='missing-link'] .brand-logo:hover { animation: q-rise 0.5s steps(5) forwards; }
 [data-theme='missing-link'] .brand-logo::after { content: ''; position: absolute; top: -6px; right: -8px; width: 10px; height: 10px; background: var(--q-sparkle) 0 0 / 10px 10px; opacity: 0; }
 [data-theme='missing-link'] .brand-logo:hover::after { animation: q-sparkle 0.9s steps(2) 0.3s 2; }
