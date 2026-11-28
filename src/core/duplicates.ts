@@ -43,7 +43,10 @@ export interface DuplicateSet {
  * window is protected; with it (closing search results, a site, a selection or a
  * window) only the tab the user is looking at: the current tab of that window.
  */
-export function protection(tab: Tab, policy: DuplicatePolicy, focusedWindowId?: number): 'current' | 'playing' | 'split' | 'pinned' | 'grouped' | null {
+/** Why a tab is never closed by a bulk close. */
+export type Protection = 'current' | 'playing' | 'split' | 'pinned' | 'grouped';
+
+export function protection(tab: Tab, policy: DuplicatePolicy, focusedWindowId?: number): Protection | null {
   if (tab.active && (focusedWindowId === undefined || tab.windowId === focusedWindowId)) return 'current';
   // Audible covers muted tabs too (Chrome reports sound it produced, heard or not).
   if (tab.audible) return 'playing';
@@ -52,6 +55,20 @@ export function protection(tab: Tab, policy: DuplicatePolicy, focusedWindowId?: 
   if (policy.protectGroups && tab.groupId !== -1) return 'grouped';
   return null;
 }
+
+/**
+ * Why the close's recheck (`stillClosable`) kept `tab`, read on the same fresh tab:
+ * its protection, or `copy` when it has none (cleanup kept it as a page's last copy).
+ * `focusedOnly` closes protect only the focused window's current tab, and every tab
+ * they keep is protected; one with no other reason is that current tab.
+ */
+export function keptReason(tab: Tab, policy: DuplicatePolicy, focusedOnly: boolean): Protection | 'copy' {
+  if (!focusedOnly) return protection(tab, policy) ?? 'copy';
+  return protection(tab, policy, NO_WINDOW) ?? 'current';
+}
+
+/** A window id no tab has: `protection` with it checks everything but `current`. */
+const NO_WINDOW = -1;
 
 export function isSplit(tab: Pick<Tab, 'splitViewId'>): boolean {
   return tab.splitViewId !== undefined && tab.splitViewId !== -1;

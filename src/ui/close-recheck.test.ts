@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import fc from 'fast-check';
-import { planDuplicates, protection } from '../core/duplicates';
+import { isSplit, keptReason, planDuplicates, protection } from '../core/duplicates';
 import { duplicateKey } from '../core/tabs';
 import type { Tab } from '../core/types';
 import { FakeBrowser } from '../dev/fake-browser';
@@ -8,6 +8,7 @@ import { SNAPSHOT, TABS } from '../dev/fixtures';
 import type { Action, Effect } from './actions';
 import { ChromeBrowser } from './chrome-browser';
 import { deriveModel } from './derive';
+import { keptTotal, tallyKept, type KeptReason } from './format';
 import { GROUPED, PROTECTED_WINDOW } from '../dev/fixtures';
 import { initialUi, type AppState } from './state';
 import { update } from './update';
@@ -51,14 +52,26 @@ describe('bulk close rechecks protection on the fresh state', () => {
         const freshById = new Map(fresh.map((t) => [t.id, t]));
         // Explicit closes protect only the focused window's current tab; cleanup, every window's.
         const focused = effect.focusedOnly ? SNAPSHOT.focusedWindowId : undefined;
-        const [after] = update(deciding, { type: 'closed', tabs: closed, requested: effect.tabIds, noun: effect.noun, kept: effect.skipped + kept.length });
+        const reasons = kept.map((t) => keptReason(t, effect.policy!, effect.focusedOnly));
+        const counts = tallyKept(reasons, effect.skipped);
+        const [after] = update(deciding, { type: 'closed', tabs: closed, requested: effect.tabIds, noun: effect.noun, kept: counts });
+        // The reason the toast gives for each tab the recheck kept is true of that tab.
+        const holds = (t: Tab, r: KeptReason): boolean =>
+          r === 'current' ? t.active && (focused === undefined || t.windowId === focused)
+          : r === 'playing' ? t.audible
+          : r === 'split' ? isSplit(t)
+          : r === 'pinned' ? policy.protectPinned && t.pinned
+          : r === 'grouped' ? policy.protectGroups && t.groupId !== -1
+          : effect.cleanup;
         const undo = (after.ui.toast?.undo ?? []).map((t) => t.id).sort();
         return (
           closed.every((t) => effect.tabIds.includes(t.id) && protection(freshById.get(t.id)!, policy, focused) === null) &&
           closed.every((t) => !(freshById.get(t.id)!.active && freshById.get(t.id)!.windowId === SNAPSHOT.focusedWindowId)) &&
           (!effect.cleanup || closed.every((t) => !freshById.get(t.id)!.active)) &&
           effect.tabIds.every((id) => !after.ui.closing.has(id)) &&
-          JSON.stringify(undo) === JSON.stringify(closed.map((t) => t.id).sort())
+          JSON.stringify(undo) === JSON.stringify(closed.map((t) => t.id).sort()) &&
+          kept.every((t, i) => holds(t, reasons[i]!)) &&
+          keptTotal(counts) === keptTotal(effect.skipped) + kept.length
         );
       }),
     );
@@ -71,7 +84,7 @@ describe('bulk close rechecks protection on the fresh state', () => {
     const [deciding] = update({ snapshot, ui: initialUi() }, { type: 'query', text: 'url:youtube' });
     const [, closeFx] = update(deciding, { type: 'closeResults' });
     const effect = closeEffect(closeFx)!;
-    expect(effect).toMatchObject({ tabIds: [902, 903], skipped: 1, focusedOnly: true });
+    expect(effect).toMatchObject({ tabIds: [902, 903], skipped: { current: 1 }, focusedOnly: true });
     const { closed, kept } = await new FakeBrowser(snapshot).close(effect.tabIds, effect.policy, effect.cleanup, effect.focusedOnly);
     expect(closed.map((t) => t.id).sort()).toEqual([902, 903]);
     expect(kept).toEqual([]);
@@ -90,10 +103,10 @@ describe('bulk close rechecks protection on the fresh state', () => {
 
   it('says what happened when the recheck keeps tabs', () => {
     const tabs = TABS.slice(2, 5);
-    const [s] = update({ snapshot: SNAPSHOT, ui: initialUi() }, { type: 'closed', tabs: tabs.slice(0, 2), requested: tabs.map((t) => t.id), noun: 'duplicate', kept: 1 });
-    expect(s.ui.toast?.message).toBe('Closed 2 duplicates · kept 1 protected');
-    const [none] = update({ snapshot: SNAPSHOT, ui: initialUi() }, { type: 'closed', tabs: [], requested: [1], noun: 'tab', kept: 1 });
-    expect(none.ui.toast).toMatchObject({ message: 'Nothing closed — 1 tab protected', undo: undefined });
+    const [s] = update({ snapshot: SNAPSHOT, ui: initialUi() }, { type: 'closed', tabs: tabs.slice(0, 2), requested: tabs.map((t) => t.id), noun: 'duplicate', kept: { playing: 1, copy: 2 } });
+    expect(s.ui.toast?.message).toBe('Closed 2 duplicates · kept 1 playing, 2 last copies');
+    const [none] = update({ snapshot: SNAPSHOT, ui: initialUi() }, { type: 'closed', tabs: [], requested: [1], noun: 'tab', kept: { current: 1 } });
+    expect(none.ui.toast).toMatchObject({ message: 'Nothing closed — kept the current tab', undo: undefined });
   });
 });
 
@@ -149,7 +162,7 @@ describe('Windows view Close N', () => {
 describe('undo record', () => {
   it('keeps when the close ran, so undo only uses session entries from then on', () => {
     const tabs = TABS.slice(2, 4);
-    const [s] = update({ snapshot: SNAPSHOT, ui: initialUi() }, { type: 'closed', tabs, requested: tabs.map((t) => t.id), noun: 'tab', kept: 0, at: 1234 });
+    const [s] = update({ snapshot: SNAPSHOT, ui: initialUi() }, { type: 'closed', tabs, requested: tabs.map((t) => t.id), noun: 'tab', kept: {}, at: 1234 });
     expect(update(s, { type: 'undo' })[1]).toContainEqual({ kind: 'restore', tabs, closedAt: 1234 });
   });
 });
@@ -164,7 +177,7 @@ describe('a failed close', () => {
         const gone = TABS.filter((t, i) => effect.tabIds.includes(t.id) && goneMask[i]);
         const [after] = update(deciding, { type: 'closeFailed', tabs: gone, requested: effect.tabIds, noun: effect.noun });
         const undo = (after.ui.toast?.undo ?? []).map((t) => t.id).sort();
-        return effect.tabIds.every((id) => !after.ui.closing.has(id)) && JSON.stringify(undo) === JSON.stringify(gone.map((t) => t.id).sort()) && /try again/.test(after.ui.toast?.message ?? '');
+        return effect.tabIds.every((id) => !after.ui.closing.has(id)) && JSON.stringify(undo) === JSON.stringify(gone.map((t) => t.id).sort()) && /try again/i.test(after.ui.toast?.message ?? '');
       }),
     );
   });

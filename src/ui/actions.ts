@@ -1,5 +1,6 @@
 import type { DuplicatePolicy } from '../core/duplicates';
 import type { Snapshot, Tab } from '../core/types';
+import type { KeptCounts } from './format';
 import type { ItemKey } from './model';
 
 /** Everything that can happen to the popup: user intent or browser news. */
@@ -48,12 +49,12 @@ export type Action =
    * `requested`; `kept` were left open: protected (at the decision or the recheck),
    * or the copy a duplicate cleanup kept because the planned one was gone.
    */
-  | { type: 'closed'; tabs: readonly Tab[]; requested: readonly number[]; noun: string; kept: number; at?: number }
+  | { type: 'closed'; tabs: readonly Tab[]; requested: readonly number[]; noun: string; kept: KeptCounts; at?: number }
   /**
    * A close failed (Chrome refused: a tab being dragged, a window closing). `tabs`
    * of `requested` were gone afterwards anyway (closed before the failure).
    */
-  | { type: 'closeFailed'; tabs: readonly Tab[]; requested: readonly number[]; noun: string; at?: number }
+  | { type: 'closeFailed'; tabs: readonly Tab[]; requested: readonly number[]; noun: string; at?: number; /** The plain reason, when the error has one (`whyFailed`). */ why?: string }
   /** Some other browser effect failed; say so. */
   | { type: 'effectFailed'; message: string }
   /** The popup opened soon after a right-click close: offer its undo. */
@@ -94,7 +95,7 @@ export type Effect =
    * an explicit bulk close (results, site, selection, window), where only the current
    * tab of the focused window is protected as current, not every window's.
    */
-  | { kind: 'close'; tabIds: number[]; noun: string; skipped: number; policy: DuplicatePolicy | null; cleanup: boolean; focusedOnly: boolean }
+  | { kind: 'close'; tabIds: number[]; noun: string; skipped: KeptCounts; policy: DuplicatePolicy | null; cleanup: boolean; focusedOnly: boolean }
   | { kind: 'restore'; tabs: readonly Tab[]; closedAt?: number }
   | { kind: 'activate'; tabId: number }
   | { kind: 'discard'; tabIds: number[] }

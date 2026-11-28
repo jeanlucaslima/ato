@@ -7,7 +7,9 @@ import type { BrowserPort } from './browser';
 import { deriveModel } from './derive';
 import { resolveKey } from './keys';
 import type { ItemKey } from './model';
+import { keptReason } from '../core/duplicates';
 import { joinField, splitField } from '../core/search';
+import { failure, tallyKept, whyFailed } from './format';
 import { morph } from './morph';
 import { renderPopup } from './popup';
 import type { AppState } from './state';
@@ -124,7 +126,7 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
 
   /** Browser work that can fail: a rejection becomes a toast, never a stuck state. */
   function attempt(work: Promise<unknown>, message: string): void {
-    work.catch(() => dispatch({ type: 'effectFailed', message }));
+    work.catch((error: unknown) => dispatch({ type: 'effectFailed', message: failure(message, whyFailed(error)) }));
   }
 
   /** Close for real, then report what closed; on failure, what is gone anyway. */
@@ -134,12 +136,15 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
     const at = Date.now();
     try {
       const { closed, kept, closedAt } = await port.close(effect.tabIds, effect.policy, effect.cleanup, effect.focusedOnly);
-      dispatch({ type: 'closed', tabs: closed, requested: effect.tabIds, noun: effect.noun, kept: effect.skipped + kept.length, at: closedAt ?? at });
-    } catch {
+      // Why each tab stayed: protected when the user acted (`skipped`), or by the recheck.
+      const policy = effect.policy;
+      const rechecked = policy ? kept.map((t) => keptReason(t, policy, effect.focusedOnly)) : [];
+      dispatch({ type: 'closed', tabs: closed, requested: effect.tabIds, noun: effect.noun, kept: tallyKept(rechecked, effect.skipped), at: closedAt ?? at });
+    } catch (error: unknown) {
       // tabs.remove can reject after closing some: those still get their undo.
       const fresh = await port.snapshot().catch(() => null);
       const open = new Set(fresh ? fresh.tabs.map((t) => t.id) : effect.tabIds);
-      dispatch({ type: 'closeFailed', tabs: asked.filter((t) => !open.has(t.id)), requested: effect.tabIds, noun: effect.noun, at });
+      dispatch({ type: 'closeFailed', tabs: asked.filter((t) => !open.has(t.id)), requested: effect.tabIds, noun: effect.noun, at, why: whyFailed(error) });
       if (fresh) dispatch({ type: 'snapshot', snapshot: fresh });
     }
   }
@@ -154,7 +159,7 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
       case 'restore':
         browser.restore(effect.tabs, effect.closedAt).then(
           ({ count, fresh, failed }) => dispatch({ type: 'restored', count, fresh, failed, closedAt: effect.closedAt }),
-          () => dispatch({ type: 'effectFailed', message: 'Couldn’t restore tabs' }),
+          (error: unknown) => dispatch({ type: 'effectFailed', message: failure('Couldn’t restore tabs', whyFailed(error)) }),
         );
         return;
       case 'activate':

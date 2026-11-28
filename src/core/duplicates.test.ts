@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
-import { applyOverrides, planDuplicates, protection, stillClosable, tabsToClose, type DuplicatePolicy } from './duplicates';
+import { applyOverrides, keptReason, planDuplicates, protection, stillClosable, tabsToClose, type DuplicatePolicy } from './duplicates';
 import { duplicateKey } from './tabs';
 import type { Tab } from './types';
 
@@ -206,5 +206,21 @@ describe('the last check before a duplicate cleanup (stillClosable with cleanup)
         return kept.every((t) => protection(t, policy) !== null) && closable.length + kept.length === fresh.filter((t) => asked.includes(t.id)).length;
       }),
     );
+  });
+});
+
+describe('keptReason', () => {
+  const t = (over: Partial<Tab>): Tab => ({ id: 1, windowId: 2, index: 0, title: '', url: 'https://a.test/', active: false, pinned: false, audible: false, discarded: false, groupId: -1, lastAccessed: 0, ...over });
+  const policy: DuplicatePolicy = { keep: 'oldest', protectPinned: true, protectGroups: true, match: 'exact' };
+
+  it('names the protection, or the last copy a cleanup kept', () => {
+    expect(keptReason(t({ audible: true }), policy, false)).toBe('playing');
+    expect(keptReason(t({ active: true }), policy, false)).toBe('current');
+    expect(keptReason(t({}), policy, false)).toBe('copy');
+  });
+
+  it('in a focused-only close, a current tab that is also pinned is kept as pinned', () => {
+    expect(keptReason(t({ active: true, pinned: true }), policy, true)).toBe('pinned');
+    expect(keptReason(t({ active: true }), policy, true)).toBe('current');
   });
 });

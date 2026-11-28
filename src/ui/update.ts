@@ -2,13 +2,13 @@
  * The popup's state machine: `update(state, action)` → next state + effects.
  * Pure — browser work is described as effects and run by the runtime (`app.ts`).
  */
-import { isSplit, protection, tabsToClose } from '../core/duplicates';
+import { isSplit, protection, tabsToClose, type Protection } from '../core/duplicates';
 import { parseQuery, searchTabs, splitField } from '../core/search';
 import { domainOf } from '../core/tabs';
 import type { Tab } from '../core/types';
 import type { Action, Effect } from './actions';
 import { deriveModel, duplicatePlan, extraCopies, scopedTabs } from './derive';
-import { plural } from './format';
+import { describeKept, failure, keptTotal, plural, tallyKept } from './format';
 import { PLAYING_ROWS, type ItemKey, type PopupModel, type SiteSort, type TabSort } from './model';
 import type { AppState, Toast, UiState } from './state';
 
@@ -89,9 +89,10 @@ function setUi(state: AppState, patch: Partial<UiState>): AppState {
 function startClose(state: AppState, tabs: readonly Tab[], noun: string, bulk: boolean, cleanup = false): Result {
   const focusedOnly = bulk && !cleanup;
   const focused = focusedOnly ? state.snapshot?.focusedWindowId : undefined;
-  const eligible = bulk ? tabs.filter((t) => protection(t, state.ui.policy, focused) === null) : [...tabs];
-  const skipped = tabs.length - eligible.length;
-  if (eligible.length === 0) return withToast(state, skipped ? `Nothing to close — ${plural(skipped, 'tab')} protected` : 'Nothing to close');
+  const reasons = new Map<number, Protection | null>(tabs.map((t) => [t.id, bulk ? protection(t, state.ui.policy, focused) : null]));
+  const eligible = tabs.filter((t) => reasons.get(t.id) === null);
+  const skipped = tallyKept([...reasons.values()].filter((r): r is Protection => r !== null));
+  if (eligible.length === 0) return withToast(state, keptTotal(skipped) ? `Nothing to close — kept ${describeKept(skipped)}` : 'Nothing to close');
   const ids = new Set(eligible.map((t) => t.id));
   const order = navOrder(deriveModel(state));
   const closing = new Set([...state.ui.closing, ...ids]);
@@ -370,8 +371,8 @@ function step(state: AppState, action: Action): Result {
       for (const id of action.requested) closing.delete(id);
       for (const t of action.tabs) closing.delete(t.id);
       const n = action.tabs.length;
-      const kept = action.kept ? ` · kept ${action.kept} protected` : '';
-      const message = n > 0 ? `Closed ${plural(n, action.noun)}${kept}` : action.kept ? `Nothing closed — ${plural(action.kept, 'tab')} protected` : 'Nothing to close';
+      const kept = keptTotal(action.kept) > 0 ? describeKept(action.kept) : '';
+      const message = n > 0 ? `Closed ${plural(n, action.noun)}${kept && ` · kept ${kept}`}` : kept ? `Nothing closed — kept ${kept}` : 'Nothing to close';
       return withToast(setUi(state, { closing }), message, n > 0 ? action.tabs : undefined, action.at);
     }
     case 'closeFailed': {
@@ -380,7 +381,7 @@ function step(state: AppState, action: Action): Result {
       for (const id of action.requested) closing.delete(id);
       const n = action.tabs.length;
       const failed = action.requested.length - n;
-      const message = n > 0 ? `Closed ${plural(n, action.noun)} · couldn’t close ${failed} — try again` : 'Couldn’t close tabs — try again';
+      const message = n > 0 ? `Closed ${plural(n, action.noun)} · ${failure(`couldn’t close ${failed}`, action.why)}` : failure('Couldn’t close tabs', action.why);
       return withToast(setUi(state, { closing }), message, n > 0 ? action.tabs : undefined, action.at);
     }
     case 'offerUndo':

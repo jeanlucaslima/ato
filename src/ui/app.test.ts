@@ -242,7 +242,7 @@ describe('a close that fails', () => {
     expect(container.querySelectorAll('.row.is-closing').length).toBe(windowTwo.length);
     await settle();
     expect(container.querySelectorAll('.is-closing').length).toBe(0);
-    expect(container.querySelector('.toast')?.textContent).toContain('Couldn’t close tabs — try again');
+    expect(container.querySelector('.toast')?.textContent).toContain('Couldn’t close tabs: finish dragging the tab, then try again');
     expect(container.querySelector('[data-action="undo"]')).toBeNull();
   });
 
@@ -252,7 +252,7 @@ describe('a close that fails', () => {
     app!.dispatch({ type: 'closeWindow', windowId: 2 });
     await settle();
     expect(container.querySelectorAll('.is-closing').length).toBe(0);
-    expect(container.querySelector('.toast')?.textContent).toContain(`Closed 2 tabs · couldn’t close ${windowTwo.length - 2} — try again`);
+    expect(container.querySelector('.toast')?.textContent).toContain(`Closed 2 tabs · couldn’t close ${windowTwo.length - 2}: finish dragging the tab, then try again`);
     expect(container.querySelector('[data-action="undo"]')).not.toBeNull();
     for (const id of windowTwo.slice(0, 2)) expect(container.querySelector(`[data-key="tab:${id}"]`)).toBeNull();
     for (const id of windowTwo.slice(2)) expect(container.querySelector(`[data-key="tab:${id}"]`)).not.toBeNull();

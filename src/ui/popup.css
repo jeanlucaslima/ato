@@ -262,8 +262,10 @@ button.verdict:disabled { cursor: default; opacity: 1; }
 .foot-help:hover { background: var(--surface); color: var(--ink); }
 .actionbar { flex: none; display: flex; align-items: center; gap: 6px; height: 52px; padding: 0 12px 0 14px; border-top: 1px solid var(--focus); background: var(--surface); }
 .actionbar .count { flex: 1; font-size: 13px; font-weight: 600; }
-.toast { position: absolute; left: 12px; right: 12px; bottom: 46px; display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 6px 0 14px; background: var(--raised); border-radius: var(--r); box-shadow: var(--shadow); font-size: 13px; }
-.toast .txt { flex: 1; }
+/* At least one line tall; a longer message (why tabs were kept, why a close failed) grows the toast upward instead of spilling out. */
+.toast { position: absolute; left: 12px; right: 12px; bottom: 46px; display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 7px 6px 7px 14px; line-height: 1.35; background: var(--raised); border-radius: var(--r); box-shadow: var(--shadow); font-size: 13px; }
+.toast .txt { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.toast .btn { flex: none; }
 .toast .btn { color: var(--focus); border-color: transparent; font-weight: 600; }
 
 /* ---------------------------------------------------------------------------
