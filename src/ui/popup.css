@@ -32,6 +32,7 @@
 .field-chip-x { width: 18px; height: 18px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: inherit; display: grid; place-items: center; opacity: 0.7; }
 .field-chip-x:hover { opacity: 1; background: color-mix(in srgb, var(--focus) 18%, transparent); }
 .search input::-webkit-search-cancel-button { display: none; } /* we render our own clear button */
+.settings-btn .ico-alt { display: none; }
 .icon-btn { width: 32px; height: 32px; flex: none; border: 0; border-radius: 7px; background: transparent; color: var(--ink-2); display: grid; place-items: center; }
 .icon-btn:hover { background: var(--surface); color: var(--ink); }
 .search-tips { display: flex; align-items: center; gap: 8px; padding: 0 14px 10px; font-size: 11px; color: var(--ink-3); white-space: nowrap; }

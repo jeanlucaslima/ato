@@ -100,6 +100,11 @@
 [data-theme='cyber'] .btn--solid-danger { background: #e0115a; border-color: #e0115a; box-shadow: 0 0 14px color-mix(in srgb, var(--danger) 55%, transparent); }
 [data-theme='cyber'] .btn--solid-danger:hover:not(:disabled) { background: #e0115a; }
 
+/* Settings: sliders instead of the gear */
+[data-theme='cyber'] .settings-btn .ico-gear { display: none; }
+[data-theme='cyber'] .settings-btn .ico-alt { display: block; filter: drop-shadow(0 0 3px var(--focus)); }
+[data-theme='cyber'] .settings-btn { color: var(--focus); }
+
 /* Now playing */
 [data-theme='cyber'] .eq { filter: drop-shadow(0 0 3px var(--ok)); }
 [data-theme='cyber'] .is-muted .eq { filter: none; }

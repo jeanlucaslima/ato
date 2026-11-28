@@ -18,6 +18,12 @@ function brandMark(): HTMLElement {
   return el;
 }
 
+function iconWithClass(name: 'gear' | 'sliders', cls: string): SVGSVGElement {
+  const svg = icon(name, 18);
+  svg.setAttribute('class', cls);
+  return svg;
+}
+
 /** Logo, name and settings: the popup's identity row. */
 export function brandBar(): HTMLElement {
   return h(
@@ -26,7 +32,8 @@ export function brandBar(): HTMLElement {
     brandMark(),
     h('span', { class: 'brand-name' }, 'ATO'),
     h('span', { class: 'brand-tag' }, 'Advanced Tab Organizer'),
-    h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Settings', title: 'Settings', 'data-action': 'settings' }, icon('gear', 18)),
+    // Both marks are drawn; the theme shows one (Cyber shows sliders, the rest a gear).
+    h('button', { class: 'icon-btn settings-btn', type: 'button', 'aria-label': 'Settings', title: 'Settings', 'data-action': 'settings' }, iconWithClass('gear', 'ico-gear'), iconWithClass('sliders', 'ico-alt')),
   );
 }
 
