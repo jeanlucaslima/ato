@@ -175,6 +175,7 @@ export const FIXTURES: Fixture[] = [
   { name: 'Tabs · thousands of duplicates (6,000 tabs)', state: at({ searchFocused: false, cursor: 'dupes' }, HUGE) },
   { name: 'Duplicate review · a copy is in a split view', state: at({ reviewOpen: true, searchFocused: false }, SPLIT_DUPLICATE) },
   { name: 'Duplicate review · a copy is playing', state: at({ reviewOpen: true, searchFocused: false }, PLAYING_DUPLICATE) },
+  { name: 'Duplicate review · all cleared (no duplicates left)', state: at({ reviewOpen: true, searchFocused: false }, cleaned) },
   {
     name: 'Select mode',
     state: at({
