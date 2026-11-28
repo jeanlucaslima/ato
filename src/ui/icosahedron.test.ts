@@ -150,4 +150,18 @@ describe('pixelIcosahedron', () => {
     expect(pixelIcosahedron(n, 30)).not.toEqual(a);
     expect(pixelIcosahedron(n, 18 + 360)).toEqual(a);
   });
+
+  it('on a small grid outlines only the silhouette: no outline pixel inside the shape', () => {
+    const n = 14;
+    const a = pixelIcosahedron(n, 18);
+    const at = (x: number, y: number) => (x < 0 || y < 0 || x >= n || y >= n ? 0 : a[y * n + x]!);
+    for (let y = 0; y < n; y++) {
+      for (let x = 0; x < n; x++) {
+        if (at(x, y) !== 4) continue;
+        // Every outline pixel touches the outside.
+        expect([at(x - 1, y), at(x + 1, y), at(x, y - 1), at(x, y + 1)]).toContain(0);
+      }
+    }
+    expect(a.some((v) => v === 1 || v === 2)).toBe(true);
+  });
 });

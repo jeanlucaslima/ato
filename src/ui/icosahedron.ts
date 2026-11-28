@@ -187,11 +187,13 @@ export type PixelShade = 0 | 1 | 2 | 3 | 4;
 
 /**
  * The solid drawn on an n×n grid of pixels at a spin angle: its front faces filled in
- * three shades by how much they face the light, every front edge traced as a 1-pixel
- * outline. Row-major, shade per pixel. A theme can show it in place of the vector
- * drawing (Missing Link's 8-bit logo).
+ * three shades by how much they face the light, and a 1-pixel outline. On a big grid
+ * every front edge is traced; on a small one (under 24, the popup's logo) only the
+ * silhouette is, and the shading alone shows the facets, as sprites are drawn: inner
+ * lines at that size crowd it into a scribble. Row-major, shade per pixel. A theme
+ * can show it in place of the vector drawing (Missing Link's 8-bit logo).
  */
-export function pixelIcosahedron(n: number, spinDeg: number, radius = 72): Uint8Array {
+export function pixelIcosahedron(n: number, spinDeg: number, radius = 72, lines: 'edges' | 'silhouette' = n >= 24 ? 'edges' : 'silhouette'): Uint8Array {
   const out = new Uint8Array(n * n);
   const size = radius * 2.2;
   const toGrid = ([x, y]: [number, number]): [number, number] => [((x / size) + 0.5) * n, ((y / size) + 0.5) * n];
@@ -215,6 +217,17 @@ export function pixelIcosahedron(n: number, spinDeg: number, radius = 72): Uint8
         if (inside([x + 0.5, y + 0.5], f.pts)) out[y * n + x] = shade;
       }
     }
+  }
+  if (lines === 'silhouette') {
+    // A filled pixel beside an empty one (or the grid's edge) is the outline.
+    const filled = out.slice();
+    const empty = (x: number, y: number) => x < 0 || y < 0 || x >= n || y >= n || filled[y * n + x] === 0;
+    for (let y = 0; y < n; y++) {
+      for (let x = 0; x < n; x++) {
+        if (filled[y * n + x] && (empty(x - 1, y) || empty(x + 1, y) || empty(x, y - 1) || empty(x, y + 1))) out[y * n + x] = 4;
+      }
+    }
+    return out;
   }
   const plot = (x: number, y: number) => {
     if (x >= 0 && y >= 0 && x < n && y < n) out[y * n + x] = 4;
