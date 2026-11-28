@@ -410,7 +410,26 @@
 [data-theme='missing-link'] .settings .switch::before { background: var(--ink-3); }
 [data-theme='missing-link'] .settings .switch:checked { background: var(--ok-fill); box-shadow: inset 0 0 0 2px var(--ok); }
 [data-theme='missing-link'] .settings .switch:checked::before { background: var(--ml-gold); }
-/* Theme cards: item slots; the chosen one has the gold frame and the pointer */
+/* Theme cards: item slots. Pointing at one (mouse or keyboard) doesn't lift or lighten it:
+   a selection cursor of corner brackets blinks around it, like choosing an item. The
+   chosen one has the gold frame and the pointer. */
+[data-theme='missing-link'] .theme-card { overflow: visible; transition: none; }
+[data-theme='missing-link'] .theme-card:hover { translate: none; box-shadow: var(--q-notch); }
+[data-theme='missing-link'] .theme-card:has(input:checked):hover { box-shadow: 0 -2px 0 0 var(--ml-gold), 0 2px 0 0 var(--ml-gold), -2px 0 0 0 var(--ml-gold), 2px 0 0 0 var(--ml-gold); }
+[data-theme='missing-link'] .theme-card::after {
+  --b: var(--ml-gold);
+  /* Inside the card's corners: the folded grid clips anything outside its cards. */
+  content: ''; position: absolute; inset: 3px; pointer-events: none; opacity: 0;
+  background:
+    linear-gradient(var(--b), var(--b)) left top / 14px 4px no-repeat, linear-gradient(var(--b), var(--b)) left top / 4px 14px no-repeat,
+    linear-gradient(var(--b), var(--b)) right top / 14px 4px no-repeat, linear-gradient(var(--b), var(--b)) right top / 4px 14px no-repeat,
+    linear-gradient(var(--b), var(--b)) left bottom / 14px 4px no-repeat, linear-gradient(var(--b), var(--b)) left bottom / 4px 14px no-repeat,
+    linear-gradient(var(--b), var(--b)) right bottom / 14px 4px no-repeat, linear-gradient(var(--b), var(--b)) right bottom / 4px 14px no-repeat;
+}
+[data-theme='missing-link'] .theme-card:is(:hover, :has(input:focus-visible))::after { opacity: 1; animation: ml-cursor 0.8s steps(1) infinite; }
+[data-theme='missing-link'] .theme-card:has(input:focus-visible) { outline: 0; }
+@keyframes ml-cursor { 50% { --b: #c0392b; } }
+@media (prefers-reduced-motion: reduce) { [data-theme='missing-link'] .theme-card:is(:hover, :has(input:focus-visible))::after { animation: none; } }
 [data-theme='missing-link'] .theme-card:has(input:checked) { box-shadow: 0 -2px 0 0 var(--ml-gold), 0 2px 0 0 var(--ml-gold), -2px 0 0 0 var(--ml-gold), 2px 0 0 0 var(--ml-gold); }
 [data-theme='missing-link'] .theme-card:has(input:checked) .theme-name::before { content: ''; display: inline-block; width: 8px; height: 10px; margin-right: 6px; background: var(--q-pointer) 0 0 / 8px 10px; }
 [data-theme='missing-link'] :is(.theme-name, .theme-tag) { font-family: var(--ml-font); }
