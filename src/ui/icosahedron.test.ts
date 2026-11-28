@@ -1,6 +1,6 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { AUTO_SPEED, CHAMFER, DEPTH, INRADIUS_RATIO, centroid, coast, frame, frontness, icosahedronFaces, icosahedronModel, type Vec } from './icosahedron';
+import { pixelIcosahedron, AUTO_SPEED, CHAMFER, DEPTH, INRADIUS_RATIO, centroid, coast, frame, frontness, icosahedronFaces, icosahedronModel, type Vec } from './icosahedron';
 
 const dist = (a: Vec, b: Vec) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 const R = 72;
@@ -131,5 +131,23 @@ describe('coast', () => {
         return Math.abs(next.velocity - AUTO_SPEED) <= Math.abs(v - AUTO_SPEED) + 1e-9 && Math.sign(next.velocity - AUTO_SPEED) * Math.sign(v - AUTO_SPEED) >= 0;
       }),
     );
+  });
+});
+
+describe('pixelIcosahedron', () => {
+  it('fills the solid in three shades with an outline, centred, and changes as it turns', () => {
+    const n = 44;
+    const a = pixelIcosahedron(n, 18);
+    const count = (s: number) => a.filter((v) => v === s).length;
+    // Faces lit, half-lit and shaded all show, and an outline runs round them.
+    for (const s of [1, 2, 3, 4]) expect(count(s)).toBeGreaterThan(0);
+    // A solid blob, roughly the size of the logo's circle, with empty corners.
+    const filled = a.filter((v) => v !== 0).length;
+    expect(filled).toBeGreaterThan(n * n * 0.4);
+    expect(filled).toBeLessThan(n * n * 0.85);
+    for (const corner of [0, n - 1, n * (n - 1), n * n - 1]) expect(a[corner]).toBe(0);
+    // Turning changes the picture; a whole turn of the three-fold symmetry brings it back.
+    expect(pixelIcosahedron(n, 30)).not.toEqual(a);
+    expect(pixelIcosahedron(n, 18 + 360)).toEqual(a);
   });
 });

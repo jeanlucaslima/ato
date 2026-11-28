@@ -15,6 +15,8 @@
 .ico { --ico-ink: var(--ink-2); --ico-stroke: 2.7px; position: relative; width: var(--ico-size); height: var(--ico-size); cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
 .ico.is-dragging { cursor: grabbing; }
 .ico-svg { display: block; overflow: visible; }
+/* The 8-bit drawing, for a theme that sets --ico-pixels (it hides .ico-svg then). */
+.ico-px { display: none; position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
 .ico line { stroke: var(--ico-ink); stroke-width: calc(var(--ico-stroke) * var(--w, 1)); stroke-linecap: round; }
 .ico-back line { stroke-dasharray: 5 7.5; }
 /* A corner's facet: lit ones toward the ink, turned-away ones toward the page. */

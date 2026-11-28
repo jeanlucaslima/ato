@@ -180,13 +180,95 @@ export function frame(model: Model, spinDeg: number, chamfer = CHAMFER): Frame {
   return { edges, facets };
 }
 
+// --- Pixels --------------------------------------------------------------------
+
+/** Pixel shades: 0 empty, 1–3 faces from most to least lit, 4 the outline. */
+export type PixelShade = 0 | 1 | 2 | 3 | 4;
+
+/**
+ * The solid drawn on an n×n grid of pixels at a spin angle: its front faces filled in
+ * three shades by how much they face the light, every front edge traced as a 1-pixel
+ * outline. Row-major, shade per pixel. A theme can show it in place of the vector
+ * drawing (Missing Link's 8-bit logo).
+ */
+export function pixelIcosahedron(n: number, spinDeg: number, radius = 72): Uint8Array {
+  const out = new Uint8Array(n * n);
+  const size = radius * 2.2;
+  const toGrid = ([x, y]: [number, number]): [number, number] => [((x / size) + 0.5) * n, ((y / size) + 0.5) * n];
+  const faces = icosahedronFaces(radius).map((face) => {
+    const at = face.map((v) => turn(v, spinDeg)) as [Vec, Vec, Vec];
+    const c = centroid(at);
+    const normal = scale(c, 1 / norm(c));
+    return { pts: at.map((v) => toGrid(project(v))) as [number, number][], front: facing(normal, c), light: dot(normal, LIGHT), z: c[2] };
+  });
+  const front = faces.filter((f) => f.front > 0).sort((a, b) => a.z - b.z);
+  const inside = (p: [number, number], [a, b, c]: [number, number][]) => {
+    const s = (u: [number, number], v: [number, number], w: [number, number]) => (v[0] - u[0]) * (w[1] - u[1]) - (v[1] - u[1]) * (w[0] - u[0]);
+    const d1 = s(a!, b!, p), d2 = s(b!, c!, p), d3 = s(c!, a!, p);
+    return (d1 >= 0 && d2 >= 0 && d3 >= 0) || (d1 <= 0 && d2 <= 0 && d3 <= 0);
+  };
+  for (const f of front) {
+    const shade: PixelShade = f.light > 0.55 ? 1 : f.light > 0.1 ? 2 : 3;
+    const xs = f.pts.map((p) => p[0]), ys = f.pts.map((p) => p[1]);
+    for (let y = Math.max(0, Math.floor(Math.min(...ys))); y <= Math.min(n - 1, Math.ceil(Math.max(...ys))); y++) {
+      for (let x = Math.max(0, Math.floor(Math.min(...xs))); x <= Math.min(n - 1, Math.ceil(Math.max(...xs))); x++) {
+        if (inside([x + 0.5, y + 0.5], f.pts)) out[y * n + x] = shade;
+      }
+    }
+  }
+  const plot = (x: number, y: number) => {
+    if (x >= 0 && y >= 0 && x < n && y < n) out[y * n + x] = 4;
+  };
+  for (const f of front) {
+    for (let k = 0; k < 3; k++) {
+      // Bresenham between the two corners, on whole pixels.
+      let [x0, y0] = f.pts[k]!.map(Math.floor) as [number, number];
+      const [x1, y1] = f.pts[(k + 1) % 3]!.map(Math.floor) as [number, number];
+      const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+      let err = dx + dy;
+      for (;;) {
+        plot(x0, y0);
+        if (x0 === x1 && y0 === y1) break;
+        const e2 = 2 * err;
+        if (e2 >= dy) { err += dy; x0 += sx; }
+        if (e2 <= dx) { err += dx; y0 += sy; }
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * Paint `pixelIcosahedron` into a canvas, in the colours the theme gives the stage
+ * (--ico-px-1…3 for the faces, --ico-px-edge for the outline).
+ */
+function paintPixels(canvas: HTMLCanvasElement, n: number, spinDeg: number, colours: string[]): void {
+  if (canvas.width !== n) canvas.width = canvas.height = n;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  const shades = pixelIcosahedron(n, spinDeg);
+  const image = ctx.createImageData(n, n);
+  const rgb = colours.map((c) => {
+    const m = c.trim().match(/^#?([0-9a-f]{6})$/i);
+    const v = m ? parseInt(m[1]!, 16) : 0;
+    return [(v >> 16) & 255, (v >> 8) & 255, v & 255];
+  });
+  for (let i = 0; i < shades.length; i++) {
+    const s = shades[i]!;
+    if (!s) continue;
+    const [r, g, b] = rgb[s - 1]!;
+    image.data.set([r!, g!, b!, 255], i * 4);
+  }
+  ctx.putImageData(image, 0, 0);
+}
+
 // --- SVG ------------------------------------------------------------------------
 
 const DASH_OPACITY = 0.45;
 const r3 = (v: number) => +v.toFixed(2);
 
 /** The solid as SVG, and a function that redraws it at a spin angle. */
-function drawing(radius: number, chamfer: number): { svg: SVGSVGElement; draw: (spinDeg: number) => void } {
+function drawing(radius: number, chamfer: number): { svg: SVGSVGElement; canvas: HTMLCanvasElement; draw: (spinDeg: number) => void } {
   const model = icosahedronModel(radius);
   const size = Math.round(radius * 2.2);
   const el = <K extends keyof SVGElementTagNameMap>(tag: K, cls?: string) => {
@@ -205,7 +287,19 @@ function drawing(radius: number, chamfer: number): { svg: SVGSVGElement; draw: (
   const solid = model.edges.map(() => frontGroup.appendChild(el('line')));
   const frontFacets = model.rings.map(() => frontGroup.appendChild(el('polygon', 'ico-facet')));
 
+  const canvas = document.createElement('canvas');
+  canvas.className = 'ico-px';
+  canvas.setAttribute('aria-hidden', 'true');
   const draw = (spinDeg: number) => {
+    // A theme that sets --ico-pixels gets the 8-bit drawing (the SVG stays, hidden by the theme).
+    const style = canvas.isConnected ? getComputedStyle(canvas) : null;
+    const grid = style ? parseInt(style.getPropertyValue('--ico-pixels'), 10) : NaN;
+    if (grid > 0) {
+      const c = (k: string) => style!.getPropertyValue(k);
+      // It turns in frames, like a sprite: the angle steps by --ico-px-step degrees (12 by default).
+      const step = parseFloat(c('--ico-px-step')) || 12;
+      paintPixels(canvas, grid, Math.round(spinDeg / step) * step, [c('--ico-px-1'), c('--ico-px-2'), c('--ico-px-3'), c('--ico-px-edge')]);
+    }
     const f = frame(model, spinDeg, chamfer);
     f.edges.forEach((e, i) => {
       const cutEnds = [e.x1, e.y1, e.x2, e.y2];
@@ -228,7 +322,7 @@ function drawing(radius: number, chamfer: number): { svg: SVGSVGElement; draw: (
       fp.style.setProperty('--w', String(r3(facet.weight)));
     });
   };
-  return { svg, draw };
+  return { svg, canvas, draw };
 }
 
 const drawings = new WeakMap<HTMLElement, (spinDeg: number) => void>();
@@ -245,14 +339,14 @@ export function drawAt(stage: HTMLElement, spinDeg: number): void {
  * `data-morph-keep` because `attachSpin` owns its drawing once mounted.
  */
 export function icosahedron(radius: number, chamfer = CHAMFER): HTMLElement {
-  const { svg, draw } = drawing(radius, chamfer);
-  draw(START);
+  const { svg, canvas, draw } = drawing(radius, chamfer);
   const stage = document.createElement('div');
   stage.className = 'ico';
   stage.setAttribute('aria-hidden', 'true');
   stage.setAttribute('data-morph-keep', '');
   stage.style.setProperty('--ico-size', `${Math.round(radius * 2.2)}px`);
-  stage.appendChild(svg);
+  stage.append(svg, canvas);
+  draw(START);
   drawings.set(stage, draw);
   return stage;
 }
