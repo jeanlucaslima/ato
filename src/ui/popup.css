@@ -51,7 +51,9 @@
 .strip--idle { border-color: var(--line); background: var(--surface); }
 .strip--idle .dot { background: var(--ink-3); }
 /* Cursor on a boxed item (the bar, Now playing): an even ring all round, no left bar. */
-.strip.is-cursor { border-color: var(--focus); box-shadow: 0 0 0 1.5px var(--focus); }
+/* An outline, not a box-shadow ring: themes give the bar shadows of their own (a glow, an
+   offset print shadow, a frame) that would replace the ring and hide the cursor. */
+.strip.is-cursor { border-color: var(--focus); outline: 1.5px solid var(--focus); outline-offset: 0; }
 
 /* Now playing: audible tabs from any window */
 .playing { flex: none; margin: 0 12px 10px; padding: 3px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
