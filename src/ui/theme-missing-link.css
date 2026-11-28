@@ -80,6 +80,9 @@
 [data-theme='missing-link'] :where(*, *::before, *::after) { border-radius: 0 !important; }
 /* Sprites, each defined once */
 [data-theme='missing-link'] {
+  --s-stud: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 3 3' shape-rendering='crispEdges'><path fill='%23c99a2e' d='M1 0h1v1h-1zM0 1h1v1h-1zM2 1h1v1h-1zM1 2h1v1h-1z'/><path fill='%23fff3b0' d='M1 1h1v1h-1z'/></svg>");
+  --s-arrow: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 7 4' shape-rendering='crispEdges'><path fill='%23ffffff' d='M0 0h7v1h-7zM1 1h5v1h-5zM2 2h3v1h-3zM3 3h1v1h-1z'/></svg>");
+  --s-arrowGold: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 7 4' shape-rendering='crispEdges'><path fill='%23e8c04a' d='M0 0h7v1h-7zM1 1h5v1h-5zM2 2h3v1h-3zM3 3h1v1h-1z'/></svg>");
   --s-grass: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'><path fill='%235fae3e' d='M0 0h3v1h-3zM4 0h4v1h-4zM0 1h1v1h-1zM2 1h4v1h-4zM7 1h1v1h-1zM0 2h4v1h-4zM5 2h3v1h-3zM0 3h7v1h-7zM1 4h2v1h-2zM4 4h4v1h-4zM0 5h6v1h-6zM7 5h1v1h-1zM0 6h1v1h-1zM2 6h6v1h-6zM0 7h4v1h-4zM5 7h3v1h-3z'/><path fill='%234a9130' d='M3 0h1v1h-1zM1 1h1v1h-1zM6 1h1v1h-1zM4 2h1v1h-1zM7 3h1v1h-1zM0 4h1v1h-1zM3 4h1v1h-1zM6 5h1v1h-1zM1 6h1v1h-1zM4 7h1v1h-1z'/></svg>");
   --s-tree: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'><path fill='%232f7a2b' d='M2 0h4v1h-4zM1 1h1v1h-1zM4 1h3v1h-3zM0 2h1v1h-1zM3 2h5v1h-5zM0 3h1v1h-1zM2 3h3v1h-3zM6 3h2v1h-2zM0 4h5v1h-5zM7 4h1v1h-1zM1 5h1v1h-1zM6 5h1v1h-1z'/><path fill='%2358a84a' d='M2 1h2v1h-2zM1 2h2v1h-2zM1 3h1v1h-1z'/><path fill='%231f5a1f' d='M5 3h1v1h-1zM5 4h2v1h-2zM2 5h4v1h-4z'/><path fill='%237a4a24' d='M3 6h2v1h-2zM2 7h4v1h-4z'/></svg>");
   --s-path: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'><path fill='%23dcc28a' d='M0 0h2v1h-2zM3 0h5v1h-5zM0 1h6v1h-6zM7 1h1v1h-1zM0 2h1v1h-1zM2 2h6v1h-6zM0 3h5v1h-5zM6 3h2v1h-2zM0 4h8v1h-8zM0 5h3v1h-3zM4 5h4v1h-4zM0 6h6v1h-6zM7 6h1v1h-1zM1 7h7v1h-7z'/><path fill='%23c9ab6e' d='M2 0h1v1h-1zM6 1h1v1h-1zM1 2h1v1h-1zM5 3h1v1h-1zM3 5h1v1h-1zM6 6h1v1h-1zM0 7h1v1h-1z'/></svg>");
@@ -337,3 +340,82 @@
 .mini[data-theme='missing-link'] .mini-strip { border: 0; background: var(--q-lajo-gold) 0 0 / 4px 4px, var(--amber-fill); box-shadow: 0 -1px 0 0 var(--q-frame), 0 1px 0 0 var(--q-frame), -1px 0 0 0 var(--q-frame), 1px 0 0 0 var(--q-frame); }
 .mini[data-theme='missing-link'] .mini-dot { width: 6px; height: 5px; background: var(--s-chest) 0 0 / 6px 5px; }
 .mini[data-theme='missing-link'] .mini-row.is-cursor { background: var(--q-lajo) 0 0 / 4px 4px, var(--focus-fill); box-shadow: inset 0 0 0 1px var(--focus); }
+
+/* ---- Dialog boxes: settings groups, the toast and the shortcuts panel ----
+   A navy box in a gold double frame with corner studs and a blinking arrow at the
+   bottom right, like a game's text box. Inside, the colours are re-pointed so every
+   control reads on navy. */
+[data-theme='missing-link'] {
+  --ml-gold: #e8c04a; --ml-gold-deep: #7a5a12;
+  --ml-dialog: #1b2660;
+}
+[data-theme='missing-link'][data-variant='night'] { --ml-dialog: #121a45; }
+@media (prefers-color-scheme: dark) { [data-theme='missing-link']:not([data-variant='day']) { --ml-dialog: #121a45; } }
+[data-theme='missing-link'] :is(.settings .group, .toast, .help-panel) {
+  --ink: #f6f3ff; --ink-2: #cfd3f4; --ink-3: #a9b1e3; --key: #f6f3ff;
+  --line: #3e4c92; --line-soft: #2c3874; --surface: var(--ml-dialog); --raised: #2a3678; --canvas: #17215a;
+  --focus: var(--ml-gold); --focus-fill: #2f3a7e;
+  --amber: #ffd45a; --amber-fill: #3a3520; --amber-line: #7a6a30;
+  --danger: #ff8f86; --danger-line: #7a3a40; --danger-fill: #3a2030;
+  --ok: #8be37a; --ok-fill: #20402a; --ok-line: #3f7a45;
+  --q-frame: var(--ml-gold);
+  color: var(--ink);
+  background: var(--s-stud) 3px 3px / 6px 6px no-repeat, var(--s-stud) right 3px top 3px / 6px 6px no-repeat,
+    var(--s-stud) 3px calc(100% - 3px) / 6px 6px no-repeat, var(--s-stud) right 3px bottom 3px / 6px 6px no-repeat, var(--ml-dialog);
+  box-shadow: inset 0 0 0 2px var(--ml-gold), inset 0 0 0 3px var(--ml-gold-deep), inset 0 0 0 5px var(--ml-dialog), inset 0 0 0 6px color-mix(in srgb, var(--ml-gold) 70%, transparent), 3px 3px 0 rgb(0 0 0 / 0.35);
+  border: 0;
+}
+/* The groups carry the arrow; the toast is already positioned (absolute) and keeps that. */
+[data-theme='missing-link'] .settings .group { position: relative; }
+/* The blinking arrow: "there's more" */
+[data-theme='missing-link'] :is(.settings .group, .toast)::after {
+  content: ''; position: absolute; right: 12px; bottom: 9px; width: 10px; height: 6px;
+  background: var(--s-arrow) 0 0 / 10px 6px; animation: ml-blink 1s steps(1) infinite;
+}
+[data-theme='missing-link'] .toast { padding-right: 34px; }
+[data-theme='missing-link'] .help-panel::after {
+  content: ''; display: block; position: sticky; bottom: 0; margin: 6px 0 -8px auto; width: 12px; height: 7px;
+  background: var(--s-arrowGold) 0 0 / 12px 7px; animation: ml-blink 1s steps(1) infinite;
+}
+[data-theme='missing-link'] .help-head { background: var(--ml-dialog); }
+[data-theme='missing-link'] :is(.toast, .help-section dd, .settings .group) { font-family: var(--ml-font); font-size: 17px; line-height: 1.25; }
+[data-theme='missing-link'] .help-section dd { font-size: 17px; }
+@keyframes ml-blink { 50% { opacity: 0; } }
+
+/* ---- The settings page ---- */
+:root[data-theme='missing-link'] body { background: var(--s-fieldDay) 0 0 / 16px 16px, var(--canvas); }
+:root[data-theme='missing-link'][data-variant='night'] body { background: var(--s-stone) 0 0 / 16px 16px, var(--canvas); }
+@media (prefers-color-scheme: dark) { :root[data-theme='missing-link']:not([data-variant='day']) body { background: var(--s-stone) 0 0 / 16px 16px, var(--canvas); } }
+[data-theme='missing-link'] .settings-head { position: relative; padding-bottom: 26px; background: var(--q-band); }
+[data-theme='missing-link'] .settings-head :is(h1, p) { font-family: var(--ml-font); }
+[data-theme='missing-link'] .settings-head h1 { font-size: 40px; font-weight: 400; letter-spacing: 0.1em; }
+[data-theme='missing-link'] .settings-head p { font-size: 18px; color: var(--ink-2); }
+[data-theme='missing-link'] .settings h2 { font-family: var(--ml-font); font-size: 18px; font-weight: 400; letter-spacing: 0.04em; color: var(--ink); }
+[data-theme='missing-link'] .settings h2::before { content: ''; display: inline-block; width: 8px; height: 10px; margin-right: 8px; background: var(--q-pointer) 0 0 / 8px 10px; }
+[data-theme='missing-link'] .settings kbd { font-family: var(--ml-font); font-size: 15px; font-weight: 400; background: var(--raised); color: var(--ink); }
+[data-theme='missing-link'] .ico line { shape-rendering: crispEdges; }
+/* Choices: the chosen one sits in a gold slot */
+[data-theme='missing-link'] .settings .choice { background: var(--canvas); border: 0; box-shadow: inset 0 0 0 1px var(--line); }
+[data-theme='missing-link'] .settings .choice-opt span { font-family: var(--ml-font); font-size: 17px; }
+[data-theme='missing-link'] .settings .choice-opt input:checked + span { background: var(--raised); color: var(--ml-gold); font-weight: 400; box-shadow: inset 0 0 0 2px var(--ml-gold); }
+/* Switches: a square pixel toggle */
+[data-theme='missing-link'] .settings .switch { border: 0; background: var(--canvas); box-shadow: inset 0 0 0 2px var(--line); }
+[data-theme='missing-link'] .settings .switch::before { background: var(--ink-3); }
+[data-theme='missing-link'] .settings .switch:checked { background: var(--ok-fill); box-shadow: inset 0 0 0 2px var(--ok); }
+[data-theme='missing-link'] .settings .switch:checked::before { background: var(--ml-gold); }
+/* Theme cards: item slots; the chosen one has the gold frame and the pointer */
+[data-theme='missing-link'] .theme-card:has(input:checked) { box-shadow: 0 -2px 0 0 var(--ml-gold), 0 2px 0 0 var(--ml-gold), -2px 0 0 0 var(--ml-gold), 2px 0 0 0 var(--ml-gold); }
+[data-theme='missing-link'] .theme-card:has(input:checked) .theme-name::before { content: ''; display: inline-block; width: 8px; height: 10px; margin-right: 6px; background: var(--q-pointer) 0 0 / 8px 10px; }
+[data-theme='missing-link'] :is(.theme-name, .theme-tag) { font-family: var(--ml-font); }
+[data-theme='missing-link'] .theme-name { font-size: 18px; font-weight: 400; }
+[data-theme='missing-link'] .theme-tag { font-size: 15px; }
+[data-theme='missing-link'] .theme-new { font-family: var(--ml-font); font-size: 13px; font-weight: 400; background: var(--ml-gold); color: #2a2414; }
+[data-theme='missing-link'] .settings-foot { font-family: var(--ml-font); font-size: 16px; }
+/* Inside the boxes: VT323 is small for its size, so labels and notes go up a step */
+[data-theme='missing-link'] .settings .setting-title { font-size: 20px; font-weight: 400; }
+[data-theme='missing-link'] .settings .setting-note { font-size: 16px; line-height: 1.25; color: var(--ink-2); }
+[data-theme='missing-link'] .settings .setting { padding: 14px 18px; }
+[data-theme='missing-link'] .settings section > p { font-family: var(--ml-font); font-size: 17px; }
+@media (prefers-reduced-motion: reduce) {
+  [data-theme='missing-link'] :is(.settings .group, .toast, .help-panel)::after { animation: none; }
+}
