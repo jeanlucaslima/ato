@@ -3,6 +3,7 @@ import '../ui/popup.css';
 import '../ui/settings.css';
 import './screens.css';
 import './proto-themes.css';
+import './proto-quest.css';
 import { CHOICES, DEFAULT_SETTINGS, readSettings, type Settings } from '../core/settings';
 import { mountApp, type App } from '../ui/app';
 import { h } from '../ui/dom';
@@ -37,8 +38,7 @@ function mountFixture(slot: HTMLElement, fixture: Fixture): App {
 
 
 /** Prototype themes (gallery only, see proto-themes.css): `?proto=holo` wears one over every screen. */
-const PROTOS = { holo: 'Holo', blueprint: 'Blueprint', glacier: 'Glacier' } as const;
-type Proto = keyof typeof PROTOS;
+const PROTOS = { holo: 'Holo', blueprint: 'Blueprint', glacier: 'Glacier', quest: 'Quest', 'quest-day': 'Quest · day', 'quest-night': 'Quest · night' } as const;type Proto = keyof typeof PROTOS;
 const isProto = (v: string | null): v is Proto => v !== null && v in PROTOS;
 const fromUrl = new URLSearchParams(location.search).get('proto');
 let proto: Proto | null = isProto(fromUrl) ? fromUrl : null;
