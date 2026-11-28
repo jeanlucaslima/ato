@@ -26,6 +26,18 @@ export interface LogoOptions {
   weight?: number;
   /** Dashes per hidden edge; small renders need fewer. */
   dashes?: number;
+  /**
+   * Hold the scale and centre at these (`logoFrame` of the resting view) instead of
+   * fitting each angle: a turning logo keeps its size and place rather than pulsing.
+   */
+  frame?: LogoFrame | null;
+}
+
+/** The scale and centre a render fits to. */
+export interface LogoFrame {
+  span: number;
+  cx: number;
+  cy: number;
 }
 
 const DEFAULTS: Required<LogoOptions> = {
@@ -39,6 +51,7 @@ const DEFAULTS: Required<LogoOptions> = {
   hiddenOpacity: 0.45,
   weight: 1,
   dashes: 6,
+  frame: null,
 };
 
 /**
@@ -99,6 +112,26 @@ export function logoEdges(options: LogoOptions = {}): Edge[] {
   return [...edges.values()];
 }
 
+function fitFrame(edges: readonly { p: [number, number]; q: [number, number] }[]): LogoFrame {
+  const xs = edges.flatMap((e) => [e.p[0], e.q[0]]);
+  const ys = edges.flatMap((e) => [e.p[1], e.q[1]]);
+  return {
+    span: Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)),
+    cx: (Math.max(...xs) + Math.min(...xs)) / 2,
+    cy: (Math.max(...ys) + Math.min(...ys)) / 2,
+  };
+}
+
+/** The frame `logoSvg` fits these options to, to hold it while the logo turns. */
+export function logoFrame(options: LogoOptions = {}): LogoFrame {
+  const o = withDefaults(options);
+  const project = ([x, y, z]: Vec): [number, number] => {
+    const k = Number.isFinite(o.distance) ? o.distance / (o.distance - z) : 1;
+    return [x * k, y * k];
+  };
+  return fitFrame(logoEdges(o).map((e) => ({ p: project(e.a), q: project(e.b) })));
+}
+
 export function logoSvg(options: LogoOptions = {}): string {
   const o = withDefaults(options);
   const project = ([x, y, z]: Vec): [number, number] => {
@@ -106,14 +139,10 @@ export function logoSvg(options: LogoOptions = {}): string {
     return [x * k, y * k];
   };
   const edges = logoEdges(o).map((e) => ({ ...e, p: project(e.a), q: project(e.b) }));
-  // Fit the drawing in the middle of the canvas.
-  const xs = edges.flatMap((e) => [e.p[0], e.q[0]]);
-  const ys = edges.flatMap((e) => [e.p[1], e.q[1]]);
-  const span = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
+  // Fit the drawing in the middle of the canvas (or hold a given frame).
+  const { span, cx, cy } = o.frame ?? fitFrame(edges);
   const fit = o.background ? 0.74 : 0.9;
   const scale = (o.size * fit) / span;
-  const cx = (Math.max(...xs) + Math.min(...xs)) / 2;
-  const cy = (Math.max(...ys) + Math.min(...ys)) / 2;
   const at = ([x, y]: [number, number]) => [o.size / 2 + (x - cx) * scale, o.size / 2 + (y - cy) * scale].map((n) => +n.toFixed(2));
   // Same weight as the spinning logo: 3.6% of an edge.
   const edgeLen = 1.0514622 * scale;

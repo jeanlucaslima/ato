@@ -4,7 +4,9 @@
  */
 import type { Action, Effect } from './actions';
 import type { BrowserPort } from './browser';
+import { drawBrandMark, MARK_START } from './chrome';
 import { deriveModel } from './derive';
+import { attachHoverSpin } from './icosahedron';
 import { resolveKey } from './keys';
 import type { ItemKey } from './model';
 import { keptReason } from '../core/duplicates';
@@ -88,7 +90,15 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
     afterRender(root);
   }
 
+  /** The header logo turns while the pointer is over it; its controller is started once per logo element. */
+  let logo: { el: HTMLElement; stop: () => void } | null = null;
+
   function afterRender(root: HTMLElement): void {
+    const mark = root.querySelector<HTMLElement>('.brand-logo');
+    if (mark && mark !== logo?.el) {
+      logo?.stop();
+      logo = { el: mark, stop: attachHoverSpin(mark, (deg) => drawBrandMark(mark, deg), MARK_START) };
+    }
     // A render can remove the focused element (review replaces the search field):
     // keep focus in the popup, or keys stop reaching it.
     const active = document.activeElement;
@@ -393,6 +403,7 @@ export function mountApp(container: HTMLElement, browser: BrowserPort | null, in
     dispatch,
     destroy() {
       unsubscribe?.();
+      logo?.stop();
       for (const id of timers) clearTimeout(id);
       container.removeEventListener('click', onClick);
       container.removeEventListener('input', onInput);

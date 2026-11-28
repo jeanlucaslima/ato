@@ -2,7 +2,7 @@
 import { cls, h } from './dom';
 import { num, plural, shortNum } from './format';
 import { icon } from './icons';
-import { logoSvg } from './logo-svg';
+import { logoFrame, logoSvg } from './logo-svg';
 import { PLAYING_ROWS, type ItemKey, type PopupModel, type Scope, type SearchField, type SearchMode, type SiteSort, type TabRow, type TabSort } from './model';
 
 /**
@@ -10,10 +10,21 @@ import { PLAYING_ROWS, type ItemKey, type PopupModel, type Scope, type SearchFie
  * the theme), with heavier lines and fewer dashes than the big renders. Static,
  * trusted markup computed once.
  */
-const MARK = logoSvg({ size: 28, spin: 100, pitch: -18, background: null, color: 'currentColor', weight: 2.4, dashes: 3, hiddenOpacity: 0.5 });
+const MARK_OPTIONS = { size: 28, pitch: -18, background: null, color: 'currentColor', weight: 2.4, dashes: 3, hiddenOpacity: 0.5 } as const;
+/** The angle the logo rests at. */
+export const MARK_START = 100;
+const MARK = logoSvg({ ...MARK_OPTIONS, spin: MARK_START });
+/** Held while it turns, so it keeps its resting size and place. */
+const MARK_FRAME = logoFrame({ ...MARK_OPTIONS, spin: MARK_START });
+
+/** Paint the header logo at `spinDeg` (it turns while the pointer is over it: `attachHoverSpin`). */
+export function drawBrandMark(el: HTMLElement, spinDeg: number): void {
+  el.innerHTML = logoSvg({ ...MARK_OPTIONS, spin: spinDeg, frame: MARK_FRAME });
+}
 
 function brandMark(): HTMLElement {
-  const el = h('span', { class: 'brand-logo', 'aria-hidden': 'true' });
+  // A controller owns its drawing once mounted, so a re-render leaves it be.
+  const el = h('span', { class: 'brand-logo', 'aria-hidden': 'true', 'data-morph-keep': '' });
   el.innerHTML = MARK;
   return el;
 }

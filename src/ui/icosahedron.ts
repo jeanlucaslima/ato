@@ -273,9 +273,9 @@ const SETTLE_S = 5;
 const DEG_PER_PX = 0.6;
 const MAX_FLING = 360;
 
-/** Advance a free spin by `dt` seconds: any fling eases toward the steady `auto` speed. */
-export function coast(spin: Spin, dt: number, auto: number): Spin {
-  const velocity = auto + (spin.velocity - auto) * Math.exp(-dt / SETTLE_S);
+/** Advance a free spin by `dt` seconds: any fling eases toward the steady `auto` speed (time constant `settle`). */
+export function coast(spin: Spin, dt: number, auto: number, settle = SETTLE_S): Spin {
+  const velocity = auto + (spin.velocity - auto) * Math.exp(-dt / settle);
   return { angle: (spin.angle + ((spin.velocity + velocity) / 2) * dt) % 360, velocity };
 }
 
@@ -293,21 +293,55 @@ export function attachSpin(
 ): () => void {
   const draw = drawings.get(stage);
   if (!draw) return () => {};
-  const speed = reducedMotion ? 0 : AUTO_SPEED;
-  /** Steady speed to settle to; follows the direction of the last fling. */
-  let auto = speed;
-  let spin: Spin = { angle: START, velocity: auto };
+  return spin(stage, draw, { reducedMotion, rate, start: START });
+}
+
+/** How fast the popup's logo turns while the pointer is over it (deg/s), and how quickly it gets there or stops (s). */
+const HOVER_SPEED = 45;
+const HOVER_SETTLE_S = 0.6;
+
+/**
+ * The popup's logo: still until the pointer is over it, then it turns, and
+ * eases to a stop when the pointer leaves. Drag and fling work as on the
+ * settings page. `draw` paints it at an angle. Returns a stop function.
+ */
+export function attachHoverSpin(
+  stage: HTMLElement,
+  draw: (spinDeg: number) => void,
+  start: number,
+  reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches,
+): () => void {
+  return spin(stage, draw, { reducedMotion, rate: () => 1, start, hover: true });
+}
+
+function spin(
+  stage: HTMLElement,
+  draw: (spinDeg: number) => void,
+  opts: { reducedMotion: boolean; rate: () => number; start: number; hover?: boolean },
+): () => void {
+  const { reducedMotion, rate, hover = false } = opts;
+  const speed = reducedMotion ? 0 : hover ? HOVER_SPEED : AUTO_SPEED;
+  const settle = hover ? HOVER_SETTLE_S : SETTLE_S;
+  /** Direction of the last fling: the turn keeps it. */
+  let direction = 1;
+  let over = false;
+  /** Steady speed to settle to: the slow turn, or (hover) a turn only while the pointer is over it. */
+  const auto = () => (hover && !over ? 0 : direction * speed);
+  let turnState: Spin = { angle: opts.start, velocity: hover ? 0 : auto() };
   let drag: { x: number; t: number } | null = null;
   let frame = 0;
   let last = 0;
 
-  const paint = () => draw(spin.angle);
+  const paint = () => draw(turnState.angle);
   const tick = (now: number) => {
     const dt = Math.min((now - last) / 1000, 0.1);
     last = now;
-    if (!drag) spin = coast(spin, dt * rate(), auto);
+    if (!drag) turnState = coast(turnState, dt * rate(), auto(), settle);
+    // Winding down to a standstill: below half a degree a second it has stopped.
+    if (!drag && auto() === 0 && Math.abs(turnState.velocity) < 0.5) turnState = { ...turnState, velocity: 0 };
     paint();
-    frame = drag || Math.abs(spin.velocity) > 0.01 ? requestAnimationFrame(tick) : 0;
+    const moving = Math.abs(turnState.velocity) > 0.01 || Math.abs(turnState.velocity - auto()) > 0.01;
+    frame = drag || moving ? requestAnimationFrame(tick) : 0;
   };
   const run = () => {
     if (frame) return;
@@ -319,7 +353,7 @@ export function attachSpin(
     if (e.button !== 0) return;
     stage.setPointerCapture(e.pointerId);
     drag = { x: e.clientX, t: e.timeStamp };
-    spin = { ...spin, velocity: 0 };
+    turnState = { ...turnState, velocity: 0 };
     stage.classList.add('is-dragging');
     run();
   };
@@ -327,19 +361,27 @@ export function attachSpin(
     if (!drag) return;
     const turn = (e.clientX - drag.x) * DEG_PER_PX;
     const dt = Math.max((e.timeStamp - drag.t) / 1000, 0.004);
-    spin = { angle: spin.angle + turn, velocity: 0.6 * spin.velocity + 0.4 * (turn / dt) };
+    turnState = { angle: turnState.angle + turn, velocity: 0.6 * turnState.velocity + 0.4 * (turn / dt) };
     drag = { x: e.clientX, t: e.timeStamp };
   };
   const onUp = (e: PointerEvent) => {
     if (!drag) return;
     // Holding still before letting go means "stop here", not "fling".
     const held = e.timeStamp - drag.t > 150;
-    const fling = held || reducedMotion ? 0 : Math.max(-MAX_FLING, Math.min(MAX_FLING, spin.velocity));
-    // It keeps turning the way it was thrown, winding down to the slow turn.
-    if (fling !== 0) auto = Math.sign(fling) * speed;
-    spin = { ...spin, velocity: fling };
+    const fling = held || reducedMotion ? 0 : Math.max(-MAX_FLING, Math.min(MAX_FLING, turnState.velocity));
+    // It keeps turning the way it was thrown, winding down to the steady turn.
+    if (fling !== 0) direction = Math.sign(fling);
+    turnState = { ...turnState, velocity: fling };
     drag = null;
     stage.classList.remove('is-dragging');
+    run();
+  };
+  const onEnter = () => {
+    over = true;
+    run();
+  };
+  const onLeave = () => {
+    over = false;
     run();
   };
 
@@ -347,6 +389,10 @@ export function attachSpin(
   stage.addEventListener('pointermove', onMove);
   stage.addEventListener('pointerup', onUp);
   stage.addEventListener('pointercancel', onUp);
+  if (hover) {
+    stage.addEventListener('pointerenter', onEnter);
+    stage.addEventListener('pointerleave', onLeave);
+  }
   paint();
   run();
 
@@ -356,5 +402,7 @@ export function attachSpin(
     stage.removeEventListener('pointermove', onMove);
     stage.removeEventListener('pointerup', onUp);
     stage.removeEventListener('pointercancel', onUp);
+    stage.removeEventListener('pointerenter', onEnter);
+    stage.removeEventListener('pointerleave', onLeave);
   };
 }
